@@ -1,0 +1,103 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>Charm.Renderer</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputPath>..\Charm_Main\Charm\Charm\bin\$(Platform)\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Shaders\blit.hlsl" />
+    <None Remove="Shaders\blit_linear.hlsl" />
+    <None Remove="Shaders\blit_srgb.hlsl" />
+    <None Remove="Shaders\clear_ao.hlsl" />
+    <None Remove="Shaders\entity_vs_override.hlsl" />
+    <None Remove="Shaders\entity_vs_override_vc.hlsl" />
+    <None Remove="Shaders\full_hemi_sky_temp_ps.hlsl" />
+    <None Remove="Shaders\full_hemi_sky_temp_vs.hlsl" />
+    <None Remove="Shaders\grid.hlsl" />
+    <None Remove="Shaders\investment_ps_override.hlsl" />
+    <None Remove="Shaders\investment_vs_override.hlsl" />
+    <None Remove="Shaders\investment_vs_override_vc.hlsl" />
+    <None Remove="Shaders\matcap.hlsl" />
+    <None Remove="Textures\matcap.png" />
+    <None Remove="Textures\matcap_new.png" />
+    <None Remove="Textures\matcap_specular.png" />
+    <None Remove="Textures\matcap_specular_new.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ConcurrentHashSet" Version="1.3.0" />
+    <PackageReference Include="Evergine.Bindings.RenderDoc" Version="2024.10.7.18" />
+    <PackageReference Include="HelixToolkit" Version="2.27.0" />
+    <PackageReference Include="HelixToolkit.SharpDX.Assimp" Version="2.27.0" />
+    <PackageReference Include="HelixToolkit.SharpDX.Core" Version="2.27.0" />
+    <PackageReference Include="HelixToolkit.SharpDX.Core.Wpf" Version="2.27.0" />
+    <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
+    <PackageReference Include="TracyWrapper" Version="0.20.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Shaders\blit.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\blit_linear.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\clear_ao.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\entity_vs_override.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\entity_vs_override_vc.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\full_hemi_sky_temp_ps.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\full_hemi_sky_temp_vs.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\grid.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\investment_vs_override.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\investment_vs_override_vc.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\matcap.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\postprocess.ps.cso">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shaders\postprocess.ps.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\matcap.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\matcap_new.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\matcap_specular.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\matcap_specular_new.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Charm_Main\Charm\Charm.Shared\Charm.Shared.csproj" />
+    <ProjectReference Include="..\Charm_Main\Charm\Tiger\Tiger.csproj" />
+  </ItemGroup>
+
+
+</Project>

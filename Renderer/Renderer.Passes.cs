@@ -1,0 +1,235 @@
+﻿using SharpDX.Direct3D;
+using SharpDX.Mathematics.Interop;
+using Tiger;
+
+namespace Charm.Renderer;
+
+public partial class CharmRenderer
+{
+    public RenderPass DisplayPass = RenderPass.Combined;
+
+    private Dictionary<string, MaterialData> _pipelineCache = new();
+
+    private void RenderGBuffer()
+    {
+        GBuffers.SetRenderTargets(Context);
+        Context.Rasterizer.SetViewport(GBuffers.RT0.GetViewport());
+
+        SetStencilRef(7);
+        CreateStates(new(0, 2, 2, 0));
+        RenderMesh(TfxRenderStage.GenerateGbuffer, "GBuffer Pass");
+
+        Externs.Deferred.Update(Context, GBuffers);
+        Externs.Decal.Update(Context, GBuffers);
+
+        TfxScopes[Tiger.TfxScope.DECAL].Bind(Context);
+
+        // Decal Pass
+        CreateStates(new(8, 15, 2, 1));
+        RenderMesh(TfxRenderStage.Decals, "Decal Pass");
+
+        // Vertex AO workaround
+        CreateStates(new(0, 0, 0, 0));
+        GBuffers.RT2.CopyTo(Context, GBuffers.RT2_Clone);
+
+        Context.OutputMerger.SetRenderTargets(null, null, null, GBuffers.RT2.RTV);
+        Context.VertexShader.Set(_clearAOVS);
+        Context.PixelShader.Set(_clearAOPS);
+        Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+        Context.PixelShader.SetShaderResources(0, GBuffers.RT2_Clone.SRV);
+
+        Context.Draw(4, 0);
+    }
+
+    private void RenderAtmosphere()
+    {
+        //UnbindAllRTVs();
+        if (!Viewport.RenderSky)
+        {
+            //Externs.Atmosphere.AtmosFar = null;
+            //Externs.Atmosphere.AtmosNear = null;
+            return;
+        }
+
+        var far = GBuffers.SkyGenerateFar;
+        var near = GBuffers.SkyGenerateNear;
+        var hemisphere = GBuffers.FullHemisphereSkyColor;
+        var depthangle = GBuffers.DepthAngleDensityLookup;
+
+        Externs.Frame.Unk10 = Viewport.TimeOfDay;
+        Externs.Atmosphere.RTDimensions = new(far.Width, far.Height, 1f / far.Width, 1f / far.Height);
+        Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
+        //Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
+        //Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
+        Externs.Atmosphere.AtmosSunColor = new System.Numerics.Vector4(1.0f, 0.95f, 0.85f, 1.0f) * MathF.Sin(MathF.PI * Math.Clamp(Viewport.TimeOfDay, 0.1f, 0.9f));
+        //Externs.Atmosphere.AtmosTimeOfDay = 0.75f;
+
+        GlobalChannels.Set(43, System.Numerics.Vector4.Zero);
+
+        far.Bind(Context);
+        RenderGlobalPipeline("sky_lookup_generate_far");
+        Externs.Atmosphere.AtmosFar = far.SRV;
+        Externs.Transparent.AtmosFarLookup = far.SRV;
+
+        near.Bind(Context);
+        RenderGlobalPipeline("sky_lookup_generate_near");
+        Externs.Atmosphere.AtmosNear = near.SRV;
+        Externs.Transparent.AtmosNearLookup = far.SRV;
+
+        depthangle.Bind(Context);
+        RenderGlobalPipeline("atmo_depth_angle_density_lookup_generate");
+        Externs.Transparent.AtmosDepthAngleDensity = depthangle.SRV;
+
+        hemisphere.Bind(Context);
+        //RenderGlobalPipeline("full_hemisphere_sky_color_generate");
+        {
+            Annotation.BeginEvent($"Global Pipeline: full_hemisphere_sky_color_generate");
+            ExecutePipeline("full_hemisphere_sky_color_generate");
+            Externs.Deferred.SkyHemisphereMips = hemisphere.SRV;
+
+            Context.VertexShader.Set(_fullHemiSkyTempVS);
+            Context.PixelShader.Set(_fullHemiSkyTempPS);
+
+            Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+            Context.Draw(4, 0);
+            Annotation.EndEvent();
+        }
+        //MatCapRenderer.MatCapSpecular = hemisphere.SRV;
+    }
+
+    private void RenderMatCap()
+    {
+        Annotation.BeginEvent("Matcap");
+        //UnbindAllRTVs();
+
+        CreateStates(new(0, 0, 0, 0));
+        Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
+        Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0.001f, 0.001f, 0.001f, 0));
+        Context.ClearRenderTargetView(GBuffers.LightSpecular.RTV, new RawColor4(0, 0, 0, 0));
+
+        if (Viewport.RenderSky)
+        {
+            //GlobalChannels.Set(139, new(1));
+            RenderGlobalPipeline("cubemap_apply_sky_copy_ao");
+        }
+        else
+            MatCapRenderer.Draw(Context, Externs);
+
+        Annotation.EndEvent();
+    }
+
+    private void RenderShading()
+    {
+        Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
+
+        // Sky
+        if (Viewport.RenderSky)
+        {
+            SetStencilRef(0x10);
+            CreateStates(new(0, 77, 0, 0));
+            Context.VertexShader.Set(_blitVS);
+            Context.PixelShader.Set(null);
+            Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+            Context.Draw(4, 0);
+
+            SetStencilRef(0);
+            CreateStates(new(0, 50, 0, 0));
+            RenderGlobalPipeline("sky");
+
+            SetStencilRef(0);
+            CreateStates(new(0, 31, 0, 0));
+            //RenderGlobalPipeline("deferred_shading");
+        }
+        else
+        {
+            SetStencilRef(0);
+            CreateStates(new(0, 0, 0, 0));
+        }
+        RenderGlobalPipeline("deferred_shading_no_atm");
+    }
+
+    private void RenderTransparent()
+    {
+        SetStencilRef(4);
+        Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
+
+        TempScopes.UpdateTransparentAdvancedScope(Context);
+
+        // Decal Additive Pass
+        CreateStates(new(8, 15, 2, 1));
+        RenderMesh(TfxRenderStage.DecalsAdditive, "Decal Additive Pass");
+
+        TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(Context);
+        GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
+        Externs.Transparent.ShadingResult = GBuffers.Shading_Clone.SRV;
+
+        // Transparent Pass
+        CreateStates(new(8, 15, 2, 1));
+        RenderMesh(TfxRenderStage.Transparents, "Transparent Pass");
+    }
+
+    private void RenderMesh(TfxRenderStage renderStage, string passName)
+    {
+        Annotation.BeginEvent(passName);
+        foreach (var renderable in World.RenderObjects)
+        {
+            renderable?.Bind(this, renderStage);
+        }
+        Annotation.EndEvent();
+    }
+
+    private void RenderGlobalPipeline(string name)
+    {
+        Annotation.BeginEvent($"Global Pipeline: {name}");
+        ExecutePipeline(name);
+
+        Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+        Context.Draw(4, 0);
+        Annotation.EndEvent();
+    }
+
+    private void Blit()
+    {
+        Annotation.BeginEvent("Blit");
+
+        Context.VertexShader.Set(_blitVS);
+        Context.PixelShader.Set(_blitPS);
+        Context.PixelShader.SetSampler(0, _pointSampler);
+
+        _rtFinal.CopyTo(Context, _rtFinal_Clone);
+        _rtFinal_Clone.SetShaderResource(Context, 0, ShaderStage.Pixel);
+
+        Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+        Context.Draw(4, 0);
+
+        Annotation.EndEvent();
+    }
+
+    private void BlitToWPF(RenderTarget2D rt)
+    {
+        Annotation.BeginEvent("Blit To WPF");
+
+        _rtFinal.SetRenderTarget(Context, true);
+        Context.VertexShader.Set(_blitVS);
+        Context.PixelShader.Set(_blitPS);
+        Context.PixelShader.SetSampler(0, _pointSampler);
+
+        rt.SetShaderResource(Context, 0, ShaderStage.Pixel);
+
+        Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+        Context.Draw(4, 0);
+
+        Annotation.EndEvent();
+    }
+
+    public enum RenderPass
+    {
+        Combined = 0,
+        Albedo = 1,
+        Normals = 2,
+        Metal = 4,
+        AO = 5,
+        Smoothness = 6,
+        Emissive = 7,
+    }
+}

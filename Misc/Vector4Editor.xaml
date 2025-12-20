@@ -1,0 +1,69 @@
+﻿<UserControl
+    x:Class="Charm.Renderer.Vector4Editor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Charm.Renderer"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <local:FloatConverter x:Key="FloatConverter" />
+
+        <Style x:Key="DraggableNumericTextBox" TargetType="TextBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Background" Value="{StaticResource BackgroundColour14a}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ForegroundColour60}" />
+            <Setter Property="Foreground" Value="{StaticResource ForegroundColour90}" />
+            <Setter Property="Width" Value="50" />
+            <Setter Property="Margin" Value="2,0,2,0" />
+            <Setter Property="Cursor" Value="SizeWE" />
+            <Setter Property="TextAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <EventSetter Event="CommandManager.PreviewExecuted" Handler="TextBox_PreviewExecuted" />
+            <EventSetter Event="PreviewTextInput" Handler="NumericOnly" />
+            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DragEdit_MouseDown" />
+            <EventSetter Event="PreviewMouseLeftButtonUp" Handler="DragEdit_MouseUp" />
+            <EventSetter Event="PreviewMouseMove" Handler="DragEdit_MouseMove" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal">
+        <TextBox Style="{StaticResource DraggableNumericTextBox}" Text="{Binding X, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FloatConverter}}" />
+
+        <TextBox
+            Style="{StaticResource DraggableNumericTextBox}"
+            Text="{Binding Y, Converter={StaticResource FloatConverter}}"
+            Visibility="{Binding IsFloat, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+        <TextBox
+            Style="{StaticResource DraggableNumericTextBox}"
+            Text="{Binding Z, Converter={StaticResource FloatConverter}}"
+            Visibility="{Binding IsFloat, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+        <TextBox
+            Style="{StaticResource DraggableNumericTextBox}"
+            Text="{Binding W, Converter={StaticResource FloatConverter}}"
+            Visibility="{Binding IsFloat, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+        <Button
+            Margin="5,0,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Panel.ZIndex="1"
+            Click="Reset_Click"
+            Focusable="False"
+            Style="{StaticResource D2StyleButtonNoOverlay}">
+
+            <TextBlock
+                Margin="0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="18"
+                FontWeight="Regular"
+                Foreground="White"
+                Text="⟳" />
+
+        </Button>
+
+    </StackPanel>
+</UserControl>
