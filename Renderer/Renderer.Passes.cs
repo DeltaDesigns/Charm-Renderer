@@ -7,7 +7,7 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
-	public RenderPass DisplayPass = RenderPass.final_combine;
+	public RenderPass DisplayPass = RenderPass.final;
 
 	private Dictionary<string, MaterialData> _pipelineCache = new();
 
@@ -172,6 +172,59 @@ public partial class CharmRenderer
 		// Transparent Pass
 		CreateStates(new(8, 15, 2, 1));
 		RenderMesh(TfxRenderStage.Transparents, "Transparent Pass");
+
+		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
+	}
+
+	private void RenderPostProcess()
+	{
+		Annotation.BeginEvent("Post Process");
+
+		//Externs.PostProcess.Update(Context, GBuffers);
+		Externs.ScreenArea.Update(Context, GBuffers);
+		TempScopes.UpdateColorGradingScope(Context);
+
+		CreateStates(new(0, 0, 0, 0));
+		GBuffers.ColorGradingLUT.Bind(Context);
+		RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
+
+		{ // TODO, let interpreter handle resource binding
+			Annotation.BeginEvent($"Global Pipeline: color_grading_convert_to_volume_texture_hdr");
+			UnbindAllRTVs();
+
+			ExecutePipeline("color_grading_convert_to_volume_texture_hdr");
+			Context.VertexShader.Set(null);
+			Context.PixelShader.Set(null);
+
+			Context.ComputeShader.SetShaderResource(0, GBuffers.ColorGradingLUT.SRV);
+			Context.ComputeShader.SetUnorderedAccessView(0, GBuffers.LUTVolume.UAV);
+
+			int groupsX = (GBuffers.LUTVolume.Width + 7) / 8;
+			int groupsY = (GBuffers.LUTVolume.Height + 7) / 8;
+			int groupsZ = GBuffers.LUTVolume.Depth;
+
+			Context.Dispatch(groupsX, groupsY, groupsZ);
+			Context.ComputeShader.SetUnorderedAccessView(0, null);
+			Context.ComputeShader.SetShaderResource(0, null);
+			Context.ComputeShader.Set(null);
+
+			Annotation.EndEvent();
+		}
+
+		CreateStates(new(0, 0, 0, 0));
+		Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
+		Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
+		Context.Rasterizer.SetViewport(GBuffers.Shading.GetViewport());
+
+		RenderGlobalPipeline("screen_area_global_lut3d");
+
+		// I cant notice a difference here, not sure whats going on
+		//GBuffers.Shading_Clone.SetRenderTarget(Context, false);
+		//Externs.Fxaa.Update(Context, GBuffers);
+		//RenderGlobalPipeline("fxaa");
+		//Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
+
+		Annotation.EndEvent();
 	}
 
 	private void RenderMesh(TfxRenderStage renderStage, string passName)
@@ -230,8 +283,10 @@ public partial class CharmRenderer
 
 	public enum RenderPass
 	{
-		[Description("Final")] final_combine,
-		[Description("Final (No Color Grading)")] final_combine_no_film_curve,
+		[Description("Final")] final,
+		[Description("Final (No Color Grading)")] final_combine_no_pp,
+
+		// Actual pipelines
 		[Description("Albedo")] debug_source_color,
 		[Description("Normals")] debug_world_normal,
 		[Description("Metal")] debug_metalness,

@@ -227,10 +227,11 @@ public partial class CharmRenderer : IDisposable
 		RenderShading();
 		RenderTransparent();
 
-		Externs.PostProcess.Update(Context, GBuffers);
-
 		CreateStates(new(0, 0, 0, 0));
-		if (DisplayPass != RenderPass.final_combine_no_film_curve)
+		if (DisplayPass == RenderPass.final)
+			RenderPostProcess();
+
+		if (DisplayPass > RenderPass.final_combine_no_pp)
 			RenderGlobalPipeline(DisplayPass.ToString());
 
 		if (Viewport.ShowGrid)
@@ -254,8 +255,6 @@ public partial class CharmRenderer : IDisposable
 		if (_captured & !KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
 			_captured = false;
 #endif
-
-		//GpuDisposalQueue.Flush(maxPerFrame: 32);
 	}
 
 	private void UpdateCamera(RenderWorld world)

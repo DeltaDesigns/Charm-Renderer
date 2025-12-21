@@ -108,7 +108,7 @@ public partial class RendererViewport : UserControl
 		if (tag is not null && tag is CharmRenderer.RenderPass pass)
 			Renderer.DisplayPass = pass;
 		else
-			Renderer.DisplayPass = CharmRenderer.RenderPass.final_combine;
+			Renderer.DisplayPass = CharmRenderer.RenderPass.final;
 	}
 
 	private void OnSizeChanged(object sender, SizeChangedEventArgs args)

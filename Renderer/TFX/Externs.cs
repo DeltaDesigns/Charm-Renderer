@@ -24,6 +24,8 @@ public class Externs : IDisposable
 		Decal = new();
 		ShadowMask = new();
 		PostProcess = new();
+		ScreenArea = new();
+		Fxaa = new();
 	}
 
 	public ExternFrame Frame;
@@ -34,6 +36,8 @@ public class Externs : IDisposable
 	public ExternDecal Decal;
 	public ExternShadowMask ShadowMask;
 	public ExternPostProcess PostProcess;
+	public ExternScreenArea ScreenArea;
+	public ExternFxaa Fxaa;
 
 	public class ExternFrame : IDisposable
 	{
@@ -59,6 +63,7 @@ public class Externs : IDisposable
 
 		public void Update(CharmRenderer renderer)
 		{
+			ExposureScale = 0.85f;
 			GameTime = renderer.Time;
 			RenderTime = renderer.Time;
 			DeltaTime = renderer.DeltaTime;
@@ -397,6 +402,87 @@ public class Externs : IDisposable
 		}
 	}
 
+	public class ExternScreenArea : IDisposable
+	{
+		[ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
+		[ExternField(0x30)] public ShaderResourceView Unk30 { get; set; }
+		[ExternField(0x38)] public ShaderResourceView Unk38 { get; set; }
+		[ExternField(0x40)] public ShaderResourceView Unk40 { get; set; }
+		[ExternField(0x50)] public ShaderResourceView Unk50 { get; set; }
+		[ExternField(0x58)] public ShaderResourceView Unk58 { get; set; }
+
+		[ExternField(0x7C)] public float Unk7C { get; set; } = 0.9968f;
+		[ExternField(0x90)] public Vector4 LUTDimensions { get; set; } = new(32f, 1024f, 0, 0); // height x width
+		[ExternField(0xA0)] public Vector4 UnkA0 { get; set; } = new(0.03125f, -5.00f, 14.00f, 2.50f);
+		[ExternField(0xB0)] public float UnkB0 { get; set; } = 0.5f;
+		[ExternField(0xB4)] public float UnkB4 { get; set; } = 2f;
+		[ExternField(0xB8)] public float UnkB8 { get; set; } = 0f;
+		[ExternField(0xC0)] public Vector4 UnkC0 { get; set; } = new(0f, 0.4f, -1f, -1f);
+		[ExternField(0xD0)] public Vector4 UnkD0 { get; set; } = new(0.5f, 0f, 0f, 0f);
+		[ExternField(0x100)] public Matrix4x4ButGood Unk100 { get; set; } = Matrix4x4ButGood.Zero;
+		[ExternField(0x140)] public float Unk140 { get; set; } = 0.05f;
+		[ExternField(0x150)] public Vector4 Unk150 { get; set; } = new(0.3f, 0.5f, 0f, 0.02f);
+		[ExternField(0x160)] public Vector4 Unk160 { get; set; } = new(0.3f, 0.5f, 0f, 0.5f);
+		[ExternField(0x170)] public Vector4 Unk170 { get; set; } = Vector4.One;
+
+		public ExternScreenArea()
+		{
+			Unk40 = AssetManager.GetInstance().BlackTextureWAlpha;
+			Unk50 = AssetManager.GetInstance().BlackTextureWAlpha;
+			Unk58 = AssetManager.GetInstance().WhiteTexture;
+		}
+
+		public void Update(DeviceContext context, GBuffer gbuffer)
+		{
+			Unk00 = gbuffer.Shading_Clone.SRV;
+			//UnkD0 = new(0.5f, 0f, 0f, 0f);
+			//Unk150 = new(0.3f, 0.5f, 0f, 0.02f);
+			//Unk160 = new(0.3f, 0.5f, 0f, 0.5f);
+		}
+
+		public void Dispose()
+		{
+			Unk00?.Dispose();
+			Unk00 = null;
+			Unk30?.Dispose();
+			Unk30 = null;
+			Unk38?.Dispose();
+			Unk38 = null;
+			Unk40?.Dispose();
+			Unk40 = null;
+			Unk50?.Dispose();
+			Unk50 = null;
+			Unk58?.Dispose();
+			Unk58 = null;
+		}
+	}
+
+	public class ExternFxaa : IDisposable
+	{
+		[ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
+		[ExternField(0x50)] public float Unk50 { get; set; } = 0.75f;
+		[ExternField(0x54)] public float Unk54 { get; set; } = 0.166f;
+		[ExternField(0x58)] public float Unk58 { get; set; } = 0.0833f;
+
+		public ExternFxaa()
+		{
+		}
+
+		public void Update(DeviceContext context, GBuffer gbuffer)
+		{
+			Unk00 = gbuffer.Shading.SRV;
+			Unk50 = 0.75f;
+			Unk54 = 0.166f;
+			Unk58 = 0.0833f;
+		}
+
+		public void Dispose()
+		{
+			Unk00?.Dispose();
+			Unk00 = null;
+		}
+	}
+
 	public void Update(CharmRenderer renderer)
 	{
 		if (renderer is null)
@@ -419,6 +505,7 @@ public class Externs : IDisposable
 		Decal.Dispose();
 		ShadowMask.Dispose();
 		PostProcess.Dispose();
+		ScreenArea.Dispose();
 	}
 
 	private static Dictionary<int, Func<object, object>> GetFieldMap(Type type)
@@ -469,6 +556,8 @@ public class Externs : IDisposable
 			TfxExtern.Decal => Decal,
 			TfxExtern.ShadowMask => ShadowMask,
 			TfxExtern.Postprocess => PostProcess,
+			TfxExtern.ScreenArea => ScreenArea,
+			TfxExtern.Fxaa => Fxaa,
 			_ => null
 		};
 

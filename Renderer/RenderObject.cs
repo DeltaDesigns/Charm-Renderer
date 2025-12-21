@@ -463,6 +463,7 @@ public class MaterialData : GpuResource
 
 	public TechniqueStage Vertex;
 	public TechniqueStage Pixel;
+	public TechniqueStage Compute;
 
 	// temp, for vs override
 	public bool UsesVertexColor = false;
@@ -477,6 +478,9 @@ public class MaterialData : GpuResource
 
 		if (material.Pixel.Shader != null)
 			Pixel = new TechniqueStage(context, material.Pixel, ShaderStage.Pixel, material.Hash);
+
+		if (material.Compute.Shader != null)
+			Compute = new TechniqueStage(context, material.Compute, ShaderStage.Compute, material.Hash);
 	}
 
 	public void Bind(DeviceContext context)
@@ -501,6 +505,7 @@ public class MaterialData : GpuResource
 		}
 
 		Pixel?.Bind(context);
+		Compute?.Bind(context);
 
 		var states = CharmRenderer.Instance.CurrentState.Select(States);
 		CharmRenderer.Instance.CreateStates(states);
@@ -622,6 +627,10 @@ public class Constants : GpuResource
 			case ShaderStage.Pixel when Slot != -1:
 				context.PixelShader.SetConstantBuffer(Slot, Buffer);
 				break;
+
+			case ShaderStage.Compute when Slot != -1:
+				context.ComputeShader.SetConstantBuffer(Slot, Buffer);
+				break;
 		}
 
 		foreach (var tex in Textures)
@@ -634,6 +643,10 @@ public class Constants : GpuResource
 
 				case ShaderStage.Pixel:
 					context.PixelShader.SetShaderResource((int)tex.Key, tex.Value);
+					break;
+
+				case ShaderStage.Compute:
+					context.ComputeShader.SetShaderResource((int)tex.Key, tex.Value);
 					break;
 			}
 		}
