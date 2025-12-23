@@ -7,7 +7,7 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
-	public RenderPass DisplayPass = RenderPass.final;
+	public RenderPass DisplayPass = RenderPass.final_combine_no_pp;
 
 	private Dictionary<string, MaterialData> _pipelineCache = new();
 
@@ -47,8 +47,11 @@ public partial class CharmRenderer
 		//UnbindAllRTVs();
 		if (!Viewport.RenderSky)
 		{
-			//Externs.Atmosphere.AtmosFar = null;
-			//Externs.Atmosphere.AtmosNear = null;
+			//Externs.Atmosphere.AtmosFar = AssetManager.BlackTexture;
+			//Externs.Transparent.AtmosFarLookup = AssetManager.BlackTexture;
+			//Externs.Atmosphere.AtmosNear = AssetManager.BlackTexture;
+			//Externs.Transparent.AtmosNearLookup = AssetManager.BlackTexture;
+			//Externs.Deferred.SkyHemisphereMips = AssetManager.BlackTexture;
 			return;
 		}
 
@@ -60,12 +63,12 @@ public partial class CharmRenderer
 		Externs.Frame.Unk10 = Viewport.TimeOfDay;
 		Externs.Atmosphere.RTDimensions = new(far.Width, far.Height, 1f / far.Width, 1f / far.Height);
 		Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
+		//Externs.Atmosphere.AtmosTimeOfDay = 0.42879f;
+
 		//Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
 		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
-		Externs.Atmosphere.AtmosSunColor = new System.Numerics.Vector4(1.0f, 0.95f, 0.85f, 1.0f) * MathF.Sin(MathF.PI * Math.Clamp(Viewport.TimeOfDay, 0.1f, 0.9f));
+		//Externs.Atmosphere.AtmosSunColor = new System.Numerics.Vector4(1.0f, 0.95f, 0.85f, 1.0f) * MathF.Sin(MathF.PI * Math.Clamp(Viewport.TimeOfDay, 0.1f, 0.9f));
 		//Externs.Atmosphere.AtmosTimeOfDay = 0.75f;
-
-		GlobalChannels.Set(43, System.Numerics.Vector4.Zero);
 
 		far.Bind(Context);
 		RenderGlobalPipeline("sky_lookup_generate_far");
@@ -101,25 +104,34 @@ public partial class CharmRenderer
 	private void RenderMatCap()
 	{
 		Annotation.BeginEvent("Matcap");
-		//UnbindAllRTVs();
 
-		CreateStates(new(0, 0, 0, 0));
-		Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
-		Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0.001f, 0.001f, 0.001f, 0));
-		Context.ClearRenderTargetView(GBuffers.LightSpecular.RTV, new RawColor4(0, 0, 0, 0));
+		Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0, 0, 0, 1));
+		Context.ClearRenderTargetView(GBuffers.LightSpecular.RTV, new RawColor4(0, 0, 0, 1));
+		Context.ClearRenderTargetView(GBuffers.LightIBL.RTV, new RawColor4(0, 0, 0, 1));
 
 		if (Viewport.RenderSky)
 		{
-			//GlobalChannels.Set(139, new(1));
+			SetStencilRef(0);
+			// Supposed to be Diffuse and IBL but swapping IBL with Specular instead cus it just looks better with this setup
+			Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
 			RenderGlobalPipeline("cubemap_apply_sky_copy_ao");
+
+			Externs.GlobalLighting.Update(World.GlobalChannels);
+			Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
+			CreateStates(new(2, 16, 0, 0));
+			RenderGlobalPipeline("global_lighting_gel");
 		}
 		else
+		{
+			CreateStates(new(0, 0, 0, 0));
+			Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
 			MatCapRenderer.Draw(Context, Externs);
+		}
 
 		{
 			Externs.Deferred.LightDiffuse = GBuffers.LightDiffuse.SRV;
 			Externs.Deferred.LightSpecular = GBuffers.LightSpecular.SRV;
-			//Externs.Deferred.LightIBL = GBuffers.LightIBL.SRV;
+			Externs.Deferred.LightIBL = GBuffers.LightSpecular.SRV;
 		}
 		Annotation.EndEvent();
 	}
@@ -151,6 +163,7 @@ public partial class CharmRenderer
 			SetStencilRef(0);
 			CreateStates(new(0, 0, 0, 0));
 		}
+
 		RenderGlobalPipeline("deferred_shading_no_atm");
 	}
 
@@ -160,12 +173,12 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
 		TempScopes.UpdateTransparentAdvancedScope(Context);
+		TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(Context);
 
 		// Decal Additive Pass
 		CreateStates(new(8, 15, 2, 1));
 		RenderMesh(TfxRenderStage.DecalsAdditive, "Decal Additive Pass");
 
-		TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(Context);
 		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
 		Externs.Transparent.ShadingResult = GBuffers.Shading_Clone.SRV;
 
@@ -179,14 +192,21 @@ public partial class CharmRenderer
 	private void RenderPostProcess()
 	{
 		Annotation.BeginEvent("Post Process");
+		CreateStates(new(0, 0, 0, 0));
 
 		//Externs.PostProcess.Update(Context, GBuffers);
 		Externs.ScreenArea.Update(Context, GBuffers);
-		TempScopes.UpdateColorGradingScope(Context);
-
-		CreateStates(new(0, 0, 0, 0));
 		GBuffers.ColorGradingLUT.Bind(Context);
-		RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
+		if (Externs.ScreenArea.Unk08 is not null)
+		{
+			TempScopes.UpdateColorGradingScope(Context, true);
+			RenderGlobalPipeline("color_grading_fill_using_tint_map_plus_matrix_hdr");
+		}
+		else
+		{
+			TempScopes.UpdateColorGradingScope(Context);
+			RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
+		}
 
 		{ // TODO, let interpreter handle resource binding
 			Annotation.BeginEvent($"Global Pipeline: color_grading_convert_to_volume_texture_hdr");
@@ -213,8 +233,9 @@ public partial class CharmRenderer
 
 		CreateStates(new(0, 0, 0, 0));
 		Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
-		Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
-		Context.Rasterizer.SetViewport(GBuffers.Shading.GetViewport());
+
+		Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
+		Context.Rasterizer.SetViewport(GBuffers.PostProcessResult.GetViewport());
 
 		RenderGlobalPipeline("screen_area_global_lut3d");
 
@@ -244,23 +265,6 @@ public partial class CharmRenderer
 
 		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
 		Context.Draw(4, 0);
-		Annotation.EndEvent();
-	}
-
-	private void BlitFinal()
-	{
-		Annotation.BeginEvent("Blit Final");
-
-		Context.VertexShader.Set(_blitVS);
-		Context.PixelShader.Set(_blitPS);
-		Context.PixelShader.SetSampler(0, _pointSampler);
-
-		_rtFinal.CopyTo(Context, _rtFinal_Clone);
-		_rtFinal_Clone.SetShaderResource(Context, 0, ShaderStage.Pixel);
-
-		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
-		Context.Draw(4, 0);
-
 		Annotation.EndEvent();
 	}
 

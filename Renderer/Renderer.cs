@@ -207,6 +207,7 @@ public partial class CharmRenderer : IDisposable
 			var near = Camera.Near;
 			var far = Camera.Far;
 			Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
+			Externs.Frame.ExposureScale = Viewport.Exposure;
 		}
 
 		Externs.Update(this);
@@ -226,21 +227,22 @@ public partial class CharmRenderer : IDisposable
 		RenderMatCap();
 		RenderShading();
 		RenderTransparent();
-
-		CreateStates(new(0, 0, 0, 0));
-		if (DisplayPass == RenderPass.final)
-			RenderPostProcess();
+		RenderPostProcess();
 
 		if (DisplayPass > RenderPass.final_combine_no_pp)
 			RenderGlobalPipeline(DisplayPass.ToString());
 
+		var blitRT = DisplayPass == RenderPass.final_combine_no_pp ? GBuffers.Shading : GBuffers.PostProcessResult;
 		if (Viewport.ShowGrid)
+		{
+			Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);
 			RenderGrid();
+		}
 
 		CreateStates(new(0, 0, 0, 0));
 		// Blits to final RT/Correct format for WPF cus it hates everything
-		BlitToWPF(GBuffers.Shading);
-		BlitFinal();
+		BlitToWPF(blitRT);
+		//BlitFinal();
 		wpfRT.Present(Context, Viewport.RT0);
 
 
@@ -284,7 +286,7 @@ public partial class CharmRenderer : IDisposable
 			InitializeRenderTargets(newWidth, newHeight);
 
 			DisposeWPF();
-			wpfRT = new WpfRenderTarget(Device, newWidth, newHeight, _rtFinal_Clone, Viewport);
+			wpfRT = new WpfRenderTarget(Device, newWidth, newHeight, _rtFinal, Viewport);
 
 			Context.Rasterizer.SetViewport(0, 0, newWidth, newHeight, 0.0f, 1f);
 
@@ -320,7 +322,6 @@ public partial class CharmRenderer : IDisposable
 	{
 		Utilities.Dispose(ref GBuffers);
 		Utilities.Dispose(ref _rtFinal);
-		Utilities.Dispose(ref _rtFinal_Clone);
 		Utilities.Dispose(ref _blitVS);
 		Utilities.Dispose(ref _blitPS);
 		Utilities.Dispose(ref _gridShaderVS);

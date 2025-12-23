@@ -26,6 +26,7 @@ public class Externs : IDisposable
 		PostProcess = new();
 		ScreenArea = new();
 		Fxaa = new();
+		GlobalLighting = new();
 	}
 
 	public ExternFrame Frame;
@@ -38,6 +39,7 @@ public class Externs : IDisposable
 	public ExternPostProcess PostProcess;
 	public ExternScreenArea ScreenArea;
 	public ExternFxaa Fxaa;
+	public ExternGlobalLighting GlobalLighting;
 
 	public class ExternFrame : IDisposable
 	{
@@ -63,7 +65,6 @@ public class Externs : IDisposable
 
 		public void Update(CharmRenderer renderer)
 		{
-			ExposureScale = 0.85f;
 			GameTime = renderer.Time;
 			RenderTime = renderer.Time;
 			DeltaTime = renderer.DeltaTime;
@@ -405,12 +406,13 @@ public class Externs : IDisposable
 	public class ExternScreenArea : IDisposable
 	{
 		[ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
+		[ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
 		[ExternField(0x30)] public ShaderResourceView Unk30 { get; set; }
 		[ExternField(0x38)] public ShaderResourceView Unk38 { get; set; }
 		[ExternField(0x40)] public ShaderResourceView Unk40 { get; set; }
 		[ExternField(0x50)] public ShaderResourceView Unk50 { get; set; }
 		[ExternField(0x58)] public ShaderResourceView Unk58 { get; set; }
-
+		[ExternField(0x6C)] public float Unk6C { get; set; } = 0.5f;
 		[ExternField(0x7C)] public float Unk7C { get; set; } = 0.9968f;
 		[ExternField(0x90)] public Vector4 LUTDimensions { get; set; } = new(32f, 1024f, 0, 0); // height x width
 		[ExternField(0xA0)] public Vector4 UnkA0 { get; set; } = new(0.03125f, -5.00f, 14.00f, 2.50f);
@@ -419,7 +421,7 @@ public class Externs : IDisposable
 		[ExternField(0xB8)] public float UnkB8 { get; set; } = 0f;
 		[ExternField(0xC0)] public Vector4 UnkC0 { get; set; } = new(0f, 0.4f, -1f, -1f);
 		[ExternField(0xD0)] public Vector4 UnkD0 { get; set; } = new(0.5f, 0f, 0f, 0f);
-		[ExternField(0x100)] public Matrix4x4ButGood Unk100 { get; set; } = Matrix4x4ButGood.Zero;
+		[ExternField(0x100)] public Matrix4x4ButGood Unk100 { get; set; } = Matrix4x4ButGood.Identity / 2f;
 		[ExternField(0x140)] public float Unk140 { get; set; } = 0.05f;
 		[ExternField(0x150)] public Vector4 Unk150 { get; set; } = new(0.3f, 0.5f, 0f, 0.02f);
 		[ExternField(0x160)] public Vector4 Unk160 { get; set; } = new(0.3f, 0.5f, 0f, 0.5f);
@@ -444,6 +446,8 @@ public class Externs : IDisposable
 		{
 			Unk00?.Dispose();
 			Unk00 = null;
+			Unk08?.Dispose();
+			Unk08 = null;
 			Unk30?.Dispose();
 			Unk30 = null;
 			Unk38?.Dispose();
@@ -480,6 +484,50 @@ public class Externs : IDisposable
 		{
 			Unk00?.Dispose();
 			Unk00 = null;
+		}
+	}
+
+	public class ExternGlobalLighting : IDisposable
+	{
+		[ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
+		[ExternField(0x10)] public Vector4 Unk10 { get; set; } = Vector4.Zero;
+		[ExternField(0x30)] public Vector4 Unk30 { get; set; } = Vector4.UnitZ * -1f;
+		[ExternField(0x50)] public Vector4 Unk50 { get; set; } = Vector4.Zero;
+		[ExternField(0x70)] public Vector4 Unk70 { get; set; } = Vector4.Zero;
+		[ExternField(0x80)] public Vector4 Unk80 { get; set; } = Vector4.Zero;
+		[ExternField(0x90)] public float Unk90 { get; set; }
+		[ExternField(0x94)] public float Unk94 { get; set; }
+		[ExternField(0x98)] public float Unk98 { get; set; }
+		[ExternField(0x9C)] public float Unk9C { get; set; }
+		[ExternField(0xA0)] public float UnkA0 { get; set; }
+		[ExternField(0xB0)] public Vector4 UnkB0 { get; set; } = Vector4.Zero;
+		[ExternField(0xC0)] public Vector4 UnkC0 { get; set; } = Vector4.Zero;
+		[ExternField(0xD0)] public Vector4 UnkD0 { get; set; } = Vector4.Zero;
+
+		public ExternGlobalLighting()
+		{
+			Unk08 = AssetManager.GetInstance().WhiteTexture;
+		}
+
+		public void Update(RendererGlobalChannels globals)
+		{
+			Unk10 = globals.Get("sun_color") * globals.Get("sun_intensity").X * 5;
+			Unk30 = globals.Get("sun_track_direction");
+			Unk50 = globals.Get("sun_ambient_direction");
+			Unk70 = globals.Get("up_ambient_color") * globals.Get("up_ambient_intensity").X;
+			Unk80 = globals.Get("down_ambient_color") * globals.Get("down_ambient_intensity").X;
+			Unk90 = globals.Get("up_ambient_sharpness").X;
+			Unk94 = globals.Get("down_ambient_sharpness").X;
+			UnkA0 = 0.2f;
+			UnkB0 = new(0.00067f, 0.00067f, -0.3481f, -0.40235f);
+			UnkC0 = new(1, 0, 1, 0);
+			UnkD0 = new(0.00056f, -0.38889f, 0.00f, 0.00f);
+		}
+
+		public void Dispose()
+		{
+			Unk08?.Dispose();
+			Unk08 = null;
 		}
 	}
 
@@ -558,6 +606,7 @@ public class Externs : IDisposable
 			TfxExtern.Postprocess => PostProcess,
 			TfxExtern.ScreenArea => ScreenArea,
 			TfxExtern.Fxaa => Fxaa,
+			TfxExtern.GlobalLighting => GlobalLighting,
 			_ => null
 		};
 

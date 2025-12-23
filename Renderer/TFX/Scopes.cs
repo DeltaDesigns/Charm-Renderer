@@ -219,7 +219,8 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeColorGrading _cachedColorGrading = new ScopeColorGrading();
-	public void UpdateColorGradingScope(DeviceContext context)
+	private static readonly Vector4[] zeroColorGrade = new Vector4[Utilities.SizeOf<ScopeColorGrading>()];
+	public void UpdateColorGradingScope(DeviceContext context, bool fillZero = false)
 	{
 		if (_disposed)
 			return;
@@ -239,7 +240,11 @@ public class TempScopes : GpuResource
 		}
 
 		ref var cb7_data = ref _cachedColorGrading;
-		context.UpdateSubresource(ref cb7_data, ColorGradingScopeBuffer);
+		if (fillZero)
+			context.UpdateSubresource(zeroColorGrade, ColorGradingScopeBuffer);
+		else
+			context.UpdateSubresource(ref cb7_data, ColorGradingScopeBuffer);
+
 		context.VertexShader.SetConstantBuffer(7, ColorGradingScopeBuffer);
 		context.PixelShader.SetConstantBuffer(7, ColorGradingScopeBuffer);
 	}

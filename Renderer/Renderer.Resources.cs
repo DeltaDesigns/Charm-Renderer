@@ -12,7 +12,6 @@ public partial class CharmRenderer
 
 	public GBuffer GBuffers;
 	private RenderTarget2D _rtFinal;
-	private RenderTarget2D _rtFinal_Clone;
 
 	private WpfRenderTarget wpfRT;
 
@@ -72,7 +71,7 @@ public partial class CharmRenderer
 		InitializeRenderTargets(imageWidth, imageHeight);
 
 		DisposeWPF();
-		wpfRT = new WpfRenderTarget(Device, imageWidth, imageHeight, _rtFinal_Clone, Viewport);
+		wpfRT = new WpfRenderTarget(Device, imageWidth, imageHeight, _rtFinal, Viewport);
 
 		Context.Rasterizer.SetViewport(0, 0, imageWidth, imageHeight, 0.0f, 1f);
 	}
@@ -84,15 +83,13 @@ public partial class CharmRenderer
 
 		_rtFinal?.Dispose();
 		_rtFinal = new RenderTarget2D(Device, width, height, Format.B8G8R8A8_UNorm_SRgb, resourceOptionFlags: ResourceOptionFlags.Shared, debugName: "RT Final");
-
-		_rtFinal_Clone?.Dispose();
-		_rtFinal_Clone = new RenderTarget2D(Device, width, height, Format.B8G8R8A8_UNorm_SRgb, resourceOptionFlags: ResourceOptionFlags.Shared, debugName: "RT Final Clone");
 	}
 
 	private int gridSize = 10;
 	private int gridSpacing = 2;
 	public void RenderGrid()
 	{
+		Annotation.BeginEvent("Draw Grid");
 		CreateStates(new(8, 15, 2, 1));
 
 		int numLines = (int)(gridSize * 2 / gridSpacing) + 1;
@@ -104,6 +101,7 @@ public partial class CharmRenderer
 		Context.PixelShader.Set(_gridShaderPS);
 
 		Context.Draw(vertexCount, 0);
+		Annotation.EndEvent();
 	}
 
 	private VertexShader _gridShaderVS;

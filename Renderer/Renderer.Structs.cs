@@ -30,6 +30,8 @@ public partial class CharmRenderer
 		public RenderTarget2D Shading { get; private set; }
 		public RenderTarget2D Shading_Clone { get; private set; }
 
+		public RenderTarget2D PostProcessResult { get; private set; }
+
 		public DepthTarget Depth { get; private set; }
 		public DepthTarget Depth_Clone { get; private set; }
 
@@ -63,6 +65,8 @@ public partial class CharmRenderer
 
 			Shading = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Staging");
 			Shading_Clone = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Staging Clone");
+
+			PostProcessResult = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result");
 
 			Depth = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth");
 			Depth_Clone = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone");
@@ -109,6 +113,9 @@ public partial class CharmRenderer
 			Shading = null;
 			Shading_Clone?.Dispose();
 			Shading_Clone = null;
+
+			PostProcessResult?.Dispose();
+			PostProcessResult = null;
 
 			Depth?.Dispose();
 			Depth = null;
@@ -502,6 +509,28 @@ public struct Matrix4x4ButGood
 			Y = left.X * right.Y.X + left.Y * right.Y.Y + left.Z * right.Y.Z + left.W * right.Y.W,
 			Z = left.X * right.Z.X + left.Y * right.Z.Y + left.Z * right.Z.Z + left.W * right.Z.W,
 			W = left.X * right.W.X + left.Y * right.W.Y + left.Z * right.W.Z + left.W * right.W.W
+		};
+	}
+
+	public static Matrix4x4ButGood operator *(Matrix4x4ButGood left, float right)
+	{
+		return new Matrix4x4ButGood
+		{
+			X = left.X * right,
+			Y = left.Y * right,
+			Z = left.Z * right,
+			W = left.W * right
+		};
+	}
+
+	public static Matrix4x4ButGood operator /(Matrix4x4ButGood left, float right)
+	{
+		return new Matrix4x4ButGood
+		{
+			X = left.X / right,
+			Y = left.Y / right,
+			Z = left.Z / right,
+			W = left.W / right
 		};
 	}
 

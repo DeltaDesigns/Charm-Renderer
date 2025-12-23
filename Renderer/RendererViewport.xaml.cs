@@ -22,6 +22,7 @@ public partial class RendererViewport : UserControl
 	public bool RenderSky { get; set; } = true;
 	public bool UseVCEntOverride { get; set; } = false;
 	public float TimeOfDay { get; set; } = 0.5f;
+	public float Exposure { get; set; } = 0.8f;
 	public float AtmosRotation { get; set; } = 0f;
 	public float AtmosIntensity { get; set; } = 0.75f;
 
@@ -108,7 +109,7 @@ public partial class RendererViewport : UserControl
 		if (tag is not null && tag is CharmRenderer.RenderPass pass)
 			Renderer.DisplayPass = pass;
 		else
-			Renderer.DisplayPass = CharmRenderer.RenderPass.final;
+			Renderer.DisplayPass = CharmRenderer.RenderPass.final_combine_no_pp;
 	}
 
 	private void OnSizeChanged(object sender, SizeChangedEventArgs args)
@@ -176,14 +177,19 @@ public partial class RendererViewport : UserControl
 		ShowGrid = !ShowGrid;
 	}
 
-	private void AtmosButton_Click(object sender, RoutedEventArgs e)
-	{
-		RenderSky = !RenderSky;
-	}
-
 	private void TimeOfDaySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
 	{
 		TimeOfDay = (float)e.NewValue;
+	}
+
+	private void ExposureSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+	{
+		Exposure = (float)e.NewValue;
+	}
+
+	private void AtmosButton_Click(object sender, RoutedEventArgs e)
+	{
+		RenderSky = !RenderSky;
 	}
 
 	private void AtmosRotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -219,12 +225,6 @@ public partial class RendererViewport : UserControl
 		return null;
 	}
 
-	private void UseVCEntOverride_Click(object sender, RoutedEventArgs e)
-	{
-		UseVCEntOverride = !UseVCEntOverride;
-		AssetManager.GetInstance().UpdateEntityOverride(UseVCEntOverride);
-	}
-
 	private void ResetObjectChannels_Click(object sender, RoutedEventArgs e)
 	{
 		Renderer?.EntityObjectChannels?.ResetAllChannels();
@@ -245,6 +245,16 @@ public partial class RendererViewport : UserControl
 		}
 	}
 
+	private void PrintGlobalChannels_Click(object sender, RoutedEventArgs e)
+	{
+		if (Renderer.World.GlobalChannels is null)
+			return;
+
+		foreach (var gc in Renderer.World.GlobalChannels.Channels)
+		{
+			Console.WriteLine($"Global Channel {gc.Index} ({gc.Name}) : {gc.Value}");
+		}
+	}
 
 	private Entity _currentEntity; // temp
 	public async void LoadEntity(FileHash hash)
