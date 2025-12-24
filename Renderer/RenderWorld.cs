@@ -268,6 +268,7 @@ public class RendererGlobalChannels
 
 	public void Set(int index, System.Numerics.Vector4 value) => channelsByIndex[index].Value = value;
 	public void Set(TigerHash id, System.Numerics.Vector4 value) => channelsById[id].Value = value;
+	public void Set(string name, System.Numerics.Vector4 value) => channelsByName[name].Value = value;
 
 	public class GlobalChannel
 	{

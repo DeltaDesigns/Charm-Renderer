@@ -70,11 +70,11 @@ public partial class CharmRenderer
 		Externs.Atmosphere.RTDimensions = new(far.Width, far.Height, 1f / far.Width, 1f / far.Height);
 		Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
 		//Externs.Atmosphere.AtmosTimeOfDay = 0.42879f;
-
-		//Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
+		Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
 		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
 		//Externs.Atmosphere.AtmosSunColor = new System.Numerics.Vector4(1.0f, 0.95f, 0.85f, 1.0f) * MathF.Sin(MathF.PI * Math.Clamp(Viewport.TimeOfDay, 0.1f, 0.9f));
 		//Externs.Atmosphere.AtmosTimeOfDay = 0.75f;
+		Externs.Atmosphere.Update(this);
 
 		far.Bind(Context);
 		RenderGlobalPipeline("sky_lookup_generate_far");

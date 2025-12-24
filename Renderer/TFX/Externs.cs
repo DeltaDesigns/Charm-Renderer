@@ -284,7 +284,7 @@ public class Externs : IDisposable
 
 			var cam = renderer.Camera;
 			RTDimensions = new Vector4(cam.Viewport.X, cam.Viewport.Y, 1f / cam.Viewport.X, 1f / cam.Viewport.Y);
-			AtmosSunDir = renderer.World.GlobalChannels.Get("sun_track_direction");
+
 			AtmosSunColor = renderer.World.GlobalChannels.Get("sun_glow_color");
 			AtmosUnk150 = renderer.World.GlobalChannels.Get(new TigerHash(0x4aa1bef5)).X;
 			AtmosUnk154 = renderer.World.GlobalChannels.Get(new TigerHash(0x9859daf1)).X;
@@ -295,35 +295,31 @@ public class Externs : IDisposable
 			AtmosUnk170 = renderer.World.GlobalChannels.Get(19).X; // fog_height_falloff
 			AtmosUnk180 = renderer.World.GlobalChannels.Get(20); // fog_decay_color
 			AtmosUnk190 = renderer.World.GlobalChannels.Get(21).X; // fog_decay_scale
-			AtmosRotation = renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
+			///AtmosRotation = renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
 			AtmosIntensity = renderer.World.GlobalChannels.Get("sky_snapshot_intensity").X;
 			AtmosUnk1BC = renderer.World.GlobalChannels.Get(36).X;
 			AtmosUnk1C0 = renderer.World.GlobalChannels.Get(35).X;
 			AtmosUnk1D0 = renderer.World.GlobalChannels.Get("sky_color_override"); // sky_color_override?
 			AtmosUnk1E8 = renderer.World.GlobalChannels.Get(38).X;
 			AtmosSunIntensity = renderer.World.GlobalChannels.Get("sun_glow_intensity").X;
-			//SunDirTemp();
+
+			SunDirRotate(renderer.World.GlobalChannels.Get("sun_track_direction"));
+			AtmosSunDir = renderer.World.GlobalChannels.Get("sun_track_direction");
+
+			// No use in locking sky rotation to global channels, but also want the sun to rotate with it
+			void SunDirRotate(Vector4 sundir)
+			{
+				float rotX = AtmosRotation * MathF.Tau + 45;
+				var tilt = Quaternion.CreateFromAxisAngle(System.Numerics.Vector3.UnitZ, -rotX);
+
+				var dir = System.Numerics.Vector4.Transform(sundir, tilt);
+				renderer.World.GlobalChannels.Set("sun_track_direction", dir);
+				renderer.World.GlobalChannels.Set(100, dir);
+			}
+
 			RenderHelpers.EndProfile();
 		}
 
-		// Temp
-		public void SunDirTemp()
-		{
-			float dayAngle = AtmosTimeOfDay * MathF.Tau;
-
-			System.Numerics.Vector3 dir = new(
-				0f,
-				MathF.Sin(dayAngle),
-				-MathF.Cos(dayAngle)
-			);
-
-			float rotX = AtmosRotation * MathF.Tau + 90;
-			var tilt = Quaternion.CreateFromAxisAngle(System.Numerics.Vector3.UnitZ, -rotX);
-
-			dir = System.Numerics.Vector3.Transform(dir, tilt);
-
-			AtmosSunDir = new(dir, 1f);
-		}
 
 		public void Dispose()
 		{
@@ -557,7 +553,7 @@ public class Externs : IDisposable
 		RenderHelpers.Profile("Update Externs");
 		Frame.Update(renderer);
 		View.Update(renderer);
-		Atmosphere.Update(renderer);
+		//Atmosphere.Update(renderer);
 		//Deferred.Update();
 		//Decal.Update();
 		RenderHelpers.EndProfile();

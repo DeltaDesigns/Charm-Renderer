@@ -64,8 +64,8 @@ public partial class CharmRenderer
 			return null;
 
 		CurrentRasState = (rast, depthBias);
-		if (_rasStates.ContainsKey((rast, depthBias)))
-			return _rasStates[((rast, depthBias))];
+		if (_rasStates.TryGetValue((rast, depthBias), out var value))
+			return value;
 
 		RenderStates.BungieRasterizerDesc rasState = RenderStates.RasterizerStates[rast];
 
@@ -98,8 +98,8 @@ public partial class CharmRenderer
 			return null;
 
 		CurrentDepthState = state;
-		if (_depthStencilStates.ContainsKey(state))
-			return _depthStencilStates[state];
+		if (_depthStencilStates.TryGetValue(state, out var value))
+			return value;
 
 		RenderStates.BungieDepthStencilDesc dsState = RenderStates.DepthStencilStates[state];
 
@@ -137,8 +137,8 @@ public partial class CharmRenderer
 			return null;
 
 		CurrentBlendState = state;
-		if (_blendStates.ContainsKey(state))
-			return _blendStates[state];
+		if (_blendStates.TryGetValue(state, out var value))
+			return value;
 
 		RenderStates.BungieBlendDesc blendState = RenderStates.BlendStates[state];
 

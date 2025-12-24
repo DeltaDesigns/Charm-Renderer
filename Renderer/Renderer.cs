@@ -103,7 +103,7 @@ public partial class CharmRenderer : IDisposable
 
 		// 81141179 Tower
 		// 80BB30E1 EDZ
-		// 80C8DACB Cosmo
+		// 80C870C2
 		World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141179)));
 
 		Camera = new(); // Should be last
