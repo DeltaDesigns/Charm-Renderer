@@ -145,21 +145,12 @@ public partial class CharmRenderer
 		BlendStateDescription blendStateDescription = default(BlendStateDescription);
 		blendStateDescription.AlphaToCoverageEnable = blendState.AlphaToCoverageEnable;
 		blendStateDescription.IndependentBlendEnable = blendState.IndependentBlendEnable;
-		BlendStateDescription result = blendStateDescription;
-		RenderTargetBlendDescription[] renderTarget = result.RenderTarget;
-		for (int i = 0; i < renderTarget.Length; i++)
-		{
-			renderTarget[i].IsBlendEnabled = blendState.BlendDesc.IsBlendEnabled;
-			renderTarget[i].SourceBlend = blendState.BlendDesc.SourceBlend;
-			renderTarget[i].DestinationBlend = blendState.BlendDesc.DestinationBlend;
-			renderTarget[i].BlendOperation = blendState.BlendDesc.BlendOperation;
-			renderTarget[i].SourceAlphaBlend = blendState.BlendDesc.SourceAlphaBlend;
-			renderTarget[i].DestinationAlphaBlend = blendState.BlendDesc.DestinationAlphaBlend;
-			renderTarget[i].AlphaBlendOperation = blendState.BlendDesc.AlphaBlendOperation;
-			renderTarget[i].RenderTargetWriteMask = blendState.BlendDesc.RenderTargetWriteMask;
-		}
+		blendStateDescription.RenderTarget[0] = blendState.BlendDesc[0];
+		blendStateDescription.RenderTarget[1] = blendState.BlendDesc[1];
+		blendStateDescription.RenderTarget[2] = blendState.BlendDesc[2];
+		blendStateDescription.RenderTarget[3] = blendState.BlendDesc[3];
 
-		var blend = new BlendState(Device, result);
+		var blend = new BlendState(Device, blendStateDescription);
 		_blendStates.TryAdd(state, blend);
 
 		return blend;

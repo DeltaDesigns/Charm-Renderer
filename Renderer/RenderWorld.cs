@@ -1,4 +1,5 @@
 ﻿using Arithmic;
+using System.Collections.Concurrent;
 using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
@@ -131,11 +132,12 @@ public class RenderWorld : IDisposable
 		}
 	}
 
-	public void EvaluateGlobalChannels(ExternAtmosphere atmosExtern)
+	public async void EvaluateGlobalChannels(ExternAtmosphere atmosExtern)
 	{
 		if (GlobalChannels is null)
 			return;
 
+		RenderHelpers.Profile("Evaluate Global Channels");
 		if (DayCycleRotations.Count != 0)
 		{
 			float tod_half = Math.Max(0, (atmosExtern.AtmosTimeOfDay * 3600f) / 2f);
@@ -153,7 +155,8 @@ public class RenderWorld : IDisposable
 			GlobalChannels.Set(100, lerpedRotation); // unsure
 		}
 
-		GlobalChannels.Evaluate();
+		await GlobalChannels.Evaluate();
+		RenderHelpers.EndProfile();
 	}
 
 	public void Dispose()
@@ -171,9 +174,21 @@ public class RendererGlobalChannels
 	public List<GlobalChannel> Channels = new();
 	public List<System.Numerics.Vector4> MiscValues = Enumerable.Repeat(System.Numerics.Vector4.Zero, 256).ToList();
 
+	private Dictionary<int, GlobalChannel> channelsByIndex;
+	private Dictionary<TigerHash, GlobalChannel> channelsById;
+	private Dictionary<string, GlobalChannel> channelsByName;
+
 	public RendererGlobalChannels(EntityResource sequencer)
 	{
 		CreateGlobalChannels(sequencer);
+		InitializeLookups();
+	}
+
+	public void InitializeLookups()
+	{
+		channelsByIndex = Channels.ToDictionary(c => c.Index);
+		channelsById = Channels.ToDictionary(c => c.ID);
+		channelsByName = Channels.ToDictionary(c => c.Name);
 	}
 
 	public void CreateGlobalChannels(EntityResource resource)
@@ -222,38 +237,37 @@ public class RendererGlobalChannels
 		}
 	}
 
-	public void Evaluate()
+	//public void Evaluate()
+	//{
+	//	foreach (var channel in Channels)
+	//	{
+	//		channel.Evaulate(this);
+	//	}
+	//}
+
+	public async Task Evaluate()
 	{
-		foreach (var channel in Channels)
+		var partitioner = Partitioner.Create(Channels, true);
+		var tasks = partitioner.GetPartitions(Environment.ProcessorCount).Select(async partition =>
 		{
-			channel.Evaulate(this);
-		}
+			using (partition)
+			{
+				while (partition.MoveNext())
+				{
+					await partition.Current.Evaulate(this);
+				}
+			}
+		});
+
+		await Task.WhenAll(tasks);
 	}
 
-	public System.Numerics.Vector4 Get(int index)
-	{
-		return Channels.First(x => x.Index == index).Value;
-	}
+	public System.Numerics.Vector4 Get(int index) => channelsByIndex[index].Value;
+	public System.Numerics.Vector4 Get(TigerHash id) => channelsById[id].Value;
+	public System.Numerics.Vector4 Get(string name) => channelsByName[name].Value;
 
-	public System.Numerics.Vector4 Get(TigerHash id)
-	{
-		return Channels.First(x => x.ID == id).Value;
-	}
-
-	public System.Numerics.Vector4 Get(string name)
-	{
-		return Channels.First(x => x.Name == name).Value;
-	}
-
-	public void Set(int index, System.Numerics.Vector4 value)
-	{
-		Channels.First(x => x.Index == index).Value = value;
-	}
-
-	public void Set(TigerHash id, System.Numerics.Vector4 value)
-	{
-		Channels.First(x => x.ID == id).Value = value;
-	}
+	public void Set(int index, System.Numerics.Vector4 value) => channelsByIndex[index].Value = value;
+	public void Set(TigerHash id, System.Numerics.Vector4 value) => channelsById[id].Value = value;
 
 	public class GlobalChannel
 	{
@@ -270,7 +284,7 @@ public class RendererGlobalChannels
 
 		}
 
-		public async void Evaulate(RendererGlobalChannels globals)
+		public async Task Evaulate(RendererGlobalChannels globals)
 		{
 			if (Bytecode.Length == 0 || BytecodeConstants.Length == 0)
 				return;

@@ -19,6 +19,7 @@ public partial class RendererViewport : UserControl
 {
 	public CharmRenderer Renderer => CharmRenderer.Instance;
 	public bool ShowGrid { get; set; } = true;
+	public bool ShowSkele { get; set; } = true;
 	public bool RenderSky { get; set; } = true;
 	public bool UseVCEntOverride { get; set; } = false;
 	public float TimeOfDay { get; set; } = 0.5f;
@@ -177,6 +178,11 @@ public partial class RendererViewport : UserControl
 		ShowGrid = !ShowGrid;
 	}
 
+	private void ShowSkeleButton_Checked(object sender, RoutedEventArgs e)
+	{
+		ShowSkele = !ShowSkele;
+	}
+
 	private void TimeOfDaySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
 	{
 		TimeOfDay = (float)e.NewValue;
@@ -232,7 +238,7 @@ public partial class RendererViewport : UserControl
 
 	private void InvestmentDyeTest_Click(object sender, RoutedEventArgs e)
 	{
-		if (!Renderer.World.RenderObjects.Any())
+		if (!Renderer.World.RenderObjects.Any() || !Renderer.World.RenderObjects.Any(x => x.Investment != null))
 			return;
 
 		var shader = Investment.Get().GetInventoryItem(new TigerHash(4182403848));

@@ -41,7 +41,7 @@
             Panel.ZIndex="100"
             Orientation="Vertical">
 
-            <StackPanel Orientation="Horizontal">
+            <StackPanel x:Name="RenderSkyPanel" Orientation="Horizontal">
                 <ToggleButton
                     x:Name="AtmosButton"
                     Margin="0,2,0,2"
@@ -149,9 +149,7 @@
                 </StackPanel>
             </Grid>
 
-
-
-            <StackPanel Orientation="Horizontal">
+            <StackPanel x:Name="ShowGridPanel" Orientation="Horizontal">
                 <ToggleButton
                     x:Name="ShowGridButton"
                     Margin="0,2,0,2"
@@ -173,7 +171,7 @@
                     TextWrapping="Wrap" />
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal">
+            <StackPanel x:Name="DebugButtonPanel" Orientation="Horizontal">
                 <ToggleButton
                     Name="DebugButton"
                     Margin="0,2,0,2"
@@ -196,7 +194,7 @@
             </StackPanel>
 
             <StackPanel
-                Name="DebugText"
+                x:Name="DebugPanel"
                 Background="#A9000000"
                 Visibility="{Binding IsChecked, ElementName=DebugButton, Converter={StaticResource BooleanToVisibilityConverter}}">
 
@@ -219,6 +217,30 @@
                         Minimum="0"
                         ValueChanged="ExposureSlider_ValueChanged"
                         Value="0.8" />
+                </StackPanel>
+
+                <StackPanel
+                    x:Name="ShowSkeleButton"
+                    Margin="5,0,5,0"
+                    Orientation="Horizontal">
+                    <ToggleButton
+                        Margin="0,2,0,2"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Click="ShowSkeleButton_Checked"
+                        IsChecked="True"
+                        Style="{DynamicResource D2StyleToggleBoxButton}">
+                        <ToggleButton.LayoutTransform>
+                            <ScaleTransform ScaleX=".75" ScaleY=".75" />
+                        </ToggleButton.LayoutTransform>
+                    </ToggleButton>
+                    <TextBlock
+                        Margin="0"
+                        VerticalAlignment="Center"
+                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                        FontSize="14"
+                        Text="Show Skeleton"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Margin="5" Orientation="Vertical">
@@ -365,7 +387,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Expander>
-
 
             <Expander
                 x:Name="MaterialPermutationsExpander"

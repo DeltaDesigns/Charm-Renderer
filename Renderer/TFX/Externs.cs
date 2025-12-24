@@ -65,9 +65,11 @@ public class Externs : IDisposable
 
 		public void Update(CharmRenderer renderer)
 		{
+			RenderHelpers.Profile("Extern Frame Update");
 			GameTime = renderer.Time;
 			RenderTime = renderer.Time;
 			DeltaTime = renderer.DeltaTime;
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -106,6 +108,7 @@ public class Externs : IDisposable
 
 		public void Update(CharmRenderer renderer)
 		{
+			RenderHelpers.Profile("Extern View Update");
 			var cam = renderer.Camera;
 			ResolutionX = cam.Viewport.X;
 			ResolutionY = cam.Viewport.Y;
@@ -129,6 +132,7 @@ public class Externs : IDisposable
 			Unk240 = ProjToWorld * UNormToSNorm;
 			Unk2C0 = ptow_no_proj_w * UNormToSNorm;
 			Unk30 = Vector4.UnitZ * WorldToProj.W;
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -192,6 +196,7 @@ public class Externs : IDisposable
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
+			RenderHelpers.Profile("Extern Deferred Update");
 			gbuffer.Depth.CopyTo(context, gbuffer.Depth_Clone);
 			DeferredDepth = gbuffer.Depth_Clone.DepthSRV;
 
@@ -201,6 +206,7 @@ public class Externs : IDisposable
 			DeferredRT1 = gbuffer.RT1_Clone.SRV;
 
 			DeferredRT2 = gbuffer.RT2.SRV;
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -274,8 +280,9 @@ public class Externs : IDisposable
 
 		public void Update(CharmRenderer renderer)
 		{
-			var cam = renderer.Camera;
+			RenderHelpers.Profile("Extern Atmosphere Update");
 
+			var cam = renderer.Camera;
 			RTDimensions = new Vector4(cam.Viewport.X, cam.Viewport.Y, 1f / cam.Viewport.X, 1f / cam.Viewport.Y);
 			AtmosSunDir = renderer.World.GlobalChannels.Get("sun_track_direction");
 			AtmosSunColor = renderer.World.GlobalChannels.Get("sun_glow_color");
@@ -296,6 +303,7 @@ public class Externs : IDisposable
 			AtmosUnk1E8 = renderer.World.GlobalChannels.Get(38).X;
 			AtmosSunIntensity = renderer.World.GlobalChannels.Get("sun_glow_intensity").X;
 			//SunDirTemp();
+			RenderHelpers.EndProfile();
 		}
 
 		// Temp
@@ -342,7 +350,9 @@ public class Externs : IDisposable
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
+			RenderHelpers.Profile("Extern Decal Update");
 			DeferredRT1 = gbuffer.RT1_Clone.SRV;
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -392,8 +402,10 @@ public class Externs : IDisposable
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
+			RenderHelpers.Profile("Extern PostProcess Update");
 			gbuffer.Shading.CopyTo(context, gbuffer.Shading_Clone);
 			Unk00 = gbuffer.Shading_Clone.SRV;
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -436,10 +448,12 @@ public class Externs : IDisposable
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
+			RenderHelpers.Profile("Extern ScreenArea Update");
 			Unk00 = gbuffer.Shading_Clone.SRV;
 			//UnkD0 = new(0.5f, 0f, 0f, 0f);
 			//Unk150 = new(0.3f, 0.5f, 0f, 0.02f);
 			//Unk160 = new(0.3f, 0.5f, 0f, 0.5f);
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -474,10 +488,12 @@ public class Externs : IDisposable
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
+			RenderHelpers.Profile("Extern Fxaa Update");
 			Unk00 = gbuffer.Shading.SRV;
 			Unk50 = 0.75f;
 			Unk54 = 0.166f;
 			Unk58 = 0.0833f;
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -511,6 +527,7 @@ public class Externs : IDisposable
 
 		public void Update(RendererGlobalChannels globals)
 		{
+			RenderHelpers.Profile("Extern GlobalLighting Update");
 			Unk10 = globals.Get("sun_color") * globals.Get("sun_intensity").X * 5;
 			Unk30 = globals.Get("sun_track_direction");
 			Unk50 = globals.Get("sun_ambient_direction");
@@ -522,6 +539,7 @@ public class Externs : IDisposable
 			UnkB0 = new(0.00067f, 0.00067f, -0.3481f, -0.40235f);
 			UnkC0 = new(1, 0, 1, 0);
 			UnkD0 = new(0.00056f, -0.38889f, 0.00f, 0.00f);
+			RenderHelpers.EndProfile();
 		}
 
 		public void Dispose()
@@ -536,11 +554,13 @@ public class Externs : IDisposable
 		if (renderer is null)
 			return;
 
+		RenderHelpers.Profile("Update Externs");
 		Frame.Update(renderer);
 		View.Update(renderer);
 		Atmosphere.Update(renderer);
 		//Deferred.Update();
 		//Decal.Update();
+		RenderHelpers.EndProfile();
 	}
 
 	public void Dispose()

@@ -3,7 +3,6 @@ using SharpDX;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using System.IO;
-using System.Runtime.InteropServices;
 using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
@@ -151,7 +150,7 @@ public class InvestmentData : GpuResource
 		}
 	}
 
-	public void Bind(DeviceContext context)
+	public async void Bind(DeviceContext context)
 	{
 		if (!_hasData) return;
 
@@ -167,9 +166,9 @@ public class InvestmentData : GpuResource
 		InvestmentDye1.Bind(context);
 		InvestmentDye2.Bind(context);
 
-		var eval0 = InvestmentDye0.Dye.GetEvaluated(context);
-		var eval1 = InvestmentDye1.Dye.GetEvaluated(context);
-		var eval2 = InvestmentDye2.Dye.GetEvaluated(context);
+		var eval0 = await InvestmentDye0.Dye.GetEvaluated(context);
+		var eval1 = await InvestmentDye1.Dye.GetEvaluated(context);
+		var eval2 = await InvestmentDye2.Dye.GetEvaluated(context);
 
 		try
 		{
@@ -183,16 +182,15 @@ public class InvestmentData : GpuResource
 			_merger.Move(44, 8);
 
 			Vector4[] mergedCB = _merger.ToArray();
-			DataBox box = context.MapSubresource(
-				InvestmentBuffer,
-				0,
-				MapMode.WriteDiscard,
-				MapFlags.None
-			);
-
-			Marshal.Copy(Utilities.ToByteArray(mergedCB), 0, box.DataPointer, mergedCB.Length * 16);
-
-			context.UnmapSubresource(InvestmentBuffer, 0);
+			DataBox dataBox = context.MapSubresource(InvestmentBuffer, 0, MapMode.WriteDiscard, MapFlags.None);
+			try
+			{
+				Utilities.Write(dataBox.DataPointer, mergedCB, 0, mergedCB.Length);
+			}
+			finally
+			{
+				context.UnmapSubresource(InvestmentBuffer, 0);
+			}
 		}
 		finally
 		{
@@ -251,11 +249,13 @@ public class InvestmentDye : GpuResource
 
 public class RenderObject : GpuResource
 {
+	public FileHash Hash;
 	public MeshType MeshType;
 	public AABB BoundingBox { get; set; }
 
 	private readonly List<MeshRenderData> _meshes = new();
 	public IReadOnlyList<MeshRenderData> Meshes => _meshes;
+	public IReadOnlyList<BoneNode> Bones;
 
 	public InvestmentData Investment { get; set; }
 
@@ -266,9 +266,12 @@ public class RenderObject : GpuResource
 
 	public void Create(DeviceContext context, Entity entity)
 	{
+		Hash = entity.Hash;
 		var parts = entity.Load(ExportDetailLevel.MostDetailed);
 		parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed)).ToList());
 		CreateMesh(context, parts.Cast<MeshPart>().ToList(), MeshType.Entity);
+		if (entity.Skeleton is not null)
+			Bones = entity.Skeleton.GetBoneNodes();
 
 		// This works fine but some entity bounding boxes just dont feel good to orbit around
 		if (entity.Model is not null)
@@ -287,6 +290,7 @@ public class RenderObject : GpuResource
 
 	public void Create(DeviceContext context, StaticMesh staticMesh)
 	{
+		Hash = staticMesh.Hash;
 		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
 		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), MeshType.Static);
@@ -294,6 +298,7 @@ public class RenderObject : GpuResource
 
 	public void Create(DeviceContext context, Entity entity, InventoryItem inventoryItem)
 	{
+		Hash = entity.Hash;
 		Investment = new(context, entity, inventoryItem);
 		var parts = entity.Load(ExportDetailLevel.MostDetailed);
 		CreateMesh(context, parts.Cast<MeshPart>().ToList(), MeshType.Investment);
@@ -352,6 +357,7 @@ public class RenderObject : GpuResource
 
 	public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
 	{
+		RenderHelpers.Profile($"{MeshType} {Hash} Bind");
 		foreach (var mesh in Meshes)
 		{
 			if (mesh.RenderStage != renderStage)
@@ -367,6 +373,58 @@ public class RenderObject : GpuResource
 
 			mesh.Bind(renderer.Context, MeshType);
 		}
+		RenderHelpers.EndProfile();
+	}
+
+	Buffer skeletonVB;
+	public void RenderSkeleton(CharmRenderer renderer)
+	{
+		if (Bones is null || Bones.Count == 0)
+			return;
+
+		if (skeletonVB is null)
+		{
+			var vbDesc = new BufferDescription
+			{
+				Usage = ResourceUsage.Dynamic,
+				SizeInBytes = Utilities.SizeOf<Vector4>() * (Bones.Count * 2),
+				BindFlags = BindFlags.VertexBuffer,
+				CpuAccessFlags = CpuAccessFlags.Write
+			};
+
+			skeletonVB = new Buffer(renderer.Device, vbDesc);
+		}
+
+		Vector4[] lineVertices = new Vector4[Bones.Count * 2];
+		int v = 0;
+		for (int i = 0; i < Bones.Count; i++)
+		{
+			int parent = Bones[i].ParentNodeIndex;
+			if (parent < 0)
+				continue;
+
+			lineVertices[v++] = new Vector4(Bones[i].DefaultObjectSpaceTransform.Translation, 1);
+			lineVertices[v++] = new Vector4(Bones[parent].DefaultObjectSpaceTransform.Translation, 1);
+		}
+
+		DataBox dataBox = renderer.Context.MapSubresource(skeletonVB, 0, MapMode.WriteDiscard, MapFlags.None);
+		try
+		{
+			Utilities.Write(dataBox.DataPointer, lineVertices, 0, lineVertices.Length);
+		}
+		finally
+		{
+			renderer.Context.UnmapSubresource(skeletonVB, 0);
+		}
+
+		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, new MapTransform
+		{
+			Translation = Vector4.UnitW,
+			Rotation = Vector4.Zero,
+		});
+		renderer.Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(skeletonVB, Utilities.SizeOf<Vector4>(), 0));
+		renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+		renderer.Context.Draw(lineVertices.Length, 0);
 	}
 
 	public override void Dispose()
@@ -511,9 +569,9 @@ public class MaterialData : GpuResource
 		CharmRenderer.Instance.CreateStates(states);
 	}
 
-	public Vector4[] GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
 	{
-		return Pixel?.GetEvaluated(context);
+		return await Pixel?.GetEvaluated(context);
 	}
 
 	public override void Dispose()
@@ -551,9 +609,9 @@ public class TechniqueStage : GpuResource
 		Constants?.Bind(context, Stage);
 	}
 
-	public Vector4[] GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
 	{
-		return Constants?.GetEvaluated(context);
+		return await Constants?.GetEvaluated(context);
 	}
 
 	public override void Dispose()
@@ -616,7 +674,7 @@ public class Constants : GpuResource
 		BytecodeInterpreter.Name = $"Technique {materialHash} : {stage}";
 	}
 
-	public void Bind(DeviceContext context, ShaderStage stage)
+	public async Task Bind(DeviceContext context, ShaderStage stage)
 	{
 		switch (stage)
 		{
@@ -654,29 +712,15 @@ public class Constants : GpuResource
 		if (BytecodeInterpreter == null)
 			return;
 
-		BytecodeInterpreter.Evaluate(
-			context,
-			ConstantValues,
-			BytecodeConstants,
-			Shader,
-			Samplers,
-			Instance.EntityObjectChannels,
-			out var evaluated);
+		var evaluated = await GetEvaluated(context);
 
 		if (Buffer == null)
 			return;
 
-		DataBox dataBox = context.MapSubresource(
-			Buffer,
-			0,
-			MapMode.WriteDiscard,
-			SharpDX.Direct3D11.MapFlags.None
-		);
-
+		DataBox dataBox = context.MapSubresource(Buffer, 0, MapMode.WriteDiscard, MapFlags.None);
 		try
 		{
-			byte[] evaluatedBytes = Utilities.ToByteArray(evaluated);
-			Marshal.Copy(evaluatedBytes, 0, dataBox.DataPointer, evaluatedBytes.Length);
+			Utilities.Write(dataBox.DataPointer, evaluated, 0, evaluated.Length);
 		}
 		finally
 		{
@@ -701,16 +745,15 @@ public class Constants : GpuResource
 		}
 	}
 
-	public Vector4[] GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
 	{
-		BytecodeInterpreter.Evaluate(
+		var evaluated = await BytecodeInterpreter.EvaluateAsync(
 			context,
 			ConstantValues,
 			BytecodeConstants,
 			Shader,
 			Samplers,
-			Instance.EntityObjectChannels,
-			out var evaluated);
+			Instance.EntityObjectChannels);
 
 		return evaluated;
 	}

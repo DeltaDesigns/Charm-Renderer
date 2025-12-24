@@ -239,10 +239,15 @@ public partial class CharmRenderer : IDisposable
 			RenderGrid();
 		}
 
+		if (Viewport.ShowSkele)
+		{
+			Context.OutputMerger.SetTargets(blitRT.RTV);
+			RenderSkeleton();
+		}
+
 		CreateStates(new(0, 0, 0, 0));
 		// Blits to final RT/Correct format for WPF cus it hates everything
 		BlitToWPF(blitRT);
-		//BlitFinal();
 		wpfRT.Present(Context, Viewport.RT0);
 
 
@@ -264,7 +269,9 @@ public partial class CharmRenderer : IDisposable
 		if (Camera is null || !IsAppFocused() || !Viewport.ViewportContainer.IsMouseOver)
 			return;
 
+		RenderHelpers.Profile("Update Camera");
 		Camera.Update(world, KeyboardState, MouseState);
+		RenderHelpers.EndProfile();
 	}
 
 	public void OnSizeChanged()

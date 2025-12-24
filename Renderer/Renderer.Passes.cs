@@ -13,6 +13,8 @@ public partial class CharmRenderer
 
 	private void RenderGBuffer()
 	{
+		RenderHelpers.Profile("Render GBuffer");
+
 		GBuffers.SetRenderTargets(Context);
 		Context.Rasterizer.SetViewport(GBuffers.RT0.GetViewport());
 
@@ -40,6 +42,8 @@ public partial class CharmRenderer
 		Context.PixelShader.SetShaderResources(0, GBuffers.RT2_Clone.SRV);
 
 		Context.Draw(4, 0);
+
+		RenderHelpers.EndProfile();
 	}
 
 	private void RenderAtmosphere()
@@ -54,6 +58,8 @@ public partial class CharmRenderer
 			//Externs.Deferred.SkyHemisphereMips = AssetManager.BlackTexture;
 			return;
 		}
+
+		RenderHelpers.Profile("Render Atmosphere");
 
 		var far = GBuffers.SkyGenerateFar;
 		var near = GBuffers.SkyGenerateNear;
@@ -99,10 +105,13 @@ public partial class CharmRenderer
 			Annotation.EndEvent();
 		}
 		//MatCapRenderer.MatCapSpecular = hemisphere.SRV;
+
+		RenderHelpers.EndProfile();
 	}
 
 	private void RenderMatCap()
 	{
+		RenderHelpers.Profile("Render Matcap");
 		Annotation.BeginEvent("Matcap");
 
 		Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0, 0, 0, 1));
@@ -134,10 +143,12 @@ public partial class CharmRenderer
 			Externs.Deferred.LightIBL = GBuffers.LightSpecular.SRV;
 		}
 		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
 	}
 
 	private void RenderShading()
 	{
+		RenderHelpers.Profile("Render Shading");
 		Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
 		// Sky
@@ -165,10 +176,12 @@ public partial class CharmRenderer
 		}
 
 		RenderGlobalPipeline("deferred_shading_no_atm");
+		RenderHelpers.EndProfile();
 	}
 
 	private void RenderTransparent()
 	{
+		RenderHelpers.Profile("Render Transparent");
 		SetStencilRef(4);
 		Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
@@ -187,10 +200,12 @@ public partial class CharmRenderer
 		RenderMesh(TfxRenderStage.Transparents, "Transparent Pass");
 
 		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
+		RenderHelpers.EndProfile();
 	}
 
 	private void RenderPostProcess()
 	{
+		RenderHelpers.Profile("Render Post Process");
 		Annotation.BeginEvent("Post Process");
 		CreateStates(new(0, 0, 0, 0));
 
@@ -246,6 +261,25 @@ public partial class CharmRenderer
 		//Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
 		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
+	}
+
+	private void RenderSkeleton()
+	{
+		RenderHelpers.Profile("Render Skeleton");
+		Annotation.BeginEvent("Entity Skeleton");
+		CreateStates(new(8, 15, 2, 1));
+
+		Context.InputAssembler.InputLayout = _skeleLayout;
+		Context.VertexShader.Set(_skeleVS);
+		Context.PixelShader.Set(_skelePS);
+
+		foreach (var renderable in World.RenderObjects)
+		{
+			renderable?.RenderSkeleton(this);
+		}
+		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
 	}
 
 	private void RenderMesh(TfxRenderStage renderStage, string passName)
@@ -260,16 +294,19 @@ public partial class CharmRenderer
 
 	private void RenderGlobalPipeline(string name)
 	{
+		RenderHelpers.Profile($"Render Global Pipeline {name}");
 		Annotation.BeginEvent($"Global Pipeline: {name}");
 		ExecutePipeline(name);
 
 		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
 		Context.Draw(4, 0);
 		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
 	}
 
 	private void BlitToWPF(RenderTarget2D rt)
 	{
+		RenderHelpers.Profile("Blit To WPF");
 		Annotation.BeginEvent("Blit To WPF");
 
 		_rtFinal.SetRenderTarget(Context, true);
@@ -283,6 +320,7 @@ public partial class CharmRenderer
 		Context.Draw(4, 0);
 
 		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
 	}
 
 	public enum RenderPass

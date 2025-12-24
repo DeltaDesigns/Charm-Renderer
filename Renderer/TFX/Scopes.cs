@@ -29,6 +29,7 @@ public class TempScopes : GpuResource
 		if (_disposed)
 			return;
 
+		RenderHelpers.Profile("UpdateChunkModelScope");
 		if (ChunkModelScopeBuffer is null)
 		{
 			ChunkModelScopeBuffer = new Buffer(context.Device, new BufferDescription
@@ -81,7 +82,6 @@ public class TempScopes : GpuResource
 			Matrix4x4.CreateFromQuaternion(rotation) *
 			Matrix4x4.CreateTranslation(translation);
 
-
 		ref var cb1_data = ref _cachedChunkModel;
 
 		cb1_data.MeshTransform = new Vector4(new Vector3(mesh.MeshTransform.X, mesh.MeshTransform.Y, mesh.MeshTransform.Z), mesh.MeshTransform.W);
@@ -90,6 +90,7 @@ public class TempScopes : GpuResource
 
 		context.UpdateSubresource(ref cb1_data, ChunkModelScopeBuffer);
 		context.VertexShader.SetConstantBuffer(1, ChunkModelScopeBuffer);
+		RenderHelpers.EndProfile();
 	}
 
 	private ScopeRigidModelTemp _cachedRigidModel = new ScopeRigidModelTemp();
@@ -98,6 +99,7 @@ public class TempScopes : GpuResource
 		if (_disposed)
 			return;
 
+		RenderHelpers.Profile("UpdateRigidModelScope");
 		if (RigidModelScopeBuffer is null)
 		{
 			RigidModelScopeBuffer = new Buffer(context.Device, new BufferDescription
@@ -150,6 +152,61 @@ public class TempScopes : GpuResource
 		context.UpdateSubresource(ref cb1_data, RigidModelScopeBuffer);
 		context.VertexShader.SetConstantBuffer(1, RigidModelScopeBuffer);
 		context.PixelShader.SetConstantBuffer(1, RigidModelScopeBuffer);
+		RenderHelpers.EndProfile();
+	}
+
+	public void UpdateRigidModelScopeCustom(DeviceContext context, MapTransform mapTrans)
+	{
+		if (_disposed)
+			return;
+
+		RenderHelpers.Profile("UpdateRigidModelScopeCustom");
+		if (RigidModelScopeBuffer is null)
+		{
+			RigidModelScopeBuffer = new Buffer(context.Device, new BufferDescription
+			{
+				SizeInBytes = Utilities.SizeOf<ScopeRigidModelTemp>(),
+				Usage = ResourceUsage.Default,
+				BindFlags = BindFlags.ConstantBuffer,
+				CpuAccessFlags = CpuAccessFlags.None,
+				OptionFlags = ResourceOptionFlags.None,
+				StructureByteStride = 0
+			});
+			RigidModelScopeBuffer.DebugName = $"RigidModelScopeBuffer Buffer";
+		}
+
+		Vector3 translation = new Vector3(
+			mapTrans.Translation.X,
+			mapTrans.Translation.Y,
+			mapTrans.Translation.Z
+		);
+
+		Vector3 scale = new Vector3(mapTrans.Translation.W);
+
+		System.Numerics.Quaternion rotation = new(
+			mapTrans.Rotation.X,
+			mapTrans.Rotation.Y,
+			mapTrans.Rotation.Z,
+			mapTrans.Rotation.W
+		);
+
+		Matrix4x4ButGood transform =
+			Matrix4x4.CreateScale(scale) *
+			Matrix4x4.CreateFromQuaternion(rotation) *
+			Matrix4x4.CreateTranslation(translation);
+
+		ref var cb1_data = ref _cachedRigidModel;
+
+		cb1_data.LocalToWorld = transform;
+		//cb1_data.MeshScale = scale;
+		//cb1_data.MeshOffset = mesh.MeshTransform;
+		//cb1_data.UVTransform = mesh.MeshUVTransform;
+		//cb1_data.DynamicAOValues = Vector4.UnitW;
+
+		context.UpdateSubresource(ref cb1_data, RigidModelScopeBuffer);
+		context.VertexShader.SetConstantBuffer(1, RigidModelScopeBuffer);
+		context.PixelShader.SetConstantBuffer(1, RigidModelScopeBuffer);
+		RenderHelpers.EndProfile();
 	}
 
 	private ScopeFrameTemp _cachedFrame = new ScopeFrameTemp();
@@ -158,6 +215,7 @@ public class TempScopes : GpuResource
 		if (_disposed)
 			return;
 
+		RenderHelpers.Profile("UpdateFrameScope");
 		if (FrameScopeBuffer is null)
 		{
 			FrameScopeBuffer = new Buffer(renderer.Device, new BufferDescription
@@ -190,6 +248,7 @@ public class TempScopes : GpuResource
 		renderer.Context.UpdateSubresource(ref cb13_data, FrameScopeBuffer);
 		renderer.Context.VertexShader.SetConstantBuffer(13, FrameScopeBuffer);
 		renderer.Context.PixelShader.SetConstantBuffer(13, FrameScopeBuffer);
+		RenderHelpers.EndProfile();
 	}
 
 	private ScopeTransparentAdvanced _cachedTransAdv = new ScopeTransparentAdvanced();
@@ -198,6 +257,7 @@ public class TempScopes : GpuResource
 		if (_disposed)
 			return;
 
+		RenderHelpers.Profile("UpdateTransparentAdvancedScope");
 		if (TransAdvScopeBuffer is null)
 		{
 			TransAdvScopeBuffer = new Buffer(context.Device, new BufferDescription
@@ -216,6 +276,7 @@ public class TempScopes : GpuResource
 		context.UpdateSubresource(ref cb8_data, TransAdvScopeBuffer);
 		context.VertexShader.SetConstantBuffer(8, TransAdvScopeBuffer);
 		context.PixelShader.SetConstantBuffer(8, TransAdvScopeBuffer);
+		RenderHelpers.EndProfile();
 	}
 
 	private ScopeColorGrading _cachedColorGrading = new ScopeColorGrading();
@@ -225,6 +286,7 @@ public class TempScopes : GpuResource
 		if (_disposed)
 			return;
 
+		RenderHelpers.Profile("UpdateColorGradingScope");
 		if (ColorGradingScopeBuffer is null)
 		{
 			ColorGradingScopeBuffer = new Buffer(context.Device, new BufferDescription
@@ -247,6 +309,7 @@ public class TempScopes : GpuResource
 
 		context.VertexShader.SetConstantBuffer(7, ColorGradingScopeBuffer);
 		context.PixelShader.SetConstantBuffer(7, ColorGradingScopeBuffer);
+		RenderHelpers.EndProfile();
 	}
 
 
@@ -287,9 +350,9 @@ public class TfxScope : GpuResource
 		Vertex = Scope.Vertex.Value.CBufferSlot != -1 ? new TfxScopeStage(Scope.Vertex.Value, ShaderStage.Vertex, Name, context) : null;
 	}
 
-	public Vector4[] GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
 	{
-		return Pixel?.GetEvaluated(context);
+		return await Pixel?.GetEvaluated(context);
 	}
 
 	public void BindTextures(DeviceContext context)
@@ -354,9 +417,9 @@ public class TfxScopeStage : GpuResource
 		ScopeConstants.BytecodeInterpreter.Name = $"Scope {name} : {ShaderStage}";
 	}
 
-	public Vector4[] GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
 	{
-		return ScopeConstants?.GetEvaluated(context);
+		return await ScopeConstants?.GetEvaluated(context);
 	}
 
 	public void BindTextures(DeviceContext context)

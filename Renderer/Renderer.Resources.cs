@@ -28,6 +28,10 @@ public partial class CharmRenderer
 	private VertexShader _fullHemiSkyTempVS;
 	private PixelShader _fullHemiSkyTempPS;
 
+	private VertexShader _skeleVS;
+	private PixelShader _skelePS;
+	private InputLayout _skeleLayout;
+
 	private SamplerState _pointSampler;
 
 	private DateTime _lastRender = DateTime.MinValue;
@@ -89,6 +93,7 @@ public partial class CharmRenderer
 	private int gridSpacing = 2;
 	public void RenderGrid()
 	{
+		RenderHelpers.Profile("Render Grid");
 		Annotation.BeginEvent("Draw Grid");
 		CreateStates(new(8, 15, 2, 1));
 
@@ -102,6 +107,7 @@ public partial class CharmRenderer
 
 		Context.Draw(vertexCount, 0);
 		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
 	}
 
 	private VertexShader _gridShaderVS;
