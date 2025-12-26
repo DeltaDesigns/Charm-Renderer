@@ -38,13 +38,6 @@ public partial class CharmRenderer
 	private readonly double _fps = 1000.0 / 240f; // 90 FPS
 	private DateTime _lastFrameTime = DateTime.Now;
 
-	public enum MeshType
-	{
-		Static,
-		Entity,
-		Investment
-	}
-
 	public ObjectChannels EntityObjectChannels { get; set; }
 
 	private void LookAtMeshInitial()

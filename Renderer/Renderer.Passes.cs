@@ -195,9 +195,18 @@ public partial class CharmRenderer
 		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
 		Externs.Transparent.ShadingResult = GBuffers.Shading_Clone.SRV;
 
+		// Sky Objects Pass
+		if (Viewport.RenderSky && Viewport.RenderSkyObjs)
+		{
+			CreateStates(new(8, 15, 2, 1));
+			RenderMesh(TfxRenderStage.Transparents, FeatureRendererSubscription.SkyTransparent, "Sky Objects Pass");
+		}
+
 		// Transparent Pass
 		CreateStates(new(8, 15, 2, 1));
-		RenderMesh(TfxRenderStage.Transparents, "Transparent Pass");
+		RenderMesh(TfxRenderStage.Transparents,
+			FeatureRendererSubscriptionExtensions.AllBut(TfxFeatureRenderer.SkyTransparent),
+			"Transparent Pass");
 
 		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
 		RenderHelpers.EndProfile();
@@ -287,6 +296,32 @@ public partial class CharmRenderer
 		Annotation.BeginEvent(passName);
 		foreach (var renderable in World.RenderObjects)
 		{
+			renderable?.Bind(this, renderStage);
+		}
+
+		foreach (var renderable in World.PersistantRenderObjects)
+		{
+			renderable?.Bind(this, renderStage);
+		}
+		Annotation.EndEvent();
+	}
+
+	private void RenderMesh(TfxRenderStage renderStage, FeatureRendererSubscription features, string passName)
+	{
+		Annotation.BeginEvent(passName);
+		foreach (var renderable in World.RenderObjects)
+		{
+			if (!features.IsSubscribed(renderable.MeshType))
+				continue;
+
+			renderable?.Bind(this, renderStage);
+		}
+
+		foreach (var renderable in World.PersistantRenderObjects)
+		{
+			if (!features.IsSubscribed(renderable.MeshType))
+				continue;
+
 			renderable?.Bind(this, renderStage);
 		}
 		Annotation.EndEvent();

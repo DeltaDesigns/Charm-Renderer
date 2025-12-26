@@ -50,10 +50,10 @@ public class InvestmentData : GpuResource
 		if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S77738080)
 		{
 			S1C6E8080 plates = parentResource.TexturePlates.TagData;
-			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.AlbedoPlate);
-			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.NormalPlate);
-			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.GStackPlate);
-			DyePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.DyemapPlate);
+			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.AlbedoPlate).SRV;
+			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.NormalPlate).SRV;
+			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.GStackPlate).SRV;
+			DyePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.DyemapPlate)?.SRV ?? null;
 
 			CreateDefaultDyes(context, item);
 			InvestmentBuffer = new Buffer(context.Device, new BufferDescription
@@ -250,14 +250,25 @@ public class InvestmentDye : GpuResource
 public class RenderObject : GpuResource
 {
 	public FileHash Hash;
-	public MeshType MeshType;
+	public TfxFeatureRenderer MeshType;
 	public AABB BoundingBox { get; set; }
+	public int InstanceCount = 1;
 
 	private readonly List<MeshRenderData> _meshes = new();
 	public IReadOnlyList<MeshRenderData> Meshes => _meshes;
 	public IReadOnlyList<BoneNode> Bones;
 
 	public InvestmentData Investment { get; set; }
+
+	public Transform[] GlobalTransforms = new Transform[]
+	{
+		new()
+		{
+			Position = new(0f, 0f, 0f),
+			Quaternion = new(0f, 0f, 0f, 1f),
+			Scale = Tiger.Schema.Vector3.One
+		}
+	};
 
 	public void AddMesh(MeshRenderData mesh)
 	{
@@ -269,7 +280,7 @@ public class RenderObject : GpuResource
 		Hash = entity.Hash;
 		var parts = entity.Load(ExportDetailLevel.MostDetailed);
 		parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed)).ToList());
-		CreateMesh(context, parts.Cast<MeshPart>().ToList(), MeshType.Entity);
+		CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 		if (entity.Skeleton is not null)
 			Bones = entity.Skeleton.GetBoneNodes();
 
@@ -288,12 +299,19 @@ public class RenderObject : GpuResource
 		}
 	}
 
+	public void Create(DeviceContext context, EntityModel entModel, TfxFeatureRenderer type)
+	{
+		Hash = entModel.Hash;
+		var parts = entModel.Load(ExportDetailLevel.MostDetailed, null);
+		CreateMesh(context, parts.Cast<MeshPart>().ToList(), type);
+	}
+
 	public void Create(DeviceContext context, StaticMesh staticMesh)
 	{
 		Hash = staticMesh.Hash;
 		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
 		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
-		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), MeshType.Static);
+		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
 	}
 
 	public void Create(DeviceContext context, Entity entity, InventoryItem inventoryItem)
@@ -301,7 +319,7 @@ public class RenderObject : GpuResource
 		Hash = entity.Hash;
 		Investment = new(context, entity, inventoryItem);
 		var parts = entity.Load(ExportDetailLevel.MostDetailed);
-		CreateMesh(context, parts.Cast<MeshPart>().ToList(), MeshType.Investment);
+		CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Gear);
 
 		//if (entities[0].Model is not null)
 		//{
@@ -317,7 +335,7 @@ public class RenderObject : GpuResource
 		//}
 	}
 
-	private void CreateMesh(DeviceContext context, List<MeshPart> parts, MeshType meshType)
+	private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
 	{
 		MeshType = meshType;
 		foreach (var part in parts)
@@ -347,8 +365,6 @@ public class RenderObject : GpuResource
 			};
 
 			meshData.Material.UsesVertexColor = part.VertexBuffer2 != null && part.Material.Vertex.Shader.OutputSignatures.Any(x => x.RegisterIndex == 5 && x.SemanticIndex == 8);
-
-			meshData.GlobalTransforms[0] = new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) };
 			meshData.InputLayout = new InputLayout(context.Device, part.Material.Vertex.Shader.GetBytecode(), RenderHelpers.GetInputLayout(part.VertexLayoutIndex).ToArray());
 
 			AddMesh(meshData);
@@ -363,15 +379,23 @@ public class RenderObject : GpuResource
 			if (mesh.RenderStage != renderStage)
 				continue;
 
-			if (MeshType == MeshType.Static)
-				renderer.TempScopes.UpdateChunkModelScope(renderer.Context, mesh);
+			if (MeshType == TfxFeatureRenderer.StaticObjects)
+			{
+				renderer.TempScopes.UpdateChunkModelScope(renderer.Context, mesh, GlobalTransforms);
+				if (InstanceCount > 1)
+					mesh.DrawInstanced(renderer.Context, InstanceCount);
+				else
+					mesh.Draw(renderer.Context);
+			}
 			else
-				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh);
+			{
+				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh, GlobalTransforms);
+				if (Investment is not null)
+					Investment.Bind(renderer.Context);
 
-			if (Investment is not null)
-				Investment.Bind(renderer.Context);
+				mesh.Draw(renderer.Context);
+			}
 
-			mesh.Bind(renderer.Context, MeshType);
 		}
 		RenderHelpers.EndProfile();
 	}
@@ -448,15 +472,6 @@ public class MeshRenderData : GpuResource
 	{
 	}
 
-	public MapTransform[] GlobalTransforms = new MapTransform[]
-	{
-		new()
-		{
-			Translation = new(0f, 0f, 0f, 1f),
-			Rotation = new(0f, 0f, 0f, 1f)
-		}
-	};
-
 	public IndexBuffer? IndexBuffer;
 	public VertexBuffer? VertexBuffer0;
 	public VertexBuffer? VertexBuffer1;
@@ -475,7 +490,19 @@ public class MeshRenderData : GpuResource
 	public Vector4 MeshUVTransform;
 	public int MaxColorIndex;
 
-	public void Bind(DeviceContext context, MeshType type)
+	public void Draw(DeviceContext context)
+	{
+		Bind(context);
+		context.DrawIndexed(IndexCount, IndexOffset, 0);
+	}
+
+	public void DrawInstanced(DeviceContext context, int instanceCount)
+	{
+		Bind(context);
+		context.DrawIndexedInstanced(IndexCount, instanceCount, IndexOffset, 0, 0);
+	}
+
+	private void Bind(DeviceContext context)
 	{
 		context.InputAssembler.InputLayout = InputLayout;
 		context.InputAssembler.PrimitiveTopology = Topology;
@@ -488,8 +515,6 @@ public class MeshRenderData : GpuResource
 			VertexBuffer3?.Bind(context, -1, 1);
 
 		Material?.Bind(context);
-
-		context.DrawIndexed(IndexCount, IndexOffset, 0);
 	}
 
 	public override void Dispose()
@@ -636,7 +661,7 @@ public class Constants : GpuResource
 	public Vector4[] ConstantValues;
 	public Vector4[] BytecodeConstants;
 	public List<SamplerState> Samplers = new();
-	public Dictionary<uint, ShaderResourceView> Textures = new();
+	public Dictionary<uint, TextureAsset> Textures = new();
 	public string DebugName { get; set; }
 
 	public Constants(string debugName)
@@ -696,15 +721,15 @@ public class Constants : GpuResource
 			switch (stage)
 			{
 				case ShaderStage.Vertex:
-					context.VertexShader.SetShaderResource((int)tex.Key, tex.Value);
+					context.VertexShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 
 				case ShaderStage.Pixel:
-					context.PixelShader.SetShaderResource((int)tex.Key, tex.Value);
+					context.PixelShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 
 				case ShaderStage.Compute:
-					context.ComputeShader.SetShaderResource((int)tex.Key, tex.Value);
+					context.ComputeShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 			}
 		}
@@ -735,11 +760,11 @@ public class Constants : GpuResource
 			switch (stage)
 			{
 				case ShaderStage.Vertex:
-					context.VertexShader.SetShaderResource((int)tex.Key, tex.Value);
+					context.VertexShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 
 				case ShaderStage.Pixel:
-					context.PixelShader.SetShaderResource((int)tex.Key, tex.Value);
+					context.PixelShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 			}
 		}
@@ -763,10 +788,10 @@ public class Constants : GpuResource
 		Buffer?.Dispose();
 		Buffer = null;
 
-		//foreach (var tex in Textures.Values) // SRVs should be owned by the AssetManager, which does the disposing, but just in case
-		//{
-		//    tex?.Dispose();
-		//}
+		foreach (var tex in Textures) // De-frefs textures, disposing is handled by AssetManager
+		{
+			AssetManager.GetInstance().ReleaseTexture(tex.Key);
+		}
 		Textures.Clear();
 
 		foreach (var samp in Samplers)

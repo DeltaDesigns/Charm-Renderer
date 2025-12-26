@@ -207,6 +207,7 @@ public partial class CharmRenderer : IDisposable
 			var near = Camera.Near;
 			var far = Camera.Far;
 			Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
+			Externs.Decal.DepthConstants = Externs.Deferred.DepthConstants;
 			Externs.Frame.ExposureScale = Viewport.Exposure;
 		}
 
@@ -313,16 +314,16 @@ public partial class CharmRenderer : IDisposable
 		_clock?.Stop();
 		_clock = null;
 
-		DisposeMesh();
+		DisposeAllMesh();
 
 		AssetManager?.Dispose();
 		AssetManager = null;
 	}
 
-	public void DisposeMesh()
+	public void DisposeAllMesh()
 	{
-		World?.Dispose();
-		AssetManager?.DisposeTextures();
+		World?.DisposeAll();
+		//AssetManager?.DisposeTextures();
 	}
 
 	public void DisposeRenderingResources()

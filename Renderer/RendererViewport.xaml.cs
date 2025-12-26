@@ -21,7 +21,7 @@ public partial class RendererViewport : UserControl
 	public bool ShowGrid { get; set; } = true;
 	public bool ShowSkele { get; set; } = true;
 	public bool RenderSky { get; set; } = true;
-	public bool UseVCEntOverride { get; set; } = false;
+	public bool RenderSkyObjs { get; set; } = true;
 	public float TimeOfDay { get; set; } = 0.5f;
 	public float Exposure { get; set; } = 0.8f;
 	public float AtmosRotation { get; set; } = 0f;
@@ -196,6 +196,11 @@ public partial class RendererViewport : UserControl
 	private void AtmosButton_Click(object sender, RoutedEventArgs e)
 	{
 		RenderSky = !RenderSky;
+	}
+
+	private void SkyObjsButton_Click(object sender, RoutedEventArgs e)
+	{
+		RenderSkyObjs = !RenderSkyObjs;
 	}
 
 	private void AtmosRotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

@@ -60,7 +60,7 @@ public class Externs : IDisposable
 		public ExternFrame()
 		{
 			var tex = Globals.Get().RenderGlobals.TagData.Textures.TagData.IridescenceLookup;
-			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, tex);
+			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, tex).SRV;
 		}
 
 		public void Update(CharmRenderer renderer)
@@ -342,11 +342,14 @@ public class Externs : IDisposable
 
 	public class ExternDecal : IDisposable
 	{
+		[ExternField(0x8)] public ShaderResourceView DeferredDepth { get; set; }
 		[ExternField(0x8)] public ShaderResourceView DeferredRT1 { get; set; }
+		[ExternField(0x10)] public Vector4 DepthConstants { get; set; } = new(0.0f, 1f / 0.01f, 0.0f, 0.0f);
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
 			RenderHelpers.Profile("Extern Decal Update");
+			DeferredDepth = gbuffer.Depth_Clone.DepthSRV;
 			DeferredRT1 = gbuffer.RT1_Clone.SRV;
 			RenderHelpers.EndProfile();
 		}

@@ -77,6 +77,30 @@
                 </Grid.Style>
 
                 <StackPanel Margin="5,0,5,0" Orientation="Vertical">
+                    <StackPanel
+                        x:Name="RenderSkyObjects"
+                        Margin="5"
+                        Orientation="Horizontal">
+                        <ToggleButton
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Click="SkyObjsButton_Click"
+                            IsChecked="True"
+                            Style="{DynamicResource D2StyleToggleBoxButton}">
+                            <ToggleButton.LayoutTransform>
+                                <ScaleTransform ScaleX=".75" ScaleY=".75" />
+                            </ToggleButton.LayoutTransform>
+                        </ToggleButton>
+
+                        <TextBlock
+                            Margin="0"
+                            VerticalAlignment="Center"
+                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                            FontSize="14"
+                            Text="Render Sky Objects"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
                     <StackPanel Margin="5" Orientation="Horizontal">
                         <TextBlock
                             Margin="0"

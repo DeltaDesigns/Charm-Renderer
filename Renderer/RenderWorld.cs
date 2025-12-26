@@ -15,6 +15,9 @@ public class RenderWorld : IDisposable
 	public List<Vector4> DayCycleRotations;
 	public Queue<RenderObject> RenderObjects = new();
 
+	// Temp, this sucks, will fix later
+	public Queue<RenderObject> PersistantRenderObjects = new();
+
 	public RenderWorld()
 	{
 
@@ -57,7 +60,7 @@ public class RenderWorld : IDisposable
 												if (lut.Unk28 is null || lut.Unk28.TagData.LUT is null)
 													continue;
 
-												renderer.Externs.ScreenArea.Unk08 = AssetManager.GetInstance().GetOrCreateGlobalTexture(renderer.Context, lut.Unk28.TagData.LUT);
+												renderer.Externs.ScreenArea.Unk08 = AssetManager.GetInstance().GetOrCreateGlobalTexture(renderer.Context, lut.Unk28.TagData.LUT).SRV;
 											}
 										}
 										break;
@@ -68,13 +71,14 @@ public class RenderWorld : IDisposable
 
 					switch (entry.DataResource.GetValue(dataTable.MapDataTable.GetReader()))
 					{
+						// just a test, Tower Hangar ran like ass (barely 30fps)
 						//case SMapDataResource staticMapResource:
-						//    staticMapResource.StaticMapParent?.Load();
-						//    if (staticMapResource.StaticMapParent is null)
-						//        return;
+						//	staticMapResource.StaticMapParent?.Load();
+						//	if (staticMapResource.StaticMapParent is null)
+						//		return;
 
-						//    CreateStaticMap(renderer, staticMapResource);
-						//    break;
+						//	CreateStaticMap(renderer, staticMapResource);
+						//	break;
 
 						case SMapAtmosphere mapAtmosphere:
 							CreateAtmosphere(renderer, mapAtmosphere);
@@ -83,15 +87,101 @@ public class RenderWorld : IDisposable
 						case S716A8080 dayCycle:
 							CreateDayCycleRotations(dayCycle);
 							break;
+
+						case SMapSkyObjectsResource skyResource:
+							CreateSkyObjects(renderer, skyResource);
+							break;
 					}
 				});
 			}
 		});
 	}
 
+	public void CreateSkyObjects(CharmRenderer renderer, SMapSkyObjectsResource skyResource)
+	{
+		skyResource.SkyObjects?.Load();
+		if (skyResource.SkyObjects is null)
+			return;
+
+		if (skyResource.SkyObjects.TagData.Entries is null)
+			return;
+
+		int i = 0;
+		foreach (SA96A8080 element in skyResource.SkyObjects.TagData.Entries)
+		{
+			if (element.Model.TagData.Model is null || element.Unk70 == 5 || element.Complex is not null)
+				continue;
+
+			Tiger.Schema.Matrix4x4 matrix = element.Transform;
+			Vector3 scale = new();
+			Vector4 trans = new();
+			Vector4 quat = new();
+			matrix.Decompose(out trans, out quat, out scale);
+
+			RenderObject renderObject = new();
+			renderObject.Create(renderer.Context, element.Model.TagData.Model, TfxFeatureRenderer.SkyTransparent);
+
+			renderObject.GlobalTransforms[0] = new Transform
+			{
+				Position = trans.ToVec3(),
+				Quaternion = quat,
+				Scale = scale
+			};
+
+			PersistantRenderObjects.Enqueue(renderObject);
+
+			//scene.AddMapModel(element.Model.TagData.Model, new Transform
+			//{
+			//	Position = trans.ToVec3(),
+			//	Rotation = Vector4.QuaternionToEulerAngles(quat),
+			//	Quaternion = quat,
+			//	Scale = scale,
+			//	Order = i, //element.Unk64 I guess the order is just the index? Idk
+			//});
+
+			i++;
+		}
+	}
+
 	public void CreateStaticMap(CharmRenderer renderer, SMapDataResource staticResource)
 	{
+		var staticMap = staticResource.StaticMapParent.TagData.StaticMap.TagData;
+		List<SStaticMeshHash> extractedStatics = staticMap.Statics.DistinctBy(x => x.Static.Hash).ToList();
 
+		foreach (SStaticMeshInstanceMap c in staticMap.InstanceCounts)
+		{
+			StaticMesh model = staticMap.Statics[c.StaticIndex].Static;
+
+			int remaining = c.InstanceCount;
+			int srcOffset = c.InstanceOffset;
+
+			while (remaining > 0)
+			{
+				int batchCount = Math.Min(remaining, 16);
+
+				RenderObject obj = new();
+				obj.Create(renderer.Context, model);
+				obj.InstanceCount = batchCount;
+				obj.GlobalTransforms = new Transform[batchCount];
+
+				for (int i = 0; i < batchCount; i++)
+				{
+					var trans = staticMap.Instances[srcOffset + i];
+
+					obj.GlobalTransforms[i] = new Transform
+					{
+						Position = trans.Position,
+						Quaternion = trans.Rotation,
+						Scale = new(trans.Scale.X)
+					};
+				}
+
+				RenderObjects.Enqueue(obj);
+
+				srcOffset += batchCount;
+				remaining -= batchCount;
+			}
+		}
 	}
 
 	public void CreateAtmosphere(CharmRenderer renderer, SMapAtmosphere mapAtmosphere)
@@ -109,12 +199,12 @@ public class RenderWorld : IDisposable
 		}
 		else
 		{
-			renderer.Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, Atmosphere.Value.Lookup0);
-			renderer.Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, Atmosphere.Value.Lookup1 ?? Atmosphere.Value.Lookup0);
+			renderer.Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, Atmosphere.Value.Lookup0).SRV;
+			renderer.Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, Atmosphere.Value.Lookup1 ?? Atmosphere.Value.Lookup0).SRV;
 		}
 
 		if (Atmosphere.Value.Lookup4 != null)
-			renderer.Externs.Atmosphere.AtmosLookup2 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, Atmosphere.Value.Lookup4);
+			renderer.Externs.Atmosphere.AtmosLookup2 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, Atmosphere.Value.Lookup4).SRV;
 
 		Log.Debug("Assigned Atmopshere Extern Textures.");
 	}
@@ -166,6 +256,22 @@ public class RenderWorld : IDisposable
 			renderObject?.Dispose();
 		}
 		RenderObjects?.Clear();
+	}
+
+	public void DisposePersistant()
+	{
+		foreach (var renderObject in PersistantRenderObjects)
+		{
+			renderObject?.Dispose();
+		}
+		PersistantRenderObjects?.Clear();
+	}
+
+	// this sucks and is temporary
+	public void DisposeAll()
+	{
+		Dispose();
+		DisposePersistant();
 	}
 }
 

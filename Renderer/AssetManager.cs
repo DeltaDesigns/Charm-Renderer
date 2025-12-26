@@ -1,4 +1,5 @@
-﻿using DirectXTex;
+﻿using Arithmic;
+using DirectXTex;
 using DirectXTexNet;
 using SharpDX;
 using SharpDX.Direct3D;
@@ -11,10 +12,38 @@ using Texture = Tiger.Schema.Texture;
 
 namespace Charm.Renderer;
 
+public sealed class TextureAsset : IDisposable
+{
+	public ShaderResourceView SRV;
+	public int RefCount;
+
+	public TextureAsset(ShaderResourceView srv)
+	{
+		SRV = srv;
+	}
+
+	public void AddRef()
+	{
+		RefCount++;
+	}
+
+	public bool Release()
+	{
+		RefCount--;
+		return RefCount <= 0;
+	}
+
+	public void Dispose()
+	{
+		SRV?.Dispose();
+		SRV = null;
+	}
+}
+
 public class AssetManager : IDisposable
 {
-	public readonly Dictionary<uint, ShaderResourceView> _cache = new(); // used for mesh
-	public readonly Dictionary<uint, ShaderResourceView> _globalCache = new(); // used for pipelines/externs
+	public readonly Dictionary<uint, TextureAsset> _cache = new(); // used for mesh
+	public readonly Dictionary<uint, TextureAsset> _globalCache = new(); // used for pipelines/externs
 	public ShaderResourceView WhiteTexture;
 	public ShaderResourceView BlackTexture;
 	public ShaderResourceView BlackTextureWAlpha;
@@ -104,46 +133,47 @@ public class AssetManager : IDisposable
 		{
 			DebugName = "Investment Override VC Vertex Shader"
 		};
-
-		UpdateEntityOverride(true);
 	}
 
-	public void UpdateEntityOverride(bool useVC)
+	public TextureAsset GetOrCreateTexture(DeviceContext context, Texture texture)
 	{
-		//EntityOverrideVS = useVC ? EntityOverrideVS_VC : EntityOverrideVS_NoVC;
-	}
-
-	// TODO
-	public void UnregisterTexture(ShaderResourceView srv)
-	{
-
-	}
-
-	public ShaderResourceView GetOrCreateTexture(DeviceContext context, Texture texture)
-	{
-		if (!_cache.TryGetValue(texture.Hash.Hash32, out var srv))
+		if (!_cache.TryGetValue(texture.Hash.Hash32, out var tex))
 		{
-			srv = CreateTexture(context, texture);
-			_cache[texture.Hash.Hash32] = srv;
+			tex = new TextureAsset(CreateTexture(context, texture));
+			_cache[texture.Hash.Hash32] = tex;
 		}
 
-		return srv;
+		tex.AddRef();
+		return tex;
 	}
 
-	public ShaderResourceView GetOrCreateGlobalTexture(DeviceContext context, Texture texture)
+	public TextureAsset GetOrCreateGlobalTexture(DeviceContext context, Texture texture)
 	{
-		if (!_globalCache.TryGetValue(texture.Hash.Hash32, out var srv))
+		if (!_globalCache.TryGetValue(texture.Hash.Hash32, out var tex))
 		{
-			srv = CreateTexture(context, texture);
-			_globalCache[texture.Hash.Hash32] = srv;
+			tex = new TextureAsset(CreateTexture(context, texture));
+			_globalCache[texture.Hash.Hash32] = tex;
 		}
 
-		return srv;
+		tex.AddRef();
+		return tex;
 	}
 
-	public Dictionary<uint, ShaderResourceView> CreateTextures(DeviceContext context, SMaterialShader stage)
+	public void ReleaseTexture(uint hash)
 	{
-		Dictionary<uint, ShaderResourceView> textures = new();
+		if (_cache.TryGetValue(hash, out var tex))
+		{
+			if (tex.Release())
+			{
+				tex.Dispose();
+				_cache.Remove(hash);
+			}
+		}
+	}
+
+	public Dictionary<uint, TextureAsset> CreateTextures(DeviceContext context, SMaterialShader stage)
+	{
+		Dictionary<uint, TextureAsset> textures = new();
 
 		foreach (var tex in stage.EnumerateTextures())
 		{
@@ -156,9 +186,9 @@ public class AssetManager : IDisposable
 		return textures;
 	}
 
-	public Dictionary<uint, ShaderResourceView> CreateTextures(DeviceContext context, List<STextureTag> tags)
+	public Dictionary<uint, TextureAsset> CreateTextures(DeviceContext context, List<STextureTag> tags)
 	{
-		Dictionary<uint, ShaderResourceView> textures = new();
+		Dictionary<uint, TextureAsset> textures = new();
 
 		foreach (var tex in tags)
 		{
@@ -351,7 +381,7 @@ public class AssetManager : IDisposable
 		});
 	}
 
-	public ShaderResourceView CreateFromPlate(DeviceContext context, TexturePlate plate)
+	public TextureAsset CreateFromPlate(DeviceContext context, TexturePlate plate)
 	{
 		using TigerReader reader = plate.GetReader();
 		var hashes = plate.TagData.PlateTransforms.Enumerate(reader).Select(x => x.Texture.Hash.Hash32).ToArray();
@@ -360,15 +390,16 @@ public class AssetManager : IDisposable
 
 		uint outHash = Helpers.HashCombine(hashes);
 
-		if (!_cache.TryGetValue(outHash, out var srv))
+		if (!_cache.TryGetValue(outHash, out var tex))
 		{
-			srv = CreateFromScratchImage(context, plate.MakePlatedTexture());
-			if (srv is not null)
-				srv.DebugName = $"Gear Plate {plate.Hash}";
+			tex = new(CreateFromScratchImage(context, plate.MakePlatedTexture()));
+			if (tex.SRV is not null)
+				tex.SRV.DebugName = $"Gear Plate {plate.Hash}";
 
-			_cache[outHash] = srv;
+			_cache[outHash] = tex;
 		}
-		return srv;
+		tex.RefCount++;
+		return tex;
 	}
 
 	// Temp? Used for Investment
@@ -419,8 +450,13 @@ public class AssetManager : IDisposable
 		return srv;
 	}
 
+	/// <summary>
+	/// Disposes all cached textures, regardless of reference count.
+	/// Should be used only when cleaning up the AssetManager.
+	/// </summary>
 	public void DisposeTextures()
 	{
+		Log.Debug($"{_cache.Count} Textures still registered.");
 		foreach (var srv in _cache.Values)
 		{
 			srv?.Dispose();
@@ -428,8 +464,13 @@ public class AssetManager : IDisposable
 		_cache.Clear();
 	}
 
+	/// <summary>
+	/// Disposes all global cached textures, regardless of reference count.
+	/// Should be used only when cleaning up the AssetManager.
+	/// </summary>
 	public void DisposeGlobalTextures()
 	{
+		Log.Debug($"{_globalCache.Count} Global Textures still registered.");
 		foreach (var srv in _globalCache.Values)
 		{
 			srv?.Dispose();

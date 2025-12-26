@@ -24,7 +24,7 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeChunkModelTemp _cachedChunkModel = new ScopeChunkModelTemp();
-	public void UpdateChunkModelScope(DeviceContext context, MeshRenderData mesh)
+	public void UpdateChunkModelScope(DeviceContext context, MeshRenderData mesh, Transform[] transforms)
 	{
 		if (_disposed)
 			return;
@@ -34,59 +34,52 @@ public class TempScopes : GpuResource
 		{
 			ChunkModelScopeBuffer = new Buffer(context.Device, new BufferDescription
 			{
-				SizeInBytes = Utilities.SizeOf<ScopeChunkModelTemp>(),
-				Usage = ResourceUsage.Default,
+				// cb1[80]
+				SizeInBytes = Utilities.SizeOf<Vector4>() * 80, //Utilities.SizeOf<ScopeChunkModelTemp>(),
+				Usage = ResourceUsage.Dynamic,
 				BindFlags = BindFlags.ConstantBuffer,
-				CpuAccessFlags = CpuAccessFlags.None,
+				CpuAccessFlags = CpuAccessFlags.Write,
 				OptionFlags = ResourceOptionFlags.None,
 				StructureByteStride = 0
 			});
 			ChunkModelScopeBuffer.DebugName = $"ChunkModelScopeBuffer Buffer";
 		}
 
-		//Matrix4x4[] transforms = new Matrix4x4[mesh.GlobalTransforms.Length];
-		//for (int i = 0; i < mesh.GlobalTransforms.Length; i++)
-		//{
-		//    var t = mesh.GlobalTransforms[i];
-
-		//    float scale = t.Translation.W;
-		//    Vector3 translation = new Vector3(
-		//        t.Translation.X,
-		//        t.Translation.Y,
-		//        t.Translation.Z
-		//    );
-
-		//    System.Numerics.Quaternion rotation = new(
-		//        t.Rotation.X,
-		//        t.Rotation.Y,
-		//        t.Rotation.Z,
-		//        t.Rotation.W
-		//    );
-
-		//    Matrix4x4ButGood transform =
-		//        Matrix4x4.CreateScale(scale) *
-		//        Matrix4x4.CreateFromQuaternion(rotation) *
-		//        Matrix4x4.CreateTranslation(translation);
-
-		//    transforms[i] = transform.Transpose().WithW(new(1f, 1f, 1f, 9.4039E-38f));
-		//}
-
-		var t = mesh.GlobalTransforms[0];
-
-		float scale = t.Translation.W;
-		Vector3 translation = new(t.Translation.X, t.Translation.Y, t.Translation.Z);
-		System.Numerics.Quaternion rotation = new(t.Rotation.X, t.Rotation.Y, t.Rotation.Z, t.Rotation.W);
-
-		Matrix4x4ButGood transform =
-			Matrix4x4.CreateScale(scale) *
-			Matrix4x4.CreateFromQuaternion(rotation) *
-			Matrix4x4.CreateTranslation(translation);
-
 		ref var cb1_data = ref _cachedChunkModel;
-
-		cb1_data.MeshTransform = new Vector4(new Vector3(mesh.MeshTransform.X, mesh.MeshTransform.Y, mesh.MeshTransform.Z), mesh.MeshTransform.W);
+		cb1_data.MeshTransform = mesh.MeshTransform;
 		cb1_data.UVTransform = new Vector4(mesh.MeshUVTransform.X, mesh.MeshUVTransform.Z, mesh.MeshUVTransform.W, mesh.MaxColorIndex);
-		cb1_data.Transform = transform.Transpose().WithW(new(1f, 1f, 1f, 9.4039E-38f)); //transforms[0]; // TODO Handle multiple transforms
+		if (cb1_data.Transform is null)
+			cb1_data.Transform = new Matrix4x4[16];
+
+		Debug.Assert(transforms.Length <= 16, $"Too many model transforms. {transforms.Length}, Max 16");
+		for (int i = 0; i < transforms.Length; i++)
+		{
+			var trans = transforms[i];
+			Matrix4x4ButGood transform =
+				Matrix4x4.CreateScale(trans.Scale) *
+				Matrix4x4.CreateFromQuaternion(trans.Quaternion.ToQuat()) *
+				Matrix4x4.CreateTranslation(trans.Position);
+
+			cb1_data.Transform[i] = transform.Transpose().WithW(new(1f, 1f, 1f, 9.4039E-38f)); //transforms[0]; // TODO Handle multiple transforms
+		}
+
+		var box = context.MapSubresource(
+			ChunkModelScopeBuffer,
+			0,
+			MapMode.WriteDiscard,
+			MapFlags.None
+		);
+
+		try
+		{
+			Utilities.Write(box.DataPointer, ref cb1_data.MeshTransform);
+			Utilities.Write(box.DataPointer + 16, ref cb1_data.UVTransform);
+			Utilities.Write(box.DataPointer + 32, cb1_data.Transform, 0, transforms.Length);
+		}
+		finally
+		{
+			context.UnmapSubresource(ChunkModelScopeBuffer, 0);
+		}
 
 		context.UpdateSubresource(ref cb1_data, ChunkModelScopeBuffer);
 		context.VertexShader.SetConstantBuffer(1, ChunkModelScopeBuffer);
@@ -94,7 +87,7 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeRigidModelTemp _cachedRigidModel = new ScopeRigidModelTemp();
-	public void UpdateRigidModelScope(DeviceContext context, MeshRenderData mesh)
+	public void UpdateRigidModelScope(DeviceContext context, MeshRenderData mesh, Transform[] transforms)
 	{
 		if (_disposed)
 			return;
@@ -114,32 +107,13 @@ public class TempScopes : GpuResource
 			RigidModelScopeBuffer.DebugName = $"RigidModelScopeBuffer Buffer";
 		}
 
-		Debug.Assert(mesh.GlobalTransforms.Length == 1, "Rigid models should only have one global transform.");
+		Debug.Assert(transforms.Length == 1, "Rigid models should only have one global transform.");
 
-		var t = mesh.GlobalTransforms[0];
-		Vector3 translation = new Vector3(
-			t.Translation.X,
-			t.Translation.Y,
-			t.Translation.Z
-		);
-
-		Vector3 scale = new Vector3(
-		   mesh.MeshScale.X,
-		   mesh.MeshScale.Y,
-		   mesh.MeshScale.Z
-		);
-
-		System.Numerics.Quaternion rotation = new(
-			t.Rotation.X,
-			t.Rotation.Y,
-			t.Rotation.Z,
-			t.Rotation.W
-		);
-
+		var t = transforms[0];
 		Matrix4x4ButGood transform =
-			Matrix4x4.CreateScale(scale) *
-			Matrix4x4.CreateFromQuaternion(rotation) *
-			Matrix4x4.CreateTranslation(translation);
+			Matrix4x4.CreateScale(t.Scale) *
+			Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat()) *
+			Matrix4x4.CreateTranslation(t.Position);
 
 		ref var cb1_data = ref _cachedRigidModel;
 
@@ -447,7 +421,7 @@ public struct ScopeChunkModelTemp
 {
 	public Vector4 MeshTransform;
 	public Vector4 UVTransform;
-	public Matrix4x4 Transform;
+	public Matrix4x4[] Transform;
 }
 
 // Entities, non skinned
