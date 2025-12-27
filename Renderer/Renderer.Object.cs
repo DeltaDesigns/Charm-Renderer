@@ -47,12 +47,17 @@ public partial class CharmRenderer
 		World?.Dispose();
 
 		List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);
+		Entity? skele = Investment.Get().GetPatternEntityFromHash(item.Parent != null ? item.Parent.TagData.InventoryItemHash : item.TagData.InventoryItemHash);
+		if (skele != null && skele.Skeleton != null && entities.Any())
+			entities[0].Skeleton = skele.Skeleton;
+
 		foreach (var ent in entities)
 		{
 			RenderObject obj = new();
 			obj.Create(Context, ent, item);
 			World.RenderObjects.Enqueue(obj);
 		}
+
 
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;
 

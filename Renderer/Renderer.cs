@@ -10,8 +10,11 @@ using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
 
 // Please do not look at this. It is an absolute mess and unoptimized and ugly and im ashamed yet proud at the same time.
-// This in its current state CAN NOT handle maps. This is just a simple singular asset viewer.
+// This in its current state *could* handle maps but with very low FPS.
 // Massive credits to Cohae cus everything learned making this came from Alkahest.
+
+// Realistically, I shouldn't bother with actual map rendering as thats Alkahest's job and it does it far better than I ever could.
+// Charm's renderer should just focus on rendering individual assets, maybe with some more in-depth features for that, idk.
 
 #if DEBUG
 using Evergine.Bindings.RenderDoc;
@@ -61,11 +64,6 @@ public partial class CharmRenderer : IDisposable
 	public void Initialize(int width, int height)
 	{
 		if (_isRunning) return;
-
-		if (_clock is null)
-			_clock = new();
-
-		_clock.Start();
 
 		if (_GPU == null)
 		{
@@ -120,9 +118,12 @@ public partial class CharmRenderer : IDisposable
 	}
 
 
-
+	public float Time { get; private set; }
+	public float DeltaTime { get; private set; }
 	public float FPS { get; private set; } = 0;
-	private const float targetFPS = 200f;
+
+	private const float MaxDeltaTime = 0.1f;
+	private float TargetFPS = 200f;
 	private void RenderLoop()
 	{
 #if DEBUG
@@ -130,34 +131,44 @@ public partial class CharmRenderer : IDisposable
 #endif
 
 		var stopwatch = Stopwatch.StartNew();
-		double lastFrameTime = stopwatch.Elapsed.TotalSeconds;
-		double targetFrameTime = 1.0 / targetFPS;
+		double lastTime = stopwatch.Elapsed.TotalSeconds;
+
+		double fpsTimer = 0.0;
+		int fpsFrames = 0;
 
 		while (_isRunning)
 		{
+			TargetFPS = IsAppFocused() ? 200f : 30f;
+			double targetFrameTime = Viewport.CapFPS ? (1.0 / TargetFPS) : 0.0;
+
 			double now = stopwatch.Elapsed.TotalSeconds;
-			double delta = now - lastFrameTime;
+			double delta = now - lastTime;
+			bool shouldCapFPS = Viewport.CapFPS || !IsAppFocused();
 
-			if (delta < targetFrameTime)
+			if (shouldCapFPS && delta < targetFrameTime)
 			{
-				double remaining = targetFrameTime - delta;
-
-				// Sleep only if remaining time is significant, otherwise just spin
-				if (remaining > 0.002) // ~2 ms
-					Thread.Sleep(1);
-				else
-					Thread.SpinWait(1);
+				int sleepMs = (int)((targetFrameTime - delta) * 1000.0);
+				if (sleepMs > 0)
+					Thread.Sleep(sleepMs);
 
 				continue;
 			}
 
-			lastFrameTime = now;
+			lastTime = now;
 
-			DeltaTime = (float)delta;
-			FPS = 1f / DeltaTime;
+			DeltaTime = (float)Math.Min(delta, MaxDeltaTime);
+			Time = (float)now;
 
-			Time = _clock.ElapsedMilliseconds / 1000f;
 			Render();
+
+			fpsFrames++;
+			fpsTimer += delta;
+			if (fpsTimer >= 0.5)
+			{
+				FPS = fpsFrames / (float)fpsTimer;
+				fpsFrames = 0;
+				fpsTimer = 0;
+			}
 
 #if DEBUG
 			TracyWrapper.Profiler.HeartBeat();
@@ -230,10 +241,10 @@ public partial class CharmRenderer : IDisposable
 		RenderTransparent();
 		RenderPostProcess();
 
-		if (DisplayPass > RenderPass.final_combine_no_pp)
+		if (DisplayPass > RenderPass.final_color_grade)
 			RenderGlobalPipeline(DisplayPass.ToString());
 
-		var blitRT = DisplayPass == RenderPass.final_combine_no_pp ? GBuffers.Shading : GBuffers.PostProcessResult;
+		var blitRT = DisplayPass == RenderPass.final ? GBuffers.Shading : GBuffers.PostProcessResult;
 		if (Viewport.ShowGrid)
 		{
 			Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);
@@ -311,8 +322,6 @@ public partial class CharmRenderer : IDisposable
 #if DEBUG
 		_renderDoc = null;
 #endif
-		_clock?.Stop();
-		_clock = null;
 
 		DisposeAllMesh();
 

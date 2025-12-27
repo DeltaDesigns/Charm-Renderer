@@ -1,7 +1,6 @@
 ﻿using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
-using System.Diagnostics;
 using Vector3 = System.Numerics.Vector3;
 
 namespace Charm.Renderer;
@@ -14,10 +13,6 @@ public partial class CharmRenderer
 	private RenderTarget2D _rtFinal;
 
 	private WpfRenderTarget wpfRT;
-
-	private Stopwatch _clock;
-	public float Time;
-	public float DeltaTime;
 
 	private VertexShader _blitVS;
 	private PixelShader _blitPS;

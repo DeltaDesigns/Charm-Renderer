@@ -1,4 +1,5 @@
 ﻿using Charm.Shared;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -18,14 +19,23 @@ namespace Charm.Renderer;
 public partial class RendererViewport : UserControl
 {
 	public CharmRenderer Renderer => CharmRenderer.Instance;
+
+	#region Debug Options
+	public ObservableCollection<SettingItem> DebugSettings { get; set; }
 	public bool ShowGrid { get; set; } = true;
 	public bool ShowSkele { get; set; } = true;
+	public bool CapFPS { get; set; } = true;
+	#endregion
+
+	#region Render Options
+	public ObservableCollection<SettingItem> AtmosSettings { get; set; }
 	public bool RenderSky { get; set; } = true;
 	public bool RenderSkyObjs { get; set; } = true;
-	public float TimeOfDay { get; set; } = 0.5f;
+	public float TimeOfDay { get; set; } = 0.675f;
 	public float Exposure { get; set; } = 0.8f;
-	public float AtmosRotation { get; set; } = 0f;
+	public float AtmosRotation { get; set; } = 0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
+	#endregion
 
 	private bool _isFullscreen = false;
 	private Panel _originalParent;
@@ -35,6 +45,7 @@ public partial class RendererViewport : UserControl
 	{
 		InitializeComponent();
 		CreateRenderPassOptions();
+		CreateViewportControls();
 	}
 
 	private DispatcherTimer _uiTimer;
@@ -96,9 +107,79 @@ public partial class RendererViewport : UserControl
 			});
 		}
 
-		Combobox.ItemsSource = types;
-		if (Combobox.SelectedIndex == -1)
-			Combobox.SelectedIndex = 0;
+		RenderPassCombobox.ItemsSource = types;
+		if (RenderPassCombobox.SelectedIndex == -1)
+			RenderPassCombobox.SelectedIndex = 0;
+	}
+
+	private void CreateViewportControls()
+	{
+		ShowGridButton.Content = new ToggleSetting
+		{
+			Text = "Show Grid",
+			GetValue = () => ShowGrid,
+			SetValue = v => ShowGrid = v
+		};
+
+		ShowAtmosSettings.Content = new ToggleSetting
+		{
+			Text = "Render Sky",
+			GetValue = () => RenderSky,
+			SetValue = v => RenderSky = v
+		};
+		AtmosSettings = new ObservableCollection<SettingItem>
+		{
+			new ToggleSetting
+			{
+				Text = "Render Sky Objects",
+				GetValue = () => RenderSkyObjs,
+				SetValue = v => RenderSkyObjs = v
+			},
+			new SliderSetting
+			{
+				Text = "Time Of Day",
+				GetValue = () => TimeOfDay,
+				SetValue = v => TimeOfDay = v
+			},
+			new SliderSetting
+			{
+				Text = "Sky Rotation",
+				GetValue = () => AtmosRotation,
+				SetValue = v => AtmosRotation = v
+			},
+			new SliderSetting
+			{
+				Text = "Sky Intensity",
+				GetValue = () => AtmosIntensity,
+				SetValue = v => AtmosIntensity = v
+			}
+		};
+		AtmosOptions.ItemsSource = AtmosSettings;
+
+		ShowDebugSettings.Content = new ToggleSetting { Text = "Debug Options" };
+		DebugSettings = new ObservableCollection<SettingItem>
+		{
+			new SliderSetting
+			{
+				Text = "Exposure",
+				Max = 2f,
+				GetValue = () => Exposure,
+				SetValue = v => Exposure = v
+			},
+			new ToggleSetting
+			{
+				Text = "Show Skeleton",
+				GetValue = () => ShowSkele,
+				SetValue = v => ShowSkele = v
+			},
+			new ToggleSetting
+			{
+				Text = "Cap FPS",
+				GetValue = () => CapFPS,
+				SetValue = v => CapFPS = v
+			},
+		};
+		DebugOptions.ItemsSource = DebugSettings;
 	}
 
 	private void Dropdown_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -110,7 +191,7 @@ public partial class RendererViewport : UserControl
 		if (tag is not null && tag is CharmRenderer.RenderPass pass)
 			Renderer.DisplayPass = pass;
 		else
-			Renderer.DisplayPass = CharmRenderer.RenderPass.final_combine_no_pp;
+			Renderer.DisplayPass = CharmRenderer.RenderPass.final;
 	}
 
 	private void OnSizeChanged(object sender, SizeChangedEventArgs args)
@@ -173,6 +254,7 @@ public partial class RendererViewport : UserControl
 		_currentEntity = null;
 	}
 
+	#region Render/debug options
 	private void ShowGridButton_Checked(object sender, RoutedEventArgs e)
 	{
 		ShowGrid = !ShowGrid;
@@ -198,11 +280,6 @@ public partial class RendererViewport : UserControl
 		RenderSky = !RenderSky;
 	}
 
-	private void SkyObjsButton_Click(object sender, RoutedEventArgs e)
-	{
-		RenderSkyObjs = !RenderSkyObjs;
-	}
-
 	private void AtmosRotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
 	{
 		AtmosRotation = (float)e.NewValue;
@@ -211,29 +288,6 @@ public partial class RendererViewport : UserControl
 	private void AtmosIntensitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
 	{
 		AtmosIntensity = (float)e.NewValue;
-	}
-
-	public static Grid FindParentGridByName(DependencyObject start, string gridName)
-	{
-		DependencyObject current = start;
-
-		while (current != null)
-		{
-			// Look at parent
-			current = VisualTreeHelper.GetParent(current);
-
-			// If it's a Grid, check the name
-			if (current is Grid grid && grid.Name == gridName)
-			{
-				return grid;
-			}
-
-			// If we hit a Window or the root, bail out
-			if (current is Window)
-				return null;
-		}
-
-		return null;
 	}
 
 	private void ResetObjectChannels_Click(object sender, RoutedEventArgs e)
@@ -267,6 +321,36 @@ public partial class RendererViewport : UserControl
 		}
 	}
 
+	private void CapFPSButton_Checked(object sender, RoutedEventArgs e)
+	{
+		CapFPS = !CapFPS;
+	}
+	#endregion
+
+	public static Grid FindParentGridByName(DependencyObject start, string gridName)
+	{
+		DependencyObject current = start;
+
+		while (current != null)
+		{
+			// Look at parent
+			current = VisualTreeHelper.GetParent(current);
+
+			// If it's a Grid, check the name
+			if (current is Grid grid && grid.Name == gridName)
+			{
+				return grid;
+			}
+
+			// If we hit a Window or the root, bail out
+			if (current is Window)
+				return null;
+		}
+
+		return null;
+	}
+
+	#region Mesh Loading (Temp?)
 	private Entity _currentEntity; // temp
 	public async void LoadEntity(FileHash hash)
 	{
@@ -392,4 +476,5 @@ public partial class RendererViewport : UserControl
 
 		ReloadEntity();
 	}
+	#endregion
 }

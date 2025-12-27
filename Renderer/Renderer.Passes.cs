@@ -7,7 +7,7 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
-	public RenderPass DisplayPass = RenderPass.final_combine_no_pp;
+	public RenderPass DisplayPass = RenderPass.final;
 
 	private Dictionary<string, MaterialData> _pipelineCache = new();
 
@@ -71,7 +71,7 @@ public partial class CharmRenderer
 		Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
 		//Externs.Atmosphere.AtmosTimeOfDay = 0.42879f;
 		Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
-		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
+		Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
 		//Externs.Atmosphere.AtmosSunColor = new System.Numerics.Vector4(1.0f, 0.95f, 0.85f, 1.0f) * MathF.Sin(MathF.PI * Math.Clamp(Viewport.TimeOfDay, 0.1f, 0.9f));
 		//Externs.Atmosphere.AtmosTimeOfDay = 0.75f;
 		Externs.Atmosphere.Update(this);
@@ -361,7 +361,7 @@ public partial class CharmRenderer
 	public enum RenderPass
 	{
 		[Description("Final")] final,
-		[Description("Final (No Color Grading)")] final_combine_no_pp,
+		[Description("Final (Color Graded)")] final_color_grade,
 
 		// Actual pipelines
 		[Description("Albedo")] debug_source_color,

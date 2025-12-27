@@ -320,6 +320,8 @@ public class RenderObject : GpuResource
 		Investment = new(context, entity, inventoryItem);
 		var parts = entity.Load(ExportDetailLevel.MostDetailed);
 		CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Gear);
+		if (entity.Skeleton is not null)
+			Bones = entity.Skeleton.GetBoneNodes();
 
 		//if (entities[0].Model is not null)
 		//{

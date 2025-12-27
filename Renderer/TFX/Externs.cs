@@ -296,7 +296,7 @@ public class Externs : IDisposable
 			AtmosUnk180 = renderer.World.GlobalChannels.Get(20); // fog_decay_color
 			AtmosUnk190 = renderer.World.GlobalChannels.Get(21).X; // fog_decay_scale
 			///AtmosRotation = renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
-			AtmosIntensity = renderer.World.GlobalChannels.Get("sky_snapshot_intensity").X;
+			//AtmosIntensity = renderer.World.GlobalChannels.Get("sky_snapshot_intensity").X;
 			AtmosUnk1BC = renderer.World.GlobalChannels.Get(36).X;
 			AtmosUnk1C0 = renderer.World.GlobalChannels.Get(35).X;
 			AtmosUnk1D0 = renderer.World.GlobalChannels.Get("sky_color_override"); // sky_color_override?

@@ -11,6 +11,55 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <local:ChannelHashToString x:Key="ChannelHashToString" />
+
+        <DataTemplate DataType="{x:Type local:ToggleSetting}">
+            <StackPanel Margin="3" Orientation="Horizontal">
+                <ToggleButton IsChecked="{Binding IsChecked, Mode=TwoWay}" Style="{DynamicResource D2StyleToggleBoxButton}">
+                    <ToggleButton.LayoutTransform>
+                        <ScaleTransform ScaleX=".75" ScaleY=".75" />
+                    </ToggleButton.LayoutTransform>
+                </ToggleButton>
+
+                <TextBlock
+                    Margin="0"
+                    VerticalAlignment="Center"
+                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                    FontSize="14"
+                    Text="{Binding Text}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type local:SliderSetting}">
+            <StackPanel Margin="3" Orientation="Horizontal">
+                <TextBlock
+                    Width="100"
+                    VerticalAlignment="Center"
+                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                    FontSize="14"
+                    Text="{Binding Text}" />
+
+                <Slider
+                    Width="200"
+                    Margin="0,0,5,0"
+                    VerticalAlignment="Center"
+                    Maximum="{Binding Max}"
+                    Minimum="{Binding Min}"
+                    Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <Slider.LayoutTransform>
+                        <ScaleTransform ScaleX="1" ScaleY=".75" />
+                    </Slider.LayoutTransform>
+                </Slider>
+
+                <TextBox
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" />
+            </StackPanel>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <Grid Background="Black">
@@ -32,421 +81,249 @@
             TextAlignment="Center"
             Visibility="Hidden" />
 
-        <StackPanel
+        <Grid
             x:Name="InfoPanel"
             Grid.Column="0"
-            Margin="20,20,0,0"
+            Margin="15,25,25,25"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Panel.ZIndex="100"
-            Orientation="Vertical">
-
-            <StackPanel x:Name="RenderSkyPanel" Orientation="Horizontal">
-                <ToggleButton
-                    x:Name="AtmosButton"
-                    Margin="0,2,0,2"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Click="AtmosButton_Click"
-                    IsChecked="True"
-                    Style="{DynamicResource D2StyleToggleBoxButton}">
-                    <ToggleButton.LayoutTransform>
-                        <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                    </ToggleButton.LayoutTransform>
-                </ToggleButton>
-
-                <TextBlock
-                    Margin="0"
-                    VerticalAlignment="Center"
-                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                    FontSize="14"
-                    Text="Render Sky"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-
-            <Grid Background="#A9000000">
-                <Grid.Style>
-                    <Style TargetType="Grid">
-                        <Setter Property="Visibility" Value="Visible" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsChecked, ElementName=AtmosButton}" Value="False">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Grid.Style>
-
-                <StackPanel Margin="5,0,5,0" Orientation="Vertical">
-                    <StackPanel
-                        x:Name="RenderSkyObjects"
-                        Margin="5"
-                        Orientation="Horizontal">
-                        <ToggleButton
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Center"
-                            Click="SkyObjsButton_Click"
-                            IsChecked="True"
-                            Style="{DynamicResource D2StyleToggleBoxButton}">
-                            <ToggleButton.LayoutTransform>
-                                <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                            </ToggleButton.LayoutTransform>
-                        </ToggleButton>
-
-                        <TextBlock
-                            Margin="0"
-                            VerticalAlignment="Center"
-                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                            FontSize="14"
-                            Text="Render Sky Objects"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="5" Orientation="Horizontal">
-                        <TextBlock
-                            Margin="0"
-                            VerticalAlignment="Center"
-                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                            FontSize="14"
-                            Text="Time Of Day"
-                            TextWrapping="Wrap" />
-
-                        <Slider
-                            Name="TimeOfDaySlider"
-                            Width="200"
-                            Height="10"
-                            Margin="10,0,0,0"
-                            HorizontalAlignment="Center"
-                            Maximum="1"
-                            Minimum="0"
-                            ValueChanged="TimeOfDaySlider_ValueChanged"
-                            Value="0.675" />
-                    </StackPanel>
-
-
-                    <StackPanel
-                        Margin="5"
-                        Orientation="Horizontal"
-                        Visibility="Visible">
-                        <TextBlock
-                            Margin="0"
-                            VerticalAlignment="Center"
-                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                            FontSize="14"
-                            Text="Sky Rotation"
-                            TextWrapping="Wrap" />
-
-                        <Slider
-                            Name="AtmosRotationSlider"
-                            Width="200"
-                            Height="10"
-                            Margin="10,0,0,0"
-                            HorizontalAlignment="Center"
-                            Maximum="1"
-                            Minimum="0"
-                            ValueChanged="AtmosRotationSlider_ValueChanged"
-                            Value="0.825" />
-                    </StackPanel>
-
-                    <StackPanel
-                        Margin="5"
-                        Orientation="Horizontal"
-                        Visibility="Collapsed">
-                        <TextBlock
-                            Margin="0"
-                            VerticalAlignment="Center"
-                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                            FontSize="14"
-                            Text="Sky Intensity"
-                            TextWrapping="Wrap" />
-
-                        <Slider
-                            Name="AtmosIntensitySlider"
-                            Width="200"
-                            Height="10"
-                            Margin="10,0,0,0"
-                            HorizontalAlignment="Center"
-                            Maximum="1"
-                            Minimum="0"
-                            ValueChanged="AtmosIntensitySlider_ValueChanged"
-                            Value="0.75" />
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-
-            <StackPanel x:Name="ShowGridPanel" Orientation="Horizontal">
-                <ToggleButton
-                    x:Name="ShowGridButton"
-                    Margin="0,2,0,2"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Click="ShowGridButton_Checked"
-                    IsChecked="True"
-                    Style="{DynamicResource D2StyleToggleBoxButton}">
-                    <ToggleButton.LayoutTransform>
-                        <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                    </ToggleButton.LayoutTransform>
-                </ToggleButton>
-                <TextBlock
-                    Margin="0"
-                    VerticalAlignment="Center"
-                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                    FontSize="14"
-                    Text="Show Grid"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel x:Name="DebugButtonPanel" Orientation="Horizontal">
-                <ToggleButton
-                    Name="DebugButton"
-                    Margin="0,2,0,2"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    d:IsChecked="True"
-                    Style="{DynamicResource D2StyleToggleBoxButton}">
-                    <ToggleButton.LayoutTransform>
-                        <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                    </ToggleButton.LayoutTransform>
-                </ToggleButton>
-
-                <TextBlock
-                    Margin="0"
-                    VerticalAlignment="Center"
-                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                    FontSize="14"
-                    Text="Debug"
-                    TextWrapping="Wrap" />
-            </StackPanel>
+            Background="#75000000">
 
             <StackPanel
-                x:Name="DebugPanel"
-                Background="#A9000000"
-                Visibility="{Binding IsChecked, ElementName=DebugButton, Converter={StaticResource BooleanToVisibilityConverter}}">
+                Margin="5"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                Orientation="Vertical">
 
-                <StackPanel Margin="5" Orientation="Horizontal">
-                    <TextBlock
-                        Margin="0"
-                        VerticalAlignment="Center"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                        FontSize="14"
-                        Text="Exposure"
-                        TextWrapping="Wrap" />
+                <ContentControl x:Name="ShowGridButton" />
 
-                    <Slider
-                        Name="ExposureSlider"
-                        Width="200"
-                        Height="10"
-                        Margin="10,0,0,0"
-                        HorizontalAlignment="Center"
-                        Maximum="2"
-                        Minimum="0"
-                        ValueChanged="ExposureSlider_ValueChanged"
-                        Value="0.8" />
-                </StackPanel>
+                <ContentControl x:Name="ShowAtmosSettings" />
+                <Border
+                    Margin="0,5,0,5"
+                    Background="#75000000"
+                    BorderBrush="#759D9D9D"
+                    BorderThickness="1">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Content.IsChecked, ElementName=ShowAtmosSettings}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
 
-                <StackPanel
-                    x:Name="ShowSkeleButton"
-                    Margin="5,0,5,0"
-                    Orientation="Horizontal">
-                    <ToggleButton
-                        Margin="0,2,0,2"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Click="ShowSkeleButton_Checked"
-                        IsChecked="True"
-                        Style="{DynamicResource D2StyleToggleBoxButton}">
-                        <ToggleButton.LayoutTransform>
-                            <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                        </ToggleButton.LayoutTransform>
-                    </ToggleButton>
-                    <TextBlock
-                        Margin="0"
-                        VerticalAlignment="Center"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                        FontSize="14"
-                        Text="Show Skeleton"
-                        TextWrapping="Wrap" />
-                </StackPanel>
+                    <ItemsControl x:Name="AtmosOptions">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Margin="5" Orientation="Vertical" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </Border>
 
-                <StackPanel Margin="5" Orientation="Vertical">
-                    <TextBlock
-                        x:Name="CameraPosition"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
-                        FontSize="14"
-                        Foreground="Cyan" />
+                <ContentControl x:Name="ShowDebugSettings" />
+                <Border
+                    Margin="0,5,0,5"
+                    Background="#75000000"
+                    BorderBrush="#759D9D9D"
+                    BorderThickness="1">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Content.IsChecked, ElementName=ShowDebugSettings}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
 
-                    <TextBlock
-                        x:Name="CameraRotation"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
-                        FontSize="14"
-                        Foreground="Cyan" />
+                    <StackPanel>
+                        <ItemsControl x:Name="DebugOptions">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Margin="5" Orientation="Vertical" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
 
-                    <TextBlock
-                        x:Name="FrameTime"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
-                        FontSize="14"
-                        Foreground="Cyan" />
-                </StackPanel>
+                        <StackPanel Margin="5" Orientation="Vertical">
+                            <TextBlock
+                                x:Name="CameraPosition"
+                                FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
+                                FontSize="14"
+                                Foreground="Cyan" />
 
-                <Button
-                    Margin="5"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Bottom"
-                    Panel.ZIndex="1"
-                    Click="InvestmentDyeTest_Click"
-                    Focusable="False"
-                    Style="{StaticResource D2StyleButton}">
+                            <TextBlock
+                                x:Name="CameraRotation"
+                                FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
+                                FontSize="14"
+                                Foreground="Cyan" />
 
-                    <TextBlock
-                        Margin="2"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                        FontSize="12"
-                        FontWeight="Bold"
-                        Foreground="White"
-                        Text="Investment Dye Test" />
-                </Button>
-
-                <Button
-                    Margin="5"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Bottom"
-                    Panel.ZIndex="1"
-                    Click="PrintGlobalChannels_Click"
-                    Focusable="False"
-                    Style="{StaticResource D2StyleButton}">
-
-                    <TextBlock
-                        Margin="2"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                        FontSize="12"
-                        FontWeight="Bold"
-                        Foreground="White"
-                        Text="Print Global Channels" />
-                </Button>
-
-            </StackPanel>
-
-            <Grid
-                Margin="0,5,0,5"
-                HorizontalAlignment="Left"
-                Background="#A9000000">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="10*" />
-                    <ColumnDefinition Width="50*" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock
-                    Margin="20,0,20,0"
-                    VerticalAlignment="Center"
-                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                    FontSize="14"
-                    Text="Render Pass"
-                    TextWrapping="Wrap" />
-
-                <ComboBox
-                    x:Name="Combobox"
-                    Grid.Column="1"
-                    Width="150"
-                    Margin="5"
-                    BorderBrush="Transparent"
-                    BorderThickness="1"
-                    Focusable="False"
-                    IsReadOnly="False"
-                    SelectionChanged="Dropdown_OnSelectionChanged"
-                    Style="{DynamicResource D2StyleComboBox}" />
-            </Grid>
-
-            <Expander
-                x:Name="ObjectChannelsExpander"
-                Margin="0,5,0,5"
-                HorizontalAlignment="Left"
-                Background="#A9000000"
-                Visibility="Collapsed">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Center"
-                            Foreground="White"
-                            Text="Object Channels" />
+                            <TextBlock
+                                x:Name="FrameTime"
+                                FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
+                                FontSize="14"
+                                Foreground="Cyan" />
+                        </StackPanel>
 
                         <Button
-                            Margin="10,0,0,0"
-                            VerticalAlignment="Center"
+                            Margin="5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Bottom"
                             Panel.ZIndex="1"
-                            Click="ResetObjectChannels_Click"
+                            Click="InvestmentDyeTest_Click"
                             Focusable="False"
-                            Style="{StaticResource D2StyleButtonNoOverlay}"
-                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <TextBlock
-                                Margin="0"
-                                VerticalAlignment="Top"
-                                FontSize="18"
-                                Foreground="White"
-                                Text="⟳" />
+                            Style="{StaticResource D2StyleButton}">
 
+                            <TextBlock
+                                Margin="2"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                FontSize="12"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="Investment Dye Test" />
+                        </Button>
+
+                        <Button
+                            Margin="5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Bottom"
+                            Panel.ZIndex="1"
+                            Click="PrintGlobalChannels_Click"
+                            Focusable="False"
+                            Style="{StaticResource D2StyleButton}">
+
+                            <TextBlock
+                                Margin="2"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                FontSize="12"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="Print Global Channels" />
                         </Button>
                     </StackPanel>
+                </Border>
 
-                </Expander.Header>
-
-                <ItemsControl x:Name="ObjectChannelsEditor" Margin="20,0,20,10">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <UniformGrid
-                                Margin="0,2,0,2"
-                                Columns="2"
-                                Rows="1">
-
-                                <TextBlock
-                                    Margin="0,0,10,0"
-                                    Foreground="White"
-                                    Text="{Binding Key, Converter={StaticResource ChannelHashToString}}" />
-                                <local:Vector4Editor DataContext="{Binding Value}" />
-                            </UniformGrid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Expander>
-
-            <Expander
-                x:Name="MaterialPermutationsExpander"
-                Margin="0,5,0,5"
-                HorizontalAlignment="Left"
-                Background="#A9000000"
-                Visibility="Collapsed">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Center"
-                            Foreground="White"
-                            Text="Material Permutations" />
-                    </StackPanel>
-                </Expander.Header>
-
-                <StackPanel HorizontalAlignment="Left" Orientation="Vertical">
+                <Grid HorizontalAlignment="Stretch" Background="#75000000">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="10*" />
+                        <ColumnDefinition Width="50*" />
+                    </Grid.ColumnDefinitions>
 
                     <TextBlock
-                        x:Name="PermIndexDebug"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Top"
+                        Margin="10,0,0,0"
+                        VerticalAlignment="Center"
                         FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                        FontSize="11"
+                        FontSize="14"
+                        Text="Render Pass"
                         TextWrapping="Wrap" />
 
-                    <StackPanel
-                        x:Name="MaterialVariantPanel"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch" />
+                    <ComboBox
+                        x:Name="RenderPassCombobox"
+                        Grid.Column="1"
+                        Margin="5"
+                        BorderBrush="Transparent"
+                        BorderThickness="1"
+                        Focusable="False"
+                        IsReadOnly="False"
+                        SelectionChanged="Dropdown_OnSelectionChanged"
+                        Style="{DynamicResource D2StyleComboBox}" />
+                </Grid>
 
-                </StackPanel>
-            </Expander>
+                <Expander
+                    x:Name="ObjectChannelsExpander"
+                    Margin="0,5,0,5"
+                    HorizontalAlignment="Stretch"
+                    Background="#75000000"
+                    Visibility="Collapsed">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Foreground="White"
+                                Text="Object Channels" />
 
-        </StackPanel>
+                            <Button
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Panel.ZIndex="1"
+                                Click="ResetObjectChannels_Click"
+                                Focusable="False"
+                                Style="{StaticResource D2StyleButtonNoOverlay}"
+                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock
+                                    Margin="0"
+                                    VerticalAlignment="Top"
+                                    FontSize="18"
+                                    Foreground="White"
+                                    Text="⟳" />
+                            </Button>
+                        </StackPanel>
+                    </Expander.Header>
+
+                    <ItemsControl x:Name="ObjectChannelsEditor" Margin="20,0,20,10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <UniformGrid
+                                    Margin="0,2,0,2"
+                                    Columns="2"
+                                    Rows="1">
+                                    <TextBlock
+                                        Margin="0,0,10,0"
+                                        Foreground="White"
+                                        Text="{Binding Key, Converter={StaticResource ChannelHashToString}}" />
+                                    <local:Vector4Editor DataContext="{Binding Value}" />
+                                </UniformGrid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Expander>
+
+                <Expander
+                    x:Name="MaterialPermutationsExpander"
+                    Margin="0,5,0,5"
+                    HorizontalAlignment="Stretch"
+                    Background="#75000000"
+                    Visibility="Collapsed">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Foreground="White"
+                                Text="Material Permutations" />
+                        </StackPanel>
+                    </Expander.Header>
+
+                    <StackPanel HorizontalAlignment="Stretch" Orientation="Vertical">
+
+                        <TextBlock
+                            x:Name="PermIndexDebug"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                            FontSize="11"
+                            TextWrapping="Wrap" />
+
+                        <StackPanel
+                            x:Name="MaterialVariantPanel"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch" />
+
+                    </StackPanel>
+                </Expander>
+
+            </StackPanel>
+        </Grid>
 
         <Grid
             x:Name="ViewportContainer"
@@ -484,13 +361,15 @@
             <TextBlock
                 x:Name="FPSCounter"
                 Grid.Column="1"
-                Margin="3"
+                Margin="15,5,5,5"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
+                Background="#78000000"
                 Focusable="False"
-                FontFamily="{DynamicResource Haas Grot Text 55 Roman Keys}"
+                FontFamily="Arial"
                 FontSize="14"
-                Opacity="0.5"
+                Foreground="White"
+                Opacity="0.75"
                 TextOptions.TextFormattingMode="Display" />
         </Grid>
 
