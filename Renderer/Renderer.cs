@@ -44,9 +44,9 @@ public partial class CharmRenderer : IDisposable
 	public DeviceContext Context => _GPU?.Context;
 
 	private volatile bool _isRunning = false;
-	private volatile bool _paused = false;
 	private Thread _renderThread;
-	private ManualResetEvent _mrse = new ManualResetEvent(true);
+	private ManualResetEventSlim _renderGate = new(true);
+	private ManualResetEventSlim _pausedEvent = new(false);
 	private AutoResetEvent _frameCompleteEvent = new AutoResetEvent(true);
 
 	public CharmRenderer()
@@ -129,17 +129,15 @@ public partial class CharmRenderer : IDisposable
 
 	public void Resume()
 	{
-		_mrse.Set();
-		_paused = false;
-		//Log.Debug("Render thread resumed.");
+		_pausedEvent.Reset();
+		_renderGate.Set();
 	}
 
 	public void Pause()
 	{
+		_renderGate.Reset();
 		_frameCompleteEvent.WaitOne();
-		_mrse.Reset();
-		_paused = true;
-		//Log.Debug("Render thread paused.");
+		_pausedEvent.Set();
 	}
 
 	public float Time { get; private set; }
@@ -162,12 +160,8 @@ public partial class CharmRenderer : IDisposable
 
 		while (_isRunning)
 		{
-			_mrse.WaitOne();
-			if (_paused) // this kinda fucking sucks
-			{
-				Thread.Sleep(100);
-				continue;
-			}
+			_renderGate.Wait();
+			_pausedEvent.Reset();
 
 			TargetFPS = IsAppFocused() ? 200f : 30f;
 			double targetFrameTime = Viewport.CapFPS ? (1.0 / TargetFPS) : 0.0;
@@ -190,9 +184,7 @@ public partial class CharmRenderer : IDisposable
 			DeltaTime = (float)Math.Min(delta, MaxDeltaTime);
 			Time = (float)now;
 
-			_frameCompleteEvent.Reset();
 			Render();
-			_frameCompleteEvent.Set();
 
 			fpsFrames++;
 			fpsTimer += delta;
@@ -206,7 +198,10 @@ public partial class CharmRenderer : IDisposable
 #if DEBUG
 			TracyWrapper.Profiler.HeartBeat();
 #endif
+			_frameCompleteEvent.Set();
 		}
+
+		_pausedEvent.Set();
 	}
 
 #if DEBUG
@@ -248,6 +243,8 @@ public partial class CharmRenderer : IDisposable
 
 		Externs.Update(this);
 		World.EvaluateGlobalChannels(Externs.Atmosphere);
+		World.GlobalChannels.Set("sky_snapshot_rotation", new(Viewport.AtmosRotation * 360f));
+		World.GlobalChannels.Set("sky_snapshot_intensity", new(Viewport.AtmosIntensity));
 
 		TfxScopes[Tiger.TfxScope.VIEW].Bind(Context);
 		TfxScopes[Tiger.TfxScope.FRAME].Bind(Context);
@@ -302,13 +299,13 @@ public partial class CharmRenderer : IDisposable
 
 	private void UpdateCamera(RenderWorld world)
 	{
-		if (Camera is null)
+		if (Camera is null || !IsAppFocused())
 			return;
 
 		RenderHelpers.Profile("Update Camera");
 
 		Camera.UpdateProjectionMatrix(Viewport.FOV);
-		if (IsAppFocused() && Viewport.ViewportContainer.IsMouseOver)
+		if (Viewport.ViewportContainer.IsMouseOver)
 			Camera.Update(world, KeyboardState, MouseState);
 
 		RenderHelpers.EndProfile();

@@ -69,11 +69,9 @@ public partial class CharmRenderer
 		Externs.Frame.Unk10 = Viewport.TimeOfDay;
 		Externs.Atmosphere.RTDimensions = new(far.Width, far.Height, 1f / far.Width, 1f / far.Height);
 		Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
-		//Externs.Atmosphere.AtmosTimeOfDay = 0.42879f;
-		Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
-		Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
-		//Externs.Atmosphere.AtmosSunColor = new System.Numerics.Vector4(1.0f, 0.95f, 0.85f, 1.0f) * MathF.Sin(MathF.PI * Math.Clamp(Viewport.TimeOfDay, 0.1f, 0.9f));
-		//Externs.Atmosphere.AtmosTimeOfDay = 0.75f;
+		//Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
+		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
+
 		Externs.Atmosphere.Update(this);
 
 		far.Bind(Context);
@@ -294,12 +292,21 @@ public partial class CharmRenderer
 	private void RenderMesh(TfxRenderStage renderStage, string passName)
 	{
 		Annotation.BeginEvent(passName);
-		foreach (var renderable in World.RenderObjects)
+		RenderObject[] renderObjects;
+		RenderObject[] persistentObjects;
+
+		lock (World.WorldLock)
+		{
+			renderObjects = World.RenderObjects.ToArray();
+			persistentObjects = World.PersistantRenderObjects.ToArray();
+		}
+
+		foreach (var renderable in renderObjects)
 		{
 			renderable?.Bind(this, renderStage);
 		}
 
-		foreach (var renderable in World.PersistantRenderObjects)
+		foreach (var renderable in persistentObjects)
 		{
 			renderable?.Bind(this, renderStage);
 		}
@@ -309,7 +316,16 @@ public partial class CharmRenderer
 	private void RenderMesh(TfxRenderStage renderStage, FeatureRendererSubscription features, string passName)
 	{
 		Annotation.BeginEvent(passName);
-		foreach (var renderable in World.RenderObjects)
+		RenderObject[] renderObjects;
+		RenderObject[] persistentObjects;
+
+		lock (World.WorldLock)
+		{
+			renderObjects = World.RenderObjects.ToArray();
+			persistentObjects = World.PersistantRenderObjects.ToArray();
+		}
+
+		foreach (var renderable in renderObjects)
 		{
 			if (!features.IsSubscribed(renderable.MeshType))
 				continue;
@@ -317,7 +333,7 @@ public partial class CharmRenderer
 			renderable?.Bind(this, renderStage);
 		}
 
-		foreach (var renderable in World.PersistantRenderObjects)
+		foreach (var renderable in persistentObjects)
 		{
 			if (!features.IsSubscribed(renderable.MeshType))
 				continue;

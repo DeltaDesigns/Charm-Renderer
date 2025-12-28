@@ -298,41 +298,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	}
 
 	#region Render/debug options
-	private void ShowGridButton_Checked(object sender, RoutedEventArgs e)
-	{
-		ShowGrid = !ShowGrid;
-	}
-
-	private void ShowSkeleButton_Checked(object sender, RoutedEventArgs e)
-	{
-		ShowSkele = !ShowSkele;
-	}
-
-	private void TimeOfDaySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-	{
-		TimeOfDay = (float)e.NewValue;
-	}
-
-	private void ExposureSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-	{
-		Exposure = (float)e.NewValue;
-	}
-
-	private void AtmosButton_Click(object sender, RoutedEventArgs e)
-	{
-		RenderSky = !RenderSky;
-	}
-
-	private void AtmosRotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-	{
-		AtmosRotation = (float)e.NewValue;
-	}
-
-	private void AtmosIntensitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-	{
-		AtmosIntensity = (float)e.NewValue;
-	}
-
 	private void ResetObjectChannels_Click(object sender, RoutedEventArgs e)
 	{
 		Renderer?.EntityObjectChannels?.ResetAllChannels();
@@ -347,11 +312,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		{
 			Console.WriteLine($"Global Channel {gc.Index} ({gc.Name}) : {gc.Value}");
 		}
-	}
-
-	private void CapFPSButton_Checked(object sender, RoutedEventArgs e)
-	{
-		CapFPS = !CapFPS;
 	}
 	#endregion
 
@@ -574,9 +534,13 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		if (tag is not null && tag is SceneWorld world)
 		{
 			Renderer.Pause();
-			Renderer.World.SwitchWorld(Renderer, (uint)world);
+			lock (Renderer.World.WorldLock)
+			{
+				Renderer.World.SwitchWorld(Renderer, (uint)world);
+			}
 			Renderer.Resume();
 			AtmosRotation = Renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
+			//AtmosIntensity = Renderer.World.GlobalChannels.Get("sky_snapshot_intensity").X;
 
 			// not ideal but forces the slider to update
 			AtmosOptions.ItemsSource = null;
@@ -595,5 +559,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		[Description("Europa: Cadmus Ridge")] Europa = 0x810E94BF,
 		Kepler = 0x80DB556A,
 		Neomuna = 0x81046404,
+		[Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
 	}
 }

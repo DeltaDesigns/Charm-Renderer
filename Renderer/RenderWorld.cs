@@ -17,6 +17,7 @@ public class RenderWorld : IDisposable
 
 	// Temp, this sucks, will fix later
 	public Queue<RenderObject> PersistantRenderObjects = new();
+	public object WorldLock = new();
 
 	public RenderWorld()
 	{
@@ -250,28 +251,35 @@ public class RenderWorld : IDisposable
 		RenderHelpers.EndProfile();
 	}
 
-	private readonly object _collectionLock = new object();
 	public void Dispose()
 	{
-		lock (_collectionLock)
+		RenderObject[] snapshot;
+
+		lock (WorldLock)
 		{
-			foreach (var renderObject in RenderObjects)
-			{
-				renderObject?.Dispose();
-			}
-			RenderObjects?.Clear();
+			snapshot = RenderObjects.ToArray();
+			RenderObjects.Clear();
+		}
+
+		foreach (var renderObject in snapshot)
+		{
+			renderObject?.Dispose();
 		}
 	}
 
 	public void DisposePersistant()
 	{
-		lock (_collectionLock)
+		RenderObject[] snapshot;
+
+		lock (WorldLock)
 		{
-			foreach (var renderObject in PersistantRenderObjects)
-			{
-				renderObject?.Dispose();
-			}
-			PersistantRenderObjects?.Clear();
+			snapshot = PersistantRenderObjects.ToArray();
+			PersistantRenderObjects.Clear();
+		}
+
+		foreach (var renderObject in snapshot)
+		{
+			renderObject?.Dispose();
 		}
 	}
 

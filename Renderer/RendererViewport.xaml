@@ -115,13 +115,46 @@
                         </Style>
                     </Border.Style>
 
-                    <ItemsControl x:Name="AtmosOptions">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Margin="5" Orientation="Vertical" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
+                    <StackPanel>
+                        <ItemsControl x:Name="AtmosOptions">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Margin="5" Orientation="Vertical" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+
+                        <Grid
+                            Margin="5"
+                            HorizontalAlignment="Stretch"
+                            Background="#75000000">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="10*" />
+                                <ColumnDefinition Width="50*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                FontSize="14"
+                                Text="Scene World"
+                                TextWrapping="Wrap" />
+
+                            <ComboBox
+                                x:Name="SceneWorldCombobox"
+                                Grid.Column="1"
+                                Margin="5"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                Focusable="False"
+                                IsReadOnly="False"
+                                SelectionChanged="Dropdown_OnSelectionChanged"
+                                Style="{DynamicResource D2StyleComboBox}" />
+                        </Grid>
+                    </StackPanel>
+
+
                 </Border>
 
                 <ContentControl x:Name="ShowDebugSettings" />
@@ -208,35 +241,6 @@
 
                     <ComboBox
                         x:Name="RenderPassCombobox"
-                        Grid.Column="1"
-                        Margin="5"
-                        BorderBrush="Transparent"
-                        BorderThickness="1"
-                        Focusable="False"
-                        IsReadOnly="False"
-                        SelectionChanged="Dropdown_OnSelectionChanged"
-                        Style="{DynamicResource D2StyleComboBox}" />
-                </Grid>
-
-                <Grid
-                    Margin="0,5,0,0"
-                    HorizontalAlignment="Stretch"
-                    Background="#75000000">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="10*" />
-                        <ColumnDefinition Width="50*" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock
-                        Margin="10,0,0,0"
-                        VerticalAlignment="Center"
-                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                        FontSize="14"
-                        Text="Scene World"
-                        TextWrapping="Wrap" />
-
-                    <ComboBox
-                        x:Name="SceneWorldCombobox"
                         Grid.Column="1"
                         Margin="5"
                         BorderBrush="Transparent"

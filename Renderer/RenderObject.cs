@@ -408,7 +408,12 @@ public class RenderObject : GpuResource
 	public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
 	{
 		RenderHelpers.Profile($"{MeshType} {Hash} Bind");
-		foreach (var mesh in Meshes)
+
+		MeshRenderData[] meshes;
+		lock (renderer.World.WorldLock)
+			meshes = Meshes.ToArray();
+
+		foreach (var mesh in meshes)
 		{
 			if (mesh.RenderStage != renderStage)
 				continue;

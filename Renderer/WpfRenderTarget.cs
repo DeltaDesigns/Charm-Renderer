@@ -50,7 +50,7 @@ public class WpfRenderTarget : IDisposable
 			Windowed = true,
 			SwapEffect = SharpDX.Direct3D9.SwapEffect.Discard,
 			DeviceWindowHandle = windowHandle,
-			PresentationInterval = SharpDX.Direct3D9.PresentInterval.Default,
+			PresentationInterval = SharpDX.Direct3D9.PresentInterval.Immediate,
 		};
 
 		var direct3DEx = new SharpDX.Direct3D9.Direct3DEx();
