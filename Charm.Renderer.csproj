@@ -108,5 +108,11 @@
     <ProjectReference Include="..\Charm_Main\Charm\Tiger\Tiger.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Shaders\investment_vs_override_simple.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 
 </Project>

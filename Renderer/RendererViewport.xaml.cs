@@ -1,5 +1,6 @@
 ﻿using Charm.Shared;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -16,7 +17,7 @@ namespace Charm.Renderer;
 // TODO: Support multiple viewports.
 // Gonna need lots of reworking in here and in the renderer to remove reliance on Instance (singleton)
 
-public partial class RendererViewport : UserControl
+public partial class RendererViewport : UserControl, INotifyPropertyChanged
 {
 	public CharmRenderer Renderer => CharmRenderer.Instance;
 
@@ -33,6 +34,7 @@ public partial class RendererViewport : UserControl
 	public bool RenderSkyObjs { get; set; } = true;
 	public float TimeOfDay { get; set; } = 0.675f;
 	public float Exposure { get; set; } = 0.8f;
+	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
 	#endregion
@@ -41,10 +43,17 @@ public partial class RendererViewport : UserControl
 	private Panel _originalParent;
 	private bool _isInitialized;
 
+	public event PropertyChangedEventHandler PropertyChanged;
+	protected virtual void OnPropertyChanged(string propName)
+	{
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+	}
+
 	public RendererViewport()
 	{
 		InitializeComponent();
 		CreateRenderPassOptions();
+		CreateSceneWorldOptions();
 		CreateViewportControls();
 	}
 
@@ -112,6 +121,25 @@ public partial class RendererViewport : UserControl
 			RenderPassCombobox.SelectedIndex = 0;
 	}
 
+	private void CreateSceneWorldOptions()
+	{
+		List<ComboBoxItem> types = new();
+
+		var values = Enum.GetValues(typeof(SceneWorld)).Cast<SceneWorld>().ToList();
+		foreach (var type in values)
+		{
+			types.Add(new()
+			{
+				Content = type.GetEnumDescription(),
+				Tag = type,
+				IsSelected = type == SceneWorld.Tower
+			});
+		}
+
+		SceneWorldCombobox.ItemsSource = types;
+		SceneWorldCombobox.SelectionChanged += SceneWorld_OnSelectionChanged;
+	}
+
 	private void CreateViewportControls()
 	{
 		ShowGridButton.Content = new ToggleSetting
@@ -165,6 +193,13 @@ public partial class RendererViewport : UserControl
 				Max = 2f,
 				GetValue = () => Exposure,
 				SetValue = v => Exposure = v
+			},
+			new SliderSetting
+			{
+				Text = "Time Scale",
+				Max = 5f,
+				GetValue = () => TimeScale,
+				SetValue = v => TimeScale = v
 			},
 			new ToggleSetting
 			{
@@ -245,7 +280,7 @@ public partial class RendererViewport : UserControl
 	{
 		if (Renderer != null)
 		{
-			Renderer?.StopRenderLoop();
+			Renderer?.Stop();
 			Renderer?.Dispose();
 		}
 		SizeChanged -= OnSizeChanged;
@@ -295,21 +330,6 @@ public partial class RendererViewport : UserControl
 		Renderer?.EntityObjectChannels?.ResetAllChannels();
 	}
 
-	private void InvestmentDyeTest_Click(object sender, RoutedEventArgs e)
-	{
-		if (!Renderer.World.RenderObjects.Any() || !Renderer.World.RenderObjects.Any(x => x.Investment != null))
-			return;
-
-		var shader = Investment.Get().GetInventoryItem(new TigerHash(4182403848));
-		foreach (var obj in Renderer.World.RenderObjects)
-		{
-			if (obj.Investment is null)
-				continue;
-
-			obj.Investment.CreateCustomDyes(Renderer.Context, shader);
-		}
-	}
-
 	private void PrintGlobalChannels_Click(object sender, RoutedEventArgs e)
 	{
 		if (Renderer.World.GlobalChannels is null)
@@ -352,6 +372,7 @@ public partial class RendererViewport : UserControl
 
 	#region Mesh Loading (Temp?)
 	private Entity _currentEntity; // temp
+
 	public async void LoadEntity(FileHash hash)
 	{
 		if (Renderer is null)
@@ -360,7 +381,7 @@ public partial class RendererViewport : UserControl
 		var entity = FileResourcer.Get().GetFile<Entity>(hash, shouldCache: false);
 		_currentEntity = entity;
 
-		Renderer.StopRenderLoop();
+		Renderer.Stop();
 		Renderer.LoadEntity(_currentEntity, new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) });
 		Renderer.Start();
 
@@ -379,7 +400,7 @@ public partial class RendererViewport : UserControl
 		if (_currentEntity is null)
 			return;
 
-		Renderer.StopRenderLoop();
+		Renderer.Stop();
 		Renderer.LoadEntity(_currentEntity, new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) }, false);
 		Renderer.Start();
 	}
@@ -476,5 +497,95 @@ public partial class RendererViewport : UserControl
 
 		ReloadEntity();
 	}
+
+	public void CreateInvestmentShaders()
+	{
+		InvestmentShadersExpander.Visibility = Visibility.Visible;
+
+		var shaders = new ObservableCollection<SettingItem>();
+		IEnumerable<InventoryItem> inventoryItems = Investment.Get().GetInventoryItemsUnloaded();
+
+		foreach (var invItem in inventoryItems)
+		{
+			if (!invItem.IsShader)
+				continue;
+
+			shaders.Add(new ToggleSetting
+			{
+				Text = invItem.Name,
+				Tag = invItem,
+			});
+		}
+
+		InvestmentShaders.ItemsSource = shaders.OrderBy(x => ((ToggleSetting)x).Text);
+	}
+
+	private void LoadInvestmentShader(object sender, RoutedEventArgs e)
+	{
+		if ((sender as RadioButton).Tag is not InventoryItem shader)
+			return;
+
+		if (!Renderer.World.RenderObjects.Any() || !Renderer.World.RenderObjects.Any(x => x.Investment != null))
+			return;
+
+		if (!shader.IsLoaded())
+			shader.Load(true);
+
+		Renderer.Pause();
+		foreach (var obj in Renderer.World.RenderObjects)
+		{
+			if (obj.Investment is null)
+				continue;
+
+			obj.Investment.CreateCustomDyes(Renderer.Context, shader);
+		}
+		Renderer.Resume();
+	}
+
+	private void ResetInvestmentShader(object sender, RoutedEventArgs e)
+	{
+		if (!Renderer.World.RenderObjects.Any())
+			return;
+
+		foreach (var obj in Renderer.World.RenderObjects)
+		{
+			if (obj.Investment is null)
+				continue;
+
+			obj.Investment.ResetDyes(Renderer.Context);
+		}
+	}
 	#endregion
+
+	private void SceneWorld_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+	{
+		if (Renderer is null)
+			return;
+
+		var tag = ((sender as ComboBox).SelectedItem as ComboBoxItem).Tag;
+		if (tag is not null && tag is SceneWorld world)
+		{
+			Renderer.Pause();
+			Renderer.World.SwitchWorld(Renderer, (uint)world);
+			Renderer.Resume();
+			AtmosRotation = Renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
+
+			// not ideal but forces the slider to update
+			AtmosOptions.ItemsSource = null;
+			AtmosOptions.ItemsSource = AtmosSettings;
+		}
+	}
+
+	// TODO maybe, get from actual maps
+	private enum SceneWorld : uint
+	{
+		[Description("The Tower")] Tower = 0x81141179,
+		Mars = 0x80D44F41,
+		[Description("Dreaming City")] DreamingCity = 0x80BDCF1A,
+		[Description("EDZ: Trostland")] EDZTrostland = 0x80BB301E,
+		Eternity = 0x80F2CB14,
+		[Description("Europa: Cadmus Ridge")] Europa = 0x810E94BF,
+		Kepler = 0x80DB556A,
+		Neomuna = 0x81046404,
+	}
 }

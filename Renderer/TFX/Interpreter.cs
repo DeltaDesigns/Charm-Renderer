@@ -475,7 +475,7 @@ public class TfxBytecodeInterpreter
 
 					case TfxBytecode.PushGlobalChannelVector:
 						var index = ((PushGlobalChannelVectorData)_curOp.data).Index;
-						var global_channel = GlobalChannels.GetDefault(index);
+						var global_channel = globalChannels?.Get(index) ?? GlobalChannels.GetDefault(index);
 						StackPush(global_channel);
 						break;
 

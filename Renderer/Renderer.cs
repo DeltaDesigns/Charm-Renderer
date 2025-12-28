@@ -9,6 +9,7 @@ using Tiger;
 using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
 
+
 // Please do not look at this. It is an absolute mess and unoptimized and ugly and im ashamed yet proud at the same time.
 // This in its current state *could* handle maps but with very low FPS.
 // Massive credits to Cohae cus everything learned making this came from Alkahest.
@@ -42,9 +43,11 @@ public partial class CharmRenderer : IDisposable
 	public Device Device => _GPU?.Device;
 	public DeviceContext Context => _GPU?.Context;
 
-	private bool _isRunning = false;
-	private readonly AutoResetEvent _renderSignal = new(false);
+	private volatile bool _isRunning = false;
+	private volatile bool _paused = false;
 	private Thread _renderThread;
+	private ManualResetEvent mrse = new ManualResetEvent(true);
+	private AutoResetEvent _frameCompleteEvent = new AutoResetEvent(true);
 
 	public CharmRenderer()
 	{
@@ -56,7 +59,7 @@ public partial class CharmRenderer : IDisposable
 
 		AppDomain.CurrentDomain.ProcessExit += (s, e) =>
 		{
-			StopRenderLoop();
+			Stop();
 			//Dispose();
 		};
 	}
@@ -87,6 +90,30 @@ public partial class CharmRenderer : IDisposable
 		_renderThread.Start();
 	}
 
+	public void Stop()
+	{
+		if (_isRunning)
+		{
+			_isRunning = false;
+			_renderThread?.Join();
+		}
+	}
+
+	public void Resume()
+	{
+		mrse.Set();
+		_paused = false;
+		//Log.Debug("Render thread resumed.");
+	}
+
+	public void Pause()
+	{
+		_frameCompleteEvent.WaitOne();
+		mrse.Reset();
+		_paused = true;
+		//Log.Debug("Render thread paused.");
+	}
+
 	private void Load(int width, int height)
 	{
 		Instance = this;
@@ -99,9 +126,6 @@ public partial class CharmRenderer : IDisposable
 		TempScopes = new();
 		Externs = new();
 
-		// 81141179 Tower
-		// 80BB30E1 EDZ
-		// 80C870C2
 		World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141179)));
 
 		Camera = new(); // Should be last
@@ -138,6 +162,13 @@ public partial class CharmRenderer : IDisposable
 
 		while (_isRunning)
 		{
+			mrse.WaitOne();
+			if (_paused) // this kinda fucking sucks
+			{
+				Thread.Sleep(100);
+				continue;
+			}
+
 			TargetFPS = IsAppFocused() ? 200f : 30f;
 			double targetFrameTime = Viewport.CapFPS ? (1.0 / TargetFPS) : 0.0;
 
@@ -159,7 +190,9 @@ public partial class CharmRenderer : IDisposable
 			DeltaTime = (float)Math.Min(delta, MaxDeltaTime);
 			Time = (float)now;
 
+			_frameCompleteEvent.Reset();
 			Render();
+			_frameCompleteEvent.Set();
 
 			fpsFrames++;
 			fpsTimer += delta;
@@ -173,15 +206,6 @@ public partial class CharmRenderer : IDisposable
 #if DEBUG
 			TracyWrapper.Profiler.HeartBeat();
 #endif
-		}
-	}
-
-	public void StopRenderLoop()
-	{
-		if (_isRunning)
-		{
-			_isRunning = false;
-			_renderThread?.Join();
 		}
 	}
 
@@ -292,7 +316,7 @@ public partial class CharmRenderer : IDisposable
 		int newHeight = Math.Max(1, (int)Viewport.ActualHeight);
 		if (newWidth != _width || newHeight != _height)
 		{
-			StopRenderLoop();
+			Stop();
 
 			_width = newWidth;
 			_height = newHeight;
@@ -354,7 +378,7 @@ public partial class CharmRenderer : IDisposable
 
 	public void Dispose()
 	{
-		StopRenderLoop();
+		Stop();
 
 		DisposeControl();
 		DisposeRenderingResources();

@@ -73,6 +73,14 @@ public class InvestmentData : GpuResource
 		}
 	}
 
+	public void ResetDyes(DeviceContext context)
+	{
+		if (!_hasData)
+			return;
+
+		CreateDefaultDyes(context, BaseItem);
+	}
+
 	public void CreateDefaultDyes(DeviceContext context, InventoryItem item)
 	{
 		Dictionary<uint, Dye> dyes = new();
@@ -96,6 +104,12 @@ public class InvestmentData : GpuResource
 
 				dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex), dye);
 				//Log.Debug($"LockedDye {dye.Hash} : {Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex)}");
+			}
+			if (dyes.Count == 0)
+			{
+				Log.Debug("Shader has no dyes.");
+				_isChangingDyes = false;
+				return;
 			}
 
 			//Debug.Assert(dyes.Count == 3, $"Only {dyes.Count} dyes : {string.Join(", ", dyes.Values.Select(x => x.Hash))}");
@@ -129,7 +143,11 @@ public class InvestmentData : GpuResource
 		if (shader.TagData.Unk90.GetValue(shader.GetReader()) is S77738080 translationBlock)
 		{
 			_isChangingDyes = true;
-			foreach (S7B738080 dyeEntry in translationBlock.CustomDyes)
+			var dyeEntries = translationBlock.CustomDyes.Any() // Should never happen, only case ive seen is the Shared Experience shader (which isnt even an actual shader)
+				? translationBlock.CustomDyes
+				: translationBlock.DefaultDyes;
+
+			foreach (S7B738080 dyeEntry in dyeEntries)
 			{
 				Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.DyeIndex);
 				if (dye is null)
@@ -137,14 +155,28 @@ public class InvestmentData : GpuResource
 
 				dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex), dye);
 			}
+			if (dyes.Count == 0)
+			{
+				Log.Debug("Shader contains no dyes");
+				return;
+			}
 
 			InvestmentDye0?.Dispose();
 			InvestmentDye1?.Dispose();
 			InvestmentDye2?.Dispose();
 
-			InvestmentDye0.Dye = new(dyes[InvestmentDye0.ChannelHash].TagData, context);
-			InvestmentDye1.Dye = new(dyes[InvestmentDye1.ChannelHash].TagData, context);
-			InvestmentDye2.Dye = new(dyes[InvestmentDye2.ChannelHash].TagData, context);
+			if (!translationBlock.CustomDyes.Any() && dyes.Count == 3) // again, should never happen
+			{
+				InvestmentDye0.Dye = new(dyes.ElementAt(0).Value.TagData, context);
+				InvestmentDye1.Dye = new(dyes.ElementAt(1).Value.TagData, context);
+				InvestmentDye2.Dye = new(dyes.ElementAt(2).Value.TagData, context);
+			}
+			else
+			{
+				InvestmentDye0.Dye = new(dyes[InvestmentDye0.ChannelHash].TagData, context);
+				InvestmentDye1.Dye = new(dyes[InvestmentDye1.ChannelHash].TagData, context);
+				InvestmentDye2.Dye = new(dyes[InvestmentDye2.ChannelHash].TagData, context);
+			}
 
 			_isChangingDyes = false;
 		}
@@ -352,7 +384,7 @@ public class RenderObject : GpuResource
 				VertexBuffer0 = VertexBuffer.Create(context, part.VertexBuffer0),
 				VertexBuffer1 = part.VertexBuffer1 != null ? VertexBuffer.Create(context, part.VertexBuffer1) : null,
 				VertexBuffer2 = part.VertexBuffer2 != null ? VertexBuffer.Create(context, part.VertexBuffer2) : null,
-				VertexBuffer3 = part.VertexBuffer3 != null ? VertexBuffer.Create(context, part.VertexBuffer3) : null,
+				VertexBuffer3 = part.VertexBuffer3 != null ? VertexBuffer.Create(context, part.VertexBuffer3, ResourceOptionFlags.BufferAllowRawViews) : null,
 				IndexCount = (int)part.IndexCount,
 				IndexOffset = (int)part.IndexOffset,
 				Topology = part.PrimitiveType == Tiger.PrimitiveType.Triangles
@@ -780,7 +812,8 @@ public class Constants : GpuResource
 			BytecodeConstants,
 			Shader,
 			Samplers,
-			Instance.EntityObjectChannels);
+			Instance.EntityObjectChannels,
+			globalChannels: Instance.World.GlobalChannels);
 
 		return evaluated;
 	}

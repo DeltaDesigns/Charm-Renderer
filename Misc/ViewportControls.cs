@@ -10,6 +10,7 @@ public class ToggleSetting : SettingItem
 
 	public Func<bool> GetValue { get; set; }
 	public Action<bool> SetValue { get; set; }
+	public dynamic Tag { get; set; }
 
 	private bool _isChecked;
 	public bool IsChecked

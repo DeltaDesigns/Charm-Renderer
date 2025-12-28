@@ -66,8 +66,8 @@ public class Externs : IDisposable
 		public void Update(CharmRenderer renderer)
 		{
 			RenderHelpers.Profile("Extern Frame Update");
-			GameTime = renderer.Time;
-			RenderTime = renderer.Time;
+			GameTime = renderer.Time * renderer.Viewport.TimeScale;
+			RenderTime = renderer.Time * renderer.Viewport.TimeScale;
 			DeltaTime = renderer.DeltaTime;
 			RenderHelpers.EndProfile();
 		}

@@ -2,6 +2,7 @@
 using DirectXTex;
 using DirectXTexNet;
 using SharpDX;
+using SharpDX.D3DCompiler;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
@@ -50,7 +51,7 @@ public class AssetManager : IDisposable
 
 	public VertexShader EntityOverrideVS_NoVC;
 	public VertexShader EntityOverrideVS_VC;
-	public VertexShader InvestmentOverrideVS_NoVC;
+	public VertexShader InvestmentOverrideVS_NoVC; // When o7 is SV_Position
 	public VertexShader InvestmentOverrideVS_VC;
 
 	private static AssetManager _instance;
@@ -122,13 +123,13 @@ public class AssetManager : IDisposable
 			DebugName = "Entity Override VC Vertex Shader"
 		};
 
-		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/investment_vs_override.hlsl", "VSMain", "vs_5_0");
+		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/investment_vs_override.hlsl", "VSMain", "vs_5_0", ShaderFlags.Debug | ShaderFlags.SkipOptimization);
 		InvestmentOverrideVS_NoVC = new SharpDX.Direct3D11.VertexShader(GPU.Instance.Device, bytecode)
 		{
 			DebugName = "Investment Override Vertex Shader"
 		};
 
-		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/investment_vs_override_vc.hlsl", "VSMain", "vs_5_0");
+		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/investment_vs_override_vc.hlsl", "VSMain", "vs_5_0", ShaderFlags.Debug | ShaderFlags.SkipOptimization);
 		InvestmentOverrideVS_VC = new SharpDX.Direct3D11.VertexShader(GPU.Instance.Device, bytecode)
 		{
 			DebugName = "Investment Override VC Vertex Shader"

@@ -175,26 +175,6 @@
                             HorizontalAlignment="Left"
                             VerticalAlignment="Bottom"
                             Panel.ZIndex="1"
-                            Click="InvestmentDyeTest_Click"
-                            Focusable="False"
-                            Style="{StaticResource D2StyleButton}">
-
-                            <TextBlock
-                                Margin="2"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                FontSize="12"
-                                FontWeight="Bold"
-                                Foreground="White"
-                                Text="Investment Dye Test" />
-                        </Button>
-
-                        <Button
-                            Margin="5"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Bottom"
-                            Panel.ZIndex="1"
                             Click="PrintGlobalChannels_Click"
                             Focusable="False"
                             Style="{StaticResource D2StyleButton}">
@@ -228,6 +208,35 @@
 
                     <ComboBox
                         x:Name="RenderPassCombobox"
+                        Grid.Column="1"
+                        Margin="5"
+                        BorderBrush="Transparent"
+                        BorderThickness="1"
+                        Focusable="False"
+                        IsReadOnly="False"
+                        SelectionChanged="Dropdown_OnSelectionChanged"
+                        Style="{DynamicResource D2StyleComboBox}" />
+                </Grid>
+
+                <Grid
+                    Margin="0,5,0,0"
+                    HorizontalAlignment="Stretch"
+                    Background="#75000000">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="10*" />
+                        <ColumnDefinition Width="50*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Margin="10,0,0,0"
+                        VerticalAlignment="Center"
+                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                        FontSize="14"
+                        Text="Scene World"
+                        TextWrapping="Wrap" />
+
+                    <ComboBox
+                        x:Name="SceneWorldCombobox"
                         Grid.Column="1"
                         Margin="5"
                         BorderBrush="Transparent"
@@ -322,6 +331,74 @@
                     </StackPanel>
                 </Expander>
 
+                <Expander
+                    x:Name="InvestmentShadersExpander"
+                    MaxHeight="500"
+                    Margin="0,5,0,5"
+                    HorizontalAlignment="Stretch"
+                    Background="#75000000"
+                    Visibility="Collapsed">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Foreground="White"
+                                Text="Item Shaders" />
+
+                            <Button
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Panel.ZIndex="1"
+                                Click="ResetInvestmentShader"
+                                Focusable="False"
+                                Style="{StaticResource D2StyleButtonNoOverlay}"
+                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock
+                                    Margin="0"
+                                    VerticalAlignment="Top"
+                                    FontSize="18"
+                                    Foreground="White"
+                                    Text="⟳" />
+                            </Button>
+                        </StackPanel>
+                    </Expander.Header>
+
+                    <ScrollViewer
+                        Margin="0,0,0,0"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Visible">
+                        <ScrollViewer.Resources>
+                            <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                <Setter Property="Width" Value="7" />
+                            </Style>
+                        </ScrollViewer.Resources>
+
+                        <ItemsControl x:Name="InvestmentShaders" Margin="20,0,20,10">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:ToggleSetting}">
+                                    <StackPanel Margin="3" Orientation="Horizontal">
+                                        <RadioButton
+                                            Checked="LoadInvestmentShader"
+                                            GroupName="InvestmentShaders"
+                                            Tag="{Binding Tag}">
+
+                                            <TextBlock
+                                                Margin="0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                FontSize="18"
+                                                Text="{Binding Text}" />
+                                        </RadioButton>
+
+
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                    </ScrollViewer>
+                </Expander>
             </StackPanel>
         </Grid>
 

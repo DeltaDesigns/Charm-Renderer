@@ -23,6 +23,15 @@ public class RenderWorld : IDisposable
 
 	}
 
+	public void SwitchWorld(CharmRenderer renderer, uint hash)
+	{
+		DisposePersistant();
+		Atmosphere = null;
+		GlobalChannels = null;
+		DayCycleRotations.Clear();
+		CreateWorld(renderer, FileResourcer.Get().GetFile<Tag<SBubbleParent>>(new(hash)));
+	}
+
 	public void CreateWorld(CharmRenderer renderer, Tag<SBubbleParent> bubble)
 	{
 		bubble.TagData.ChildMapReference.TagData.MapResources.ForEach(m =>
@@ -129,15 +138,6 @@ public class RenderWorld : IDisposable
 			};
 
 			PersistantRenderObjects.Enqueue(renderObject);
-
-			//scene.AddMapModel(element.Model.TagData.Model, new Transform
-			//{
-			//	Position = trans.ToVec3(),
-			//	Rotation = Vector4.QuaternionToEulerAngles(quat),
-			//	Quaternion = quat,
-			//	Scale = scale,
-			//	Order = i, //element.Unk64 I guess the order is just the index? Idk
-			//});
 
 			i++;
 		}
@@ -246,25 +246,33 @@ public class RenderWorld : IDisposable
 		}
 
 		await GlobalChannels.Evaluate();
+		GlobalChannels.Set(7, Vector4.One);
 		RenderHelpers.EndProfile();
 	}
 
+	private readonly object _collectionLock = new object();
 	public void Dispose()
 	{
-		foreach (var renderObject in RenderObjects)
+		lock (_collectionLock)
 		{
-			renderObject?.Dispose();
+			foreach (var renderObject in RenderObjects)
+			{
+				renderObject?.Dispose();
+			}
+			RenderObjects?.Clear();
 		}
-		RenderObjects?.Clear();
 	}
 
 	public void DisposePersistant()
 	{
-		foreach (var renderObject in PersistantRenderObjects)
+		lock (_collectionLock)
 		{
-			renderObject?.Dispose();
+			foreach (var renderObject in PersistantRenderObjects)
+			{
+				renderObject?.Dispose();
+			}
+			PersistantRenderObjects?.Clear();
 		}
-		PersistantRenderObjects?.Clear();
 	}
 
 	// this sucks and is temporary

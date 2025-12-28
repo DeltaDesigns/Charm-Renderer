@@ -87,7 +87,7 @@ void VSMain(
   o0.w = saturate(cb1[7].w + r0.w);
   r0.w = 32767.0996 * v1.w;
   r0.w = (int)r0.w;
-  r1.w = (uint)r0.w >> 3;
+  r1.w = (int)r0.w >> 3;
   r1.w = (int)r1.w & 4095;
   r0.w = (int)r0.w & 7;
   r0.w = (int)r0.w;
@@ -101,7 +101,6 @@ void VSMain(
   o1.w = r0.z;
   o1.xyz = r2.xyz;
   o3.xy = r0.xy;
-  
   o5.xyz = v0.xyz;
   o6.xyz = v1.xyz;
   return;
