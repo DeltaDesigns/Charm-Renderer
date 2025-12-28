@@ -46,7 +46,7 @@ public partial class CharmRenderer : IDisposable
 	private volatile bool _isRunning = false;
 	private volatile bool _paused = false;
 	private Thread _renderThread;
-	private ManualResetEvent mrse = new ManualResetEvent(true);
+	private ManualResetEvent _mrse = new ManualResetEvent(true);
 	private AutoResetEvent _frameCompleteEvent = new AutoResetEvent(true);
 
 	public CharmRenderer()
@@ -80,40 +80,6 @@ public partial class CharmRenderer : IDisposable
 		MatCapRenderer ??= new MatCap(Context);
 	}
 
-	public void Start()
-	{
-		_isRunning = true;
-		_renderThread = new Thread(RenderLoop)
-		{
-			IsBackground = true
-		};
-		_renderThread.Start();
-	}
-
-	public void Stop()
-	{
-		if (_isRunning)
-		{
-			_isRunning = false;
-			_renderThread?.Join();
-		}
-	}
-
-	public void Resume()
-	{
-		mrse.Set();
-		_paused = false;
-		//Log.Debug("Render thread resumed.");
-	}
-
-	public void Pause()
-	{
-		_frameCompleteEvent.WaitOne();
-		mrse.Reset();
-		_paused = true;
-		//Log.Debug("Render thread paused.");
-	}
-
 	private void Load(int width, int height)
 	{
 		Instance = this;
@@ -142,6 +108,40 @@ public partial class CharmRenderer : IDisposable
 	}
 
 
+	public void Start()
+	{
+		_isRunning = true;
+		_renderThread = new Thread(RenderLoop)
+		{
+			IsBackground = true
+		};
+		_renderThread.Start();
+	}
+
+	public void Stop()
+	{
+		if (_isRunning)
+		{
+			_isRunning = false;
+			_renderThread?.Join();
+		}
+	}
+
+	public void Resume()
+	{
+		_mrse.Set();
+		_paused = false;
+		//Log.Debug("Render thread resumed.");
+	}
+
+	public void Pause()
+	{
+		_frameCompleteEvent.WaitOne();
+		_mrse.Reset();
+		_paused = true;
+		//Log.Debug("Render thread paused.");
+	}
+
 	public float Time { get; private set; }
 	public float DeltaTime { get; private set; }
 	public float FPS { get; private set; } = 0;
@@ -162,7 +162,7 @@ public partial class CharmRenderer : IDisposable
 
 		while (_isRunning)
 		{
-			mrse.WaitOne();
+			_mrse.WaitOne();
 			if (_paused) // this kinda fucking sucks
 			{
 				Thread.Sleep(100);
@@ -302,11 +302,15 @@ public partial class CharmRenderer : IDisposable
 
 	private void UpdateCamera(RenderWorld world)
 	{
-		if (Camera is null || !IsAppFocused() || !Viewport.ViewportContainer.IsMouseOver)
+		if (Camera is null)
 			return;
 
 		RenderHelpers.Profile("Update Camera");
-		Camera.Update(world, KeyboardState, MouseState);
+
+		Camera.UpdateProjectionMatrix(Viewport.FOV);
+		if (IsAppFocused() && Viewport.ViewportContainer.IsMouseOver)
+			Camera.Update(world, KeyboardState, MouseState);
+
 		RenderHelpers.EndProfile();
 	}
 

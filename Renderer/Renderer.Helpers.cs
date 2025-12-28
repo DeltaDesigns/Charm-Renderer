@@ -101,12 +101,6 @@ public partial class CharmRenderer
 
 public static class RenderHelpers
 {
-	public static Matrix4x4ButGood Invert(this Matrix4x4ButGood mat)
-	{
-		System.Numerics.Matrix4x4.Invert(mat, out System.Numerics.Matrix4x4 result);
-		return result;
-	}
-
 	public static AABB ComputeBoundingBox(IReadOnlyList<Tiger.Schema.Vector4> vertices)
 	{
 		Tiger.Schema.Vector4 min = new Tiger.Schema.Vector4(0);

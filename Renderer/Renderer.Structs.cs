@@ -502,6 +502,12 @@ public struct Matrix4x4ButGood
 		};
 	}
 
+	public Matrix4x4ButGood Invert()
+	{
+		System.Numerics.Matrix4x4.Invert(this, out System.Numerics.Matrix4x4 result);
+		return result;
+	}
+
 	public static Matrix4x4ButGood operator *(Matrix4x4ButGood left, Matrix4x4ButGood right)
 	{
 		return new Matrix4x4ButGood

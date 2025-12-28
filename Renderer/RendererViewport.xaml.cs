@@ -34,6 +34,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	public bool RenderSkyObjs { get; set; } = true;
 	public float TimeOfDay { get; set; } = 0.675f;
 	public float Exposure { get; set; } = 0.8f;
+	public float FOV { get; set; } = 60f;
 	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
@@ -132,12 +133,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 			{
 				Content = type.GetEnumDescription(),
 				Tag = type,
-				IsSelected = type == SceneWorld.Tower
 			});
 		}
-
-		SceneWorldCombobox.ItemsSource = types;
+		SceneWorldCombobox.SelectedIndex = types.IndexOf(types.First(x => (SceneWorld)x.Tag is SceneWorld.Tower));
 		SceneWorldCombobox.SelectionChanged += SceneWorld_OnSelectionChanged;
+		SceneWorldCombobox.ItemsSource = types;
 	}
 
 	private void CreateViewportControls()
@@ -200,6 +200,14 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 				Max = 5f,
 				GetValue = () => TimeScale,
 				SetValue = v => TimeScale = v
+			},
+			new SliderSetting
+			{
+				Text = "FOV",
+				Min = 30f,
+				Max = 110f,
+				GetValue = () => FOV,
+				SetValue = v => FOV = v
 			},
 			new ToggleSetting
 			{
