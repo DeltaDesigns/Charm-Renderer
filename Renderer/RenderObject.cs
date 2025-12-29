@@ -341,9 +341,12 @@ public class RenderObject : GpuResource
 	public void Create(DeviceContext context, StaticMesh staticMesh)
 	{
 		Hash = staticMesh.Hash;
-		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
+		var staticParts = staticMesh.LoadMainParts(ExportDetailLevel.MostDetailed);
+		var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
 		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
+
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
+		CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
 	}
 
 	public void Create(DeviceContext context, Entity entity, InventoryItem inventoryItem)
@@ -550,7 +553,7 @@ public class MeshRenderData : GpuResource
 		VertexBuffer0?.Bind(context, 0);
 		VertexBuffer1?.Bind(context, 1);
 		VertexBuffer2?.Bind(context, 2);
-		if (Material.UsedScopes.Contains(Tiger.TfxScope.SKINNING))
+		if (Material.Skinned)
 			VertexBuffer3?.Bind(context, -1, 1);
 
 		Material?.Bind(context);
@@ -588,12 +591,16 @@ public class MaterialData : GpuResource
 	public TechniqueStage Compute;
 
 	// temp, for vs override
+	public bool Skinned = false;
 	public bool UsesVertexColor = false;
+	public bool UsesGearDye = false;
 
 	public MaterialData(DeviceContext context, Material material)
 	{
 		States = material.RenderStates;
 		UsedScopes = material.EnumerateScopes().ToList();
+		Skinned = UsedScopes.Contains(Tiger.TfxScope.SKINNING);
+		UsesGearDye = UsedScopes.Contains(Tiger.TfxScope.GEAR_DYE_012);
 
 		if (material.Vertex.Shader != null)
 			Vertex = new TechniqueStage(context, material.Vertex, ShaderStage.Vertex, material.Hash);
@@ -608,9 +615,9 @@ public class MaterialData : GpuResource
 	public void Bind(DeviceContext context)
 	{
 		Vertex?.Bind(context);
-		if (UsedScopes.Contains(Tiger.TfxScope.SKINNING))
+		if (Skinned)
 		{
-			if (UsedScopes.Contains(Tiger.TfxScope.GEAR_DYE_012))
+			if (UsesGearDye)
 			{
 				if (UsesVertexColor)
 					context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_VC);

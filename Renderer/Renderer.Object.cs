@@ -58,7 +58,6 @@ public partial class CharmRenderer
 			World.RenderObjects.Enqueue(obj);
 		}
 
-
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;
 
 		EntityObjectChannels = new(item);

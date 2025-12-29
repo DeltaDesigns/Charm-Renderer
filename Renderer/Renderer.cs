@@ -242,7 +242,7 @@ public partial class CharmRenderer : IDisposable
 		}
 
 		Externs.Update(this);
-		World.EvaluateGlobalChannels(Externs.Atmosphere);
+		World.EvaluateGlobalChannels(Externs);
 		World.GlobalChannels.Set("sky_snapshot_rotation", new(Viewport.AtmosRotation * 360f));
 		World.GlobalChannels.Set("sky_snapshot_intensity", new(Viewport.AtmosIntensity));
 

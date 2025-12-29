@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
-using static Charm.Renderer.Externs;
 using static TfxBytecodeOp;
 
 namespace Charm.Renderer;
@@ -223,7 +222,9 @@ public class RenderWorld : IDisposable
 		}
 	}
 
-	public async void EvaluateGlobalChannels(ExternAtmosphere atmosExtern)
+	private float _dayLength = 3600f;
+	public bool UseDayCycle { get; set; } = false;
+	public async void EvaluateGlobalChannels(Externs externs)
 	{
 		if (GlobalChannels is null)
 			return;
@@ -231,7 +232,8 @@ public class RenderWorld : IDisposable
 		RenderHelpers.Profile("Evaluate Global Channels");
 		if (DayCycleRotations.Count != 0)
 		{
-			float tod_half = Math.Max(0, (atmosExtern.AtmosTimeOfDay * 3600f) / 2f);
+			float tod = (externs.Atmosphere.AtmosTimeOfDay * 3600f);
+			float tod_half = Math.Max(0, tod / 2f);
 
 			int fromIndex = Math.Clamp((int)MathF.Floor(tod_half), 0, DayCycleRotations.Count - 1);
 			int toIndex = Math.Clamp((int)MathF.Ceiling(tod_half), 0, DayCycleRotations.Count - 1);

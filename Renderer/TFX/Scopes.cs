@@ -117,7 +117,7 @@ public class TempScopes : GpuResource
 
 		ref var cb1_data = ref _cachedRigidModel;
 
-		cb1_data.LocalToWorld = mesh.Material.UsedScopes.Contains(Tiger.TfxScope.SKINNING) ? Matrix4x4.Identity : transform;
+		cb1_data.LocalToWorld = mesh.Material.Skinned ? Matrix4x4.Identity : transform;
 		cb1_data.MeshScale = mesh.MeshScale;
 		cb1_data.MeshOffset = mesh.MeshTransform;
 		cb1_data.UVTransform = mesh.MeshUVTransform;

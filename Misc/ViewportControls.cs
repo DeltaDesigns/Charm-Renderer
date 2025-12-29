@@ -1,4 +1,6 @@
-﻿namespace Charm.Renderer;
+﻿using System.ComponentModel;
+
+namespace Charm.Renderer;
 
 // Move into Charm.Shared maybee?
 
@@ -26,7 +28,7 @@ public class ToggleSetting : SettingItem
 	}
 }
 
-public class SliderSetting : SettingItem
+public class SliderSetting : SettingItem, INotifyPropertyChanged
 {
 	public string Text { get; set; }
 	public double Min { get; set; } = 0;
@@ -38,6 +40,41 @@ public class SliderSetting : SettingItem
 	public float Value
 	{
 		get => GetValue();
-		set => SetValue(value);
+		set
+		{
+			SetValue(value);
+			OnPropertyChanged(nameof(Value));
+		}
+	}
+
+	public bool IsLockable => SetLockState != null;
+
+	private bool _isLocked;
+	public bool IsLocked
+	{
+		get => _isLocked;
+		set
+		{
+			if (_isLocked == value)
+				return;
+
+			_isLocked = value;
+			SetLockState?.Invoke(value);
+			OnPropertyChanged(nameof(IsLocked));
+		}
+	}
+
+	public string LockTooltip { get; set; }
+	public Action<bool> SetLockState { get; set; }
+
+	public event PropertyChangedEventHandler PropertyChanged;
+	protected virtual void OnPropertyChanged(string propName)
+	{
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+	}
+
+	public void NotifyValueChanged()
+	{
+		OnPropertyChanged(nameof(Value));
 	}
 }

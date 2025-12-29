@@ -1,6 +1,7 @@
 ﻿using Charm.Shared;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -14,7 +15,7 @@ using static Tiger.Schema.Entity.EntityModelParent;
 
 namespace Charm.Renderer;
 
-// TODO: Support multiple viewports.
+// TODO: Support multiple viewports?
 // Gonna need lots of reworking in here and in the renderer to remove reliance on Instance (singleton)
 
 public partial class RendererViewport : UserControl, INotifyPropertyChanged
@@ -30,6 +31,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 
 	#region Render Options
 	public ObservableCollection<SettingItem> AtmosSettings { get; set; }
+	public SliderSetting TimeOfDaySetting { get; set; }
 	public bool RenderSky { get; set; } = true;
 	public bool RenderSkyObjs { get; set; } = true;
 	public float TimeOfDay { get; set; } = 0.675f;
@@ -81,10 +83,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 
 		SizeChanged += OnSizeChanged;
 
+		Stopwatch _dayCycleStopwatch = new();
 		if (_uiTimer is null)
 		{
 			_uiTimer = new();
-			_uiTimer.Interval = TimeSpan.FromMilliseconds(10);
+			_uiTimer.Interval = TimeSpan.FromMilliseconds(33);
 			_uiTimer.Tick += (s, e) =>
 			{
 				if (Renderer is null)
@@ -97,8 +100,26 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 				CameraPosition.Text = $"Camera Position: {camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2}";
 				CameraRotation.Text = $"Camera Rotation: {camRot.X:F2}, {camRot.Y:F2}, {camRot.Z:F2}, {camRot.W:F2}";
 				FPSCounter.Text = $"FPS: {Math.Ceiling(Renderer.FPS)}";
+
+				if (Renderer.World.UseDayCycle)
+				{
+					float dt = (float)_dayCycleStopwatch.Elapsed.TotalSeconds;
+					_dayCycleStopwatch.Restart();
+
+					float dayLength = 60f;
+					TimeOfDay += (dt / dayLength) * TimeScale;
+					if (TimeOfDay >= 1)
+						TimeOfDay -= 1;
+
+					TimeOfDaySetting.NotifyValueChanged();
+				}
+				else
+				{
+					_dayCycleStopwatch.Stop();
+				}
 			};
 			_uiTimer.Start();
+			_dayCycleStopwatch.Start();
 		}
 		_isInitialized = true;
 	}
@@ -155,6 +176,19 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 			GetValue = () => RenderSky,
 			SetValue = v => RenderSky = v
 		};
+		TimeOfDaySetting = new SliderSetting
+		{
+			Text = "Time Of Day",
+			GetValue = () => TimeOfDay,
+			SetValue = v => TimeOfDay = v,
+
+			LockTooltip = "Toggles automatic day cycle.",
+			IsLocked = true,
+			SetLockState = locked =>
+			{
+				Renderer.World.UseDayCycle = !locked;
+			}
+		};
 		AtmosSettings = new ObservableCollection<SettingItem>
 		{
 			new ToggleSetting
@@ -163,12 +197,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 				GetValue = () => RenderSkyObjs,
 				SetValue = v => RenderSkyObjs = v
 			},
-			new SliderSetting
-			{
-				Text = "Time Of Day",
-				GetValue = () => TimeOfDay,
-				SetValue = v => TimeOfDay = v
-			},
+			TimeOfDaySetting,
 			new SliderSetting
 			{
 				Text = "Sky Rotation",
@@ -197,7 +226,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 			new SliderSetting
 			{
 				Text = "Time Scale",
-				Max = 5f,
+				Max = 25f,
 				GetValue = () => TimeScale,
 				SetValue = v => TimeScale = v
 			},
@@ -560,5 +589,26 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		Kepler = 0x80DB556A,
 		Neomuna = 0x81046404,
 		[Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
+	}
+
+	private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not RadioButton rb)
+			return;
+
+		_ = int.TryParse((string)rb.Tag, out int order);
+
+		var items = InvestmentShaders.ItemsSource.Cast<ToggleSetting>();
+		switch (order)
+		{
+			case 0:
+				items = items.OrderBy(x => ((ToggleSetting)x).Text);
+				break;
+
+			case 1:
+				items = items.OrderByDescending(x => (((ToggleSetting)x).Tag as InventoryItem).GetItemIndex());
+				break;
+		}
+		InvestmentShaders.ItemsSource = items;
 	}
 }
