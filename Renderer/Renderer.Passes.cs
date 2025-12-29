@@ -188,7 +188,7 @@ public partial class CharmRenderer
 
 		// Decal Additive Pass
 		CreateStates(new(8, 15, 2, 1));
-		RenderMesh(TfxRenderStage.DecalsAdditive, FeatureRendererSubscription.Decals, "Decal Additive Pass");
+		RenderMesh(TfxRenderStage.DecalsAdditive, "Decal Additive Pass");
 
 		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
 		Externs.Transparent.ShadingResult = GBuffers.Shading_Clone.SRV;

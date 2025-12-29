@@ -24,7 +24,7 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeChunkModelTemp _cachedChunkModel = new ScopeChunkModelTemp();
-	public void UpdateChunkModelScope(DeviceContext context, MeshRenderData mesh, Transform[] transforms)
+	public void UpdateChunkModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms)
 	{
 		if (_disposed)
 			return;
@@ -87,7 +87,7 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeRigidModelTemp _cachedRigidModel = new ScopeRigidModelTemp();
-	public void UpdateRigidModelScope(DeviceContext context, MeshRenderData mesh, Transform[] transforms)
+	public void UpdateRigidModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms)
 	{
 		if (_disposed)
 			return;

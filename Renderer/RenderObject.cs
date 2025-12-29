@@ -286,8 +286,8 @@ public class RenderObject : GpuResource
 	public AABB BoundingBox { get; set; }
 	public int InstanceCount = 1;
 
-	private readonly List<MeshRenderData> _meshes = new();
-	public IReadOnlyList<MeshRenderData> Meshes => _meshes;
+	private readonly List<MeshPartData> _meshes = new();
+	public IReadOnlyList<MeshPartData> Meshes => _meshes;
 	public IReadOnlyList<BoneNode> Bones;
 
 	public InvestmentData Investment { get; set; }
@@ -302,7 +302,7 @@ public class RenderObject : GpuResource
 		}
 	};
 
-	public void AddMesh(MeshRenderData mesh)
+	public void AddMesh(MeshPartData mesh)
 	{
 		_meshes.Add(mesh);
 	}
@@ -341,12 +341,12 @@ public class RenderObject : GpuResource
 	public void Create(DeviceContext context, StaticMesh staticMesh)
 	{
 		Hash = staticMesh.Hash;
-		var staticParts = staticMesh.LoadMainParts(ExportDetailLevel.MostDetailed);
-		var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
+		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
+		//var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
 		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
-		CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
+		//CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
 	}
 
 	public void Create(DeviceContext context, Entity entity, InventoryItem inventoryItem)
@@ -380,7 +380,7 @@ public class RenderObject : GpuResource
 			if (part.Material is null)
 				continue;
 
-			var meshData = new MeshRenderData
+			var meshData = new MeshPartData
 			{
 				RenderStage = part.RenderStage,
 				IndexBuffer = IndexBuffer.Create(context, part.IndexBuffer),
@@ -398,7 +398,8 @@ public class RenderObject : GpuResource
 				MeshTransform = part.MeshTransform,
 				MeshUVTransform = part.UVTransform,
 				MaxColorIndex = part.MaxVertexColorIndex,
-				Material = new(context, part.Material),
+				Material = AssetManager.GetInstance().GetOrCreateMaterial(context, part.Material),
+				GroupIndex = part.GroupIndex
 			};
 
 			meshData.Material.UsesVertexColor = part.VertexBuffer2 != null && part.Material.Vertex.Shader.OutputSignatures.Any(x => x.RegisterIndex == 5 && x.SemanticIndex == 8);
@@ -412,7 +413,7 @@ public class RenderObject : GpuResource
 	{
 		RenderHelpers.Profile($"{MeshType} {Hash} Bind");
 
-		MeshRenderData[] meshes;
+		MeshPartData[] meshes;
 		lock (renderer.World.WorldLock)
 			meshes = Meshes.ToArray();
 
@@ -508,9 +509,9 @@ public class RenderObject : GpuResource
 	}
 }
 
-public class MeshRenderData : GpuResource
+public class MeshPartData : GpuResource
 {
-	public MeshRenderData()
+	public MeshPartData()
 	{
 	}
 
@@ -531,6 +532,7 @@ public class MeshRenderData : GpuResource
 	public Vector4 MeshTransform;
 	public Vector4 MeshUVTransform;
 	public int MaxColorIndex;
+	public int GroupIndex;
 
 	public void Draw(DeviceContext context)
 	{
@@ -567,9 +569,10 @@ public class MeshRenderData : GpuResource
 		VertexBuffer3?.Dispose();
 		IndexBuffer?.Dispose();
 		InputLayout?.Dispose();
-		Material?.Dispose();
 
+		AssetManager.GetInstance().ReleaseMaterial(Material.Hash);
 		Material = null;
+
 		VertexBuffer0 = null;
 		VertexBuffer1 = null;
 		VertexBuffer2 = null;
@@ -583,6 +586,7 @@ public class MeshRenderData : GpuResource
 
 public class MaterialData : GpuResource
 {
+	public FileHash Hash;
 	public StateSelection States;
 	public List<Tiger.TfxScope> UsedScopes;
 
@@ -595,8 +599,11 @@ public class MaterialData : GpuResource
 	public bool UsesVertexColor = false;
 	public bool UsesGearDye = false;
 
+	public int RefCount;
+
 	public MaterialData(DeviceContext context, Material material)
 	{
+		Hash = material.Hash;
 		States = material.RenderStates;
 		UsedScopes = material.EnumerateScopes().ToList();
 		Skinned = UsedScopes.Contains(Tiger.TfxScope.SKINNING);
@@ -643,6 +650,17 @@ public class MaterialData : GpuResource
 	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
 	{
 		return await Pixel?.GetEvaluated(context);
+	}
+
+	public void AddRef()
+	{
+		RefCount++;
+	}
+
+	public bool Release()
+	{
+		RefCount--;
+		return RefCount <= 0;
 	}
 
 	public override void Dispose()

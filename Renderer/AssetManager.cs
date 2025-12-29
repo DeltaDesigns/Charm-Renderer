@@ -8,6 +8,7 @@ using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using Tiger;
 using Tiger.Schema;
+using Tiger.Schema.Shaders;
 using static Tiger.Schema.DirectXSampler;
 using Texture = Tiger.Schema.Texture;
 
@@ -43,6 +44,7 @@ public sealed class TextureAsset : IDisposable
 
 public class AssetManager : IDisposable
 {
+	public readonly Dictionary<uint, MaterialData> _materialCache = new();
 	public readonly Dictionary<uint, TextureAsset> _cache = new(); // used for mesh
 	public readonly Dictionary<uint, TextureAsset> _globalCache = new(); // used for pipelines/externs
 	public ShaderResourceView WhiteTexture;
@@ -134,6 +136,30 @@ public class AssetManager : IDisposable
 		{
 			DebugName = "Investment Override VC Vertex Shader"
 		};
+	}
+
+	public MaterialData GetOrCreateMaterial(DeviceContext context, Material material)
+	{
+		if (!_materialCache.TryGetValue(material.Hash.Hash32, out var mat))
+		{
+			mat = new MaterialData(context, material);
+			_materialCache[material.Hash.Hash32] = mat;
+		}
+
+		mat.AddRef();
+		return mat;
+	}
+
+	public void ReleaseMaterial(uint hash)
+	{
+		if (_materialCache.TryGetValue(hash, out var mat))
+		{
+			if (mat.Release())
+			{
+				mat.Dispose();
+				_materialCache.Remove(hash);
+			}
+		}
 	}
 
 	public TextureAsset GetOrCreateTexture(DeviceContext context, Texture texture)
@@ -479,8 +505,19 @@ public class AssetManager : IDisposable
 		_globalCache.Clear();
 	}
 
+	public void DisposeMaterials()
+	{
+		Log.Debug($"{_materialCache.Count} Materials still registered.");
+		foreach (var mat in _materialCache.Values)
+		{
+			mat?.Dispose();
+		}
+		_materialCache.Clear();
+	}
+
 	public void Dispose()
 	{
+		DisposeMaterials();
 		DisposeTextures();
 		DisposeGlobalTextures();
 

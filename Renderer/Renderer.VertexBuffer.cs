@@ -9,6 +9,7 @@ namespace Charm.Renderer;
 public class VertexBuffer : GpuResource
 {
 	public Buffer Buffer;
+	public VertexBufferBinding Binding;
 	public int Size;
 	public int Length;
 	public int Stride;
@@ -37,7 +38,6 @@ public class VertexBuffer : GpuResource
 				StructureByteStride = 0
 			}
 		);
-
 		vertexBuffer.DebugName = $"VertexBuffer {buffer.Hash}";
 
 		ShaderResourceView srv = null;
@@ -67,14 +67,15 @@ public class VertexBuffer : GpuResource
 			Length = vertexBufferData.Length / stride,
 			Stride = stride,
 			Size = vertexBufferData.Length,
-			SRV = srv
+			SRV = srv,
+			Binding = new VertexBufferBinding(vertexBuffer, stride, 0)
 		};
 	}
 
 	public void Bind(DeviceContext context, int slot, int srvSlot = 0)
 	{
 		if (slot != -1)
-			context.InputAssembler.SetVertexBuffers(slot, new VertexBufferBinding(Buffer, Stride, 0));
+			context.InputAssembler.SetVertexBuffers(slot, Binding);
 
 		if (SRV is not null)
 			context.VertexShader.SetShaderResource(srvSlot, SRV);
