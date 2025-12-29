@@ -1,4 +1,4 @@
-﻿using HelixToolkit.SharpDX.Core.Utilities;
+﻿using HelixToolkit.SharpDX.Utilities;
 using SharpDX;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
