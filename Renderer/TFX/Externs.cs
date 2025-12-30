@@ -110,8 +110,8 @@ public class Externs : IDisposable
 		{
 			RenderHelpers.Profile("Extern View Update");
 			var cam = renderer.Camera;
-			ResolutionX = cam.Viewport.X;
-			ResolutionY = cam.Viewport.Y;
+			ResolutionX = cam.Viewport.Width;
+			ResolutionY = cam.Viewport.Height;
 			Position = new Vector4(cam.Position, 1f);
 
 			WorldToCamera = cam.WorldToCamera;
@@ -283,7 +283,7 @@ public class Externs : IDisposable
 			RenderHelpers.Profile("Extern Atmosphere Update");
 
 			var cam = renderer.Camera;
-			RTDimensions = new Vector4(cam.Viewport.X, cam.Viewport.Y, 1f / cam.Viewport.X, 1f / cam.Viewport.Y);
+			RTDimensions = new Vector4(cam.Viewport.Width, cam.Viewport.Height, 1f / cam.Viewport.Width, 1f / cam.Viewport.Height);
 
 			AtmosSunColor = renderer.World.GlobalChannels.Get("sun_glow_color");
 			AtmosUnk150 = renderer.World.GlobalChannels.Get(new TigerHash(0x4aa1bef5)).X;

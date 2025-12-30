@@ -10,6 +10,7 @@ using Tiger.Schema.Investment;
 using static Charm.Renderer.CharmRenderer;
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Material = Tiger.Schema.Shaders.Material;
+using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
@@ -283,7 +284,7 @@ public class RenderObject : GpuResource
 {
 	public FileHash Hash;
 	public TfxFeatureRenderer MeshType;
-	public AABB BoundingBox { get; set; }
+	public HelixToolkit.Maths.BoundingBox BoundingBox { get; set; }
 	public int InstanceCount = 1;
 
 	private readonly List<MeshPartData> _meshes = new();
@@ -302,6 +303,13 @@ public class RenderObject : GpuResource
 		}
 	};
 
+	public Transform TransformOffset = new Transform
+	{
+		Position = new(0f, 0f, 0f),
+		Quaternion = new(0f, 0f, 0f, 1f),
+		Scale = Tiger.Schema.Vector3.One
+	};
+
 	public void AddMesh(MeshPartData mesh)
 	{
 		_meshes.Add(mesh);
@@ -311,24 +319,14 @@ public class RenderObject : GpuResource
 	{
 		Hash = entity.Hash;
 		var parts = entity.Load(ExportDetailLevel.MostDetailed);
-		parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed)).ToList());
 		CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
+
 		if (entity.Skeleton is not null)
 			Bones = entity.Skeleton.GetBoneNodes();
 
 		// This works fine but some entity bounding boxes just dont feel good to orbit around
 		if (entity.Model is not null)
-		{
-			AABB bb = entity.ModelParent.GetBoundingBox();
-			//AABB bb = RenderHelpers.ComputeBoundingBox(parts.SelectMany(x => x.VertexPositions).ToList());
-			var scale = entity.Model.Scale;
-			var trans = entity.Model.Translation;
-			BoundingBox = new()
-			{
-				Min = bb.Min * scale - trans,
-				Max = bb.Max * scale + trans
-			};
-		}
+			BoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
 	}
 
 	public void Create(DeviceContext context, EntityModel entModel, TfxFeatureRenderer type)
@@ -343,7 +341,7 @@ public class RenderObject : GpuResource
 		Hash = staticMesh.Hash;
 		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
 		//var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
-		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
+		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList()).CreateFrom();
 
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
 		//CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
@@ -351,25 +349,8 @@ public class RenderObject : GpuResource
 
 	public void Create(DeviceContext context, Entity entity, InventoryItem inventoryItem)
 	{
-		Hash = entity.Hash;
 		Investment = new(context, entity, inventoryItem);
-		var parts = entity.Load(ExportDetailLevel.MostDetailed);
-		CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Gear);
-		if (entity.Skeleton is not null)
-			Bones = entity.Skeleton.GetBoneNodes();
-
-		//if (entities[0].Model is not null)
-		//{
-		//    AABB bb = entities[0].ModelParent.GetBoundingBox();
-		//    //AABB bb = RenderHelpers.ComputeBoundingBox(parts.SelectMany(x => x.VertexPositions).ToList());
-		//    var scale = entities[0].Model.Scale;
-		//    var trans = entities[0].Model.Translation;
-		//    BoundingBox = new()
-		//    {
-		//        Min = bb.Min * scale - trans,
-		//        Max = bb.Max * scale + trans
-		//    };
-		//}
+		Create(context, entity);
 	}
 
 	private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
@@ -432,7 +413,7 @@ public class RenderObject : GpuResource
 			}
 			else
 			{
-				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh, GlobalTransforms);
+				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh, GlobalTransforms, TransformOffset);
 				if (Investment is not null)
 					Investment.Bind(renderer.Context);
 
@@ -443,13 +424,13 @@ public class RenderObject : GpuResource
 		RenderHelpers.EndProfile();
 	}
 
-	Buffer skeletonVB;
+	public Buffer _skeletonVB;
 	public void RenderSkeleton(CharmRenderer renderer)
 	{
 		if (Bones is null || Bones.Count == 0)
 			return;
 
-		if (skeletonVB is null)
+		if (_skeletonVB is null)
 		{
 			var vbDesc = new BufferDescription
 			{
@@ -459,39 +440,97 @@ public class RenderObject : GpuResource
 				CpuAccessFlags = CpuAccessFlags.Write
 			};
 
-			skeletonVB = new Buffer(renderer.Device, vbDesc);
+			_skeletonVB = new Buffer(renderer.Device, vbDesc);
 		}
 
 		Vector4[] lineVertices = new Vector4[Bones.Count * 2];
 		int v = 0;
 		for (int i = 0; i < Bones.Count; i++)
 		{
-			int parent = Bones[i].ParentNodeIndex;
-			if (parent < 0)
+			int parentIndex = Bones[i].ParentNodeIndex;
+			if (parentIndex < 0)
 				continue;
 
-			lineVertices[v++] = new Vector4(Bones[i].DefaultObjectSpaceTransform.Translation, 1);
-			lineVertices[v++] = new Vector4(Bones[parent].DefaultObjectSpaceTransform.Translation, 1);
+			var bone = Bones[i];
+			var parent = Bones[parentIndex];
+
+			// stops lines coming from the root/pedestal bone
+			if (parentIndex > 0)
+			{
+				lineVertices[v++] = new Vector4(bone.DefaultObjectSpaceTransform.Translation, 1);
+				lineVertices[v++] = new Vector4(parent.DefaultObjectSpaceTransform.Translation, 1);
+			}
+
+			// not the best option but it works, would be better to use MeshBuilder to make them all one mesh
+			renderer.RenderSphere(bone.DefaultObjectSpaceTransform.Translation, 0.01f, new(0.5f, 0, 0, 1), offset: TransformOffset);
 		}
 
-		DataBox dataBox = renderer.Context.MapSubresource(skeletonVB, 0, MapMode.WriteDiscard, MapFlags.None);
+		DataBox dataBox = renderer.Context.MapSubresource(_skeletonVB, 0, MapMode.WriteDiscard, MapFlags.None);
 		try
 		{
 			Utilities.Write(dataBox.DataPointer, lineVertices, 0, lineVertices.Length);
 		}
 		finally
 		{
-			renderer.Context.UnmapSubresource(skeletonVB, 0);
+			renderer.Context.UnmapSubresource(_skeletonVB, 0);
 		}
 
 		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, new MapTransform
 		{
 			Translation = Vector4.UnitW,
-			Rotation = Vector4.Zero,
-		});
-		renderer.Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(skeletonVB, Utilities.SizeOf<Vector4>(), 0));
+			Rotation = Vector4.UnitW,
+		}, TransformOffset);
+
+		Vector4 col = new(1f, 0f, 0f, 1f);
+		renderer.Context.UpdateSubresource(ref col, renderer._debugPSCB);
+		renderer.Context.PixelShader.SetConstantBuffer(0, renderer._debugPSCB);
+
+		renderer.Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skeletonVB, Utilities.SizeOf<Vector4>(), 0));
 		renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
 		renderer.Context.Draw(lineVertices.Length, 0);
+	}
+
+	public void RenderBoundingBox(CharmRenderer renderer)
+	{
+		Vector3[] lines = RenderHelpers.GetBoundingBoxLines(BoundingBox);
+		if (lines.Length == 0)
+			return;
+
+		if (renderer._bboxVB is null)
+		{
+			renderer._bboxVB = Buffer.Create(
+				renderer.Device,
+				BindFlags.VertexBuffer,
+				lines,
+				Utilities.SizeOf<Vector3>() * lines.Length,
+				ResourceUsage.Dynamic,
+				CpuAccessFlags.Write
+			);
+		}
+
+		DataBox dataBox = renderer.Context.MapSubresource(renderer._bboxVB, 0, MapMode.WriteDiscard, MapFlags.None);
+		try
+		{
+			Utilities.Write(dataBox.DataPointer, lines, 0, lines.Length);
+		}
+		finally
+		{
+			renderer.Context.UnmapSubresource(renderer._bboxVB, 0);
+		}
+
+		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, new MapTransform
+		{
+			Translation = Vector4.UnitW,
+			Rotation = Vector4.UnitW,
+		}, TransformOffset);
+
+		Vector4 col = new(1f, 1f, 0f, 1f);
+		renderer.Context.UpdateSubresource(ref col, renderer._debugPSCB);
+		renderer.Context.PixelShader.SetConstantBuffer(0, renderer._debugPSCB);
+
+		renderer.Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(renderer._bboxVB, Utilities.SizeOf<Vector3>(), 0));
+		renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+		renderer.Context.Draw(lines.Length, 0);
 	}
 
 	public override void Dispose()
@@ -504,6 +543,8 @@ public class RenderObject : GpuResource
 			mesh.Dispose();
 		}
 		_meshes?.Clear();
+		_skeletonVB?.Dispose();
+		_skeletonVB = null;
 
 		base.Dispose();
 	}

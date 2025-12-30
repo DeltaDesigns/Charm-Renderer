@@ -8,6 +8,9 @@ using SharpDX.DirectInput;
 using Tiger;
 using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
+using Microsoft.VisualBasic.Devices;
+
+
 
 
 // Please do not look at this. It is an absolute mess and unoptimized and ugly and im ashamed yet proud at the same time.
@@ -100,8 +103,12 @@ public partial class CharmRenderer : IDisposable
 		{
 			var width = (int)Viewport.ActualWidth;
 			var height = (int)Viewport.ActualHeight;
+			System.Windows.Point p = Viewport.TranslatePoint(
+				new System.Windows.Point(0, 0),
+				Application.Current.MainWindow
+			);
 
-			Camera.Viewport = new(width, height);
+			Camera.Viewport = new((int)p.X, (int)p.Y, width, height);
 			Camera.ResetCameraTransform();
 
 		}, DispatcherPriority.Send);
@@ -253,7 +260,7 @@ public partial class CharmRenderer : IDisposable
 		RenderAtmosphere();
 
 		// Gotta set back to main viewport dims since this gets used for other non-atmosphere things for some reason
-		Externs.Atmosphere.RTDimensions = new(Camera.Viewport.X, Camera.Viewport.Y, 1f / Camera.Viewport.X, 1f / Camera.Viewport.Y);
+		Externs.Atmosphere.RTDimensions = new(Camera.Viewport.Width, Camera.Viewport.Height, 1f / Camera.Viewport.Width, 1f / Camera.Viewport.Height);
 
 		// GBuffer Pass
 		RenderGBuffer();
@@ -272,10 +279,14 @@ public partial class CharmRenderer : IDisposable
 			RenderGrid();
 		}
 
-		if (Viewport.ShowSkele)
+		if (Viewport.ShowSkele || Viewport.ShowBB)
 		{
 			Context.OutputMerger.SetTargets(blitRT.RTV);
-			RenderSkeleton();
+			if (Viewport.ShowSkele)
+				RenderSkeleton();
+
+			if (Viewport.ShowBB)
+				RenderBoundingBoxes();
 		}
 
 		CreateStates(new(0, 0, 0, 0));
@@ -283,6 +294,8 @@ public partial class CharmRenderer : IDisposable
 		BlitToWPF(blitRT);
 		wpfRT.Present(Context, Viewport.RT0);
 
+		//if (MouseState.Buttons[1])
+		//	Camera.Pick(Camera.GetMouseRay(Camera.Viewport, Externs.View), World);
 
 #if DEBUG
 		if (!_captured & KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
@@ -321,11 +334,15 @@ public partial class CharmRenderer : IDisposable
 
 			_width = newWidth;
 			_height = newHeight;
+			System.Windows.Point p = Viewport.TranslatePoint(
+				new System.Windows.Point(0, 0),
+				Application.Current.MainWindow
+			);
 
 			Context?.Flush();
 			//Context?.ClearState();
 			if (Camera is not null)
-				Camera.Viewport = new(_width, _height);
+				Camera.Viewport = new((int)p.X, (int)p.Y, _width, _height);
 
 			InitializeRenderTargets(newWidth, newHeight);
 
@@ -369,6 +386,11 @@ public partial class CharmRenderer : IDisposable
 		Utilities.Dispose(ref _gridShaderVS);
 		Utilities.Dispose(ref _gridShaderPS);
 		Utilities.Dispose(ref _pointSampler);
+		Utilities.Dispose(ref _wireframeRS);
+		Utilities.Dispose(ref _debugPSCB);
+		Utilities.Dispose(ref _debugLinesPS);
+		Utilities.Dispose(ref _debugLinesVS);
+		Utilities.Dispose(ref _debugLinesLayout);
 		Utilities.Dispose(ref _clearAOVS);
 		Utilities.Dispose(ref _clearAOPS);
 		Utilities.Dispose(ref _fullHemiSkyTempVS);

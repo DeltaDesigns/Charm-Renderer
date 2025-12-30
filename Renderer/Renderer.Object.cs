@@ -29,6 +29,20 @@ public partial class CharmRenderer
 		obj.Create(Context, entity);
 		World.RenderObjects.Enqueue(obj);
 
+		var children = entity.GetEntityChildren();
+		foreach (var child in children)
+		{
+			obj = new();
+			obj.Create(Context, child);
+			obj.TransformOffset = new Transform
+			{
+				Quaternion = child.Model.RotationOffset,
+				Position = child.Model.TranslationOffset.ToVec3()
+			};
+
+			World.RenderObjects.Enqueue(obj);
+		}
+
 		if (entity.Skeleton != null)
 			Viewport.OverrideWarning.Visibility = Visibility.Visible;
 		else

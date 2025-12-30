@@ -1,7 +1,14 @@
-﻿using SharpDX.Direct3D;
+﻿using HelixToolkit.Geometry;
+using SharpDX;
+using SharpDX.Direct3D;
+using SharpDX.Direct3D11;
 using SharpDX.Mathematics.Interop;
 using System.ComponentModel;
 using Tiger;
+using Tiger.Schema;
+using Buffer = SharpDX.Direct3D11.Buffer;
+using Vector3 = System.Numerics.Vector3;
+using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
@@ -277,13 +284,31 @@ public partial class CharmRenderer
 		Annotation.BeginEvent("Entity Skeleton");
 		CreateStates(new(8, 15, 2, 1));
 
-		Context.InputAssembler.InputLayout = _skeleLayout;
-		Context.VertexShader.Set(_skeleVS);
-		Context.PixelShader.Set(_skelePS);
+		Context.InputAssembler.InputLayout = _debugLinesLayout;
+		Context.VertexShader.Set(_debugLinesVS);
+		Context.PixelShader.Set(_debugLinesPS);
 
 		foreach (var renderable in World.RenderObjects)
 		{
 			renderable?.RenderSkeleton(this);
+		}
+		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
+	}
+
+	private void RenderBoundingBoxes()
+	{
+		RenderHelpers.Profile("Render Bounding Boxes");
+		Annotation.BeginEvent("Render Bounding Boxes");
+		CreateStates(new(8, 15, 2, 1));
+
+		Context.InputAssembler.InputLayout = _debugLinesLayout;
+		Context.VertexShader.Set(_debugLinesVS);
+		Context.PixelShader.Set(_debugLinesPS);
+
+		foreach (var renderable in World.RenderObjects)
+		{
+			renderable?.RenderBoundingBox(this);
 		}
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
@@ -372,6 +397,79 @@ public partial class CharmRenderer
 
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
+	}
+
+
+	private int _sphereIndexCount;
+	public void RenderSphere(
+		System.Numerics.Vector3 pos,
+		float radius,
+		System.Numerics.Vector4 color,
+		bool wireframe = false,
+		Transform? offset = null)
+	{
+		if (_debugShapeVB == null || _debugShapeIB == null)
+		{
+			var meshBuilder = new MeshBuilder();
+			meshBuilder.AddSphere(Vector3.Zero, 1, 8, 8);
+			var mesh = meshBuilder.ToMesh();
+
+			_sphereIndexCount = mesh.TriangleIndices.Count;
+
+			_debugShapeVB = Buffer.Create(
+				Device,
+				mesh.Positions.ToArray(),
+				new BufferDescription
+				{
+					SizeInBytes = Utilities.SizeOf<Vector3>() * mesh.Positions.Count,
+					Usage = ResourceUsage.Default,
+					BindFlags = BindFlags.VertexBuffer,
+					CpuAccessFlags = CpuAccessFlags.None,
+					OptionFlags = ResourceOptionFlags.None,
+					StructureByteStride = 0
+				}
+			);
+
+			_debugShapeIB = Buffer.Create(
+				Device,
+				mesh.TriangleIndices.ToArray(),
+				new BufferDescription
+				{
+					SizeInBytes = Utilities.SizeOf<Vector3>() * mesh.TriangleIndices.Count,
+					Usage = ResourceUsage.Immutable,
+					BindFlags = BindFlags.IndexBuffer,
+					CpuAccessFlags = CpuAccessFlags.None,
+					OptionFlags = ResourceOptionFlags.None,
+					StructureByteStride = 0
+				});
+		}
+
+		CreateStates(new(8, 15, 2, 1));
+		Context.InputAssembler.InputLayout = _debugLinesLayout;
+		Context.VertexShader.Set(_debugLinesVS);
+		Context.PixelShader.Set(_debugLinesPS);
+
+		var rotated = Vector3.Transform(
+			pos,
+			offset != null ? offset.Value.Quaternion.ToQuat() : System.Numerics.Quaternion.Identity
+		);
+
+		TempScopes.UpdateRigidModelScopeCustom(Context, new MapTransform
+		{
+			Translation = new Tiger.Schema.Vector4(rotated, radius),
+			Rotation = Vector4.UnitW,
+		}, offset != null ? offset.Value : new Transform());
+
+		Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_debugShapeVB, Utilities.SizeOf<Vector3>(), 0));
+		Context.InputAssembler.SetIndexBuffer(_debugShapeIB, SharpDX.DXGI.Format.R32_UInt, 0);
+		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+		if (wireframe)
+			Context.Rasterizer.State = _wireframeRS;
+
+		Context.UpdateSubresource(ref color, _debugPSCB);
+		Context.PixelShader.SetConstantBuffer(0, _debugPSCB);
+
+		Context.DrawIndexed(_sphereIndexCount, 0, 0);
 	}
 
 	public enum RenderPass

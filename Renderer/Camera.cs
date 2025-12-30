@@ -1,7 +1,9 @@
-﻿using SharpDX.DirectInput;
+﻿using Arithmic;
+using HelixToolkit.Maths;
+using SharpDX.DirectInput;
 using System.Runtime.InteropServices;
+using static Charm.Renderer.Externs;
 using Quaternion = System.Numerics.Quaternion;
-using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 
 namespace Charm.Renderer;
@@ -11,7 +13,7 @@ public class FirstPersonCamera
 	public float Near = 0.05f;
 	public float Far = 50000f;
 
-	public Vector2 Viewport { get; set; }
+	public Viewport Viewport { get; set; }
 	public Vector3 Position { get; set; } = new Vector3(0, 0, 5);
 	public float Yaw { get; set; } = -90f;
 	public float Pitch { get; set; } = 0f;
@@ -69,7 +71,7 @@ public class FirstPersonCamera
 	{
 		CameraToProjective = Matrix4x4ButGood.PerspectiveInfiniteReverseRightHanded(
 			fov * (MathF.PI / 180f), // Field of view in radians
-			Viewport.X / Viewport.Y, // Aspect ratio
+			(float)Viewport.Width / (float)Viewport.Height, // Aspect ratio
 			0.01f // Near clipping plane
 		);
 	}
@@ -162,16 +164,16 @@ public class FirstPersonCamera
 		// Middle Mouse = Orbit
 		else if (mouse.Buttons[2])
 		{
-			var bbox = world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new Tiger.Schema.AABB();
+			var bbox = world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new BoundingBox();
 			if (!IsOrbiting)
 			{
 				IsOrbiting = true;
 
-				var center = (bbox.Min + bbox.Max) / 2f;
-				OrbitDistance = Vector3.Distance(Position, (Vector3)center.ToVec3());
+				var center = (bbox.Minimum + bbox.Maximum) / 2f;
+				OrbitDistance = Vector3.Distance(Position, center);
 			}
 
-			var target = (Vector3)((bbox.Min + bbox.Max) / 2f).ToVec3();
+			var target = (bbox.Minimum + bbox.Maximum) / 2f;
 
 			Yaw += mouseDeltaX * -0.4f;
 			Pitch += mouseDeltaY * -0.4f;
@@ -226,8 +228,8 @@ public class FirstPersonCamera
 	public Matrix4x4ButGood TargetPixelToProjective()
 	{
 		return new(
-		new(2.0f / Viewport.X, 0.0f, 0.0f, 0.0f),
-		new(0.0f, -2.0f / Viewport.Y, 0.0f, 0.0f),
+		new(2.0f / Viewport.Width, 0.0f, 0.0f, 0.0f),
+		new(0.0f, -2.0f / Viewport.Height, 0.0f, 0.0f),
 		new(0.0f, 0.0f, 1.0f, 0.0f),
 		new(-1.0f, 1.0f, 0.0f, 1.0f));
 	}
@@ -261,6 +263,38 @@ public class FirstPersonCamera
 		Yaw = -45;
 		Pitch = -20;
 		UpdateVectors();
+	}
+
+	public Ray GetMouseRay(Viewport viewport, ExternView view)
+	{
+		int localX = MousePos.X - viewport.X;
+		int localY = MousePos.Y - viewport.Y;
+		Matrix4x4ButGood viewProj = view.WorldToCamera * view.ProjToCamera;
+		var ray = Ray.GetPickRay(localX, localY, viewport, viewProj);
+
+		Log.Debug($"{ray.Direction}");
+		return ray;
+	}
+
+	public void Pick(Ray ray, RenderWorld world)
+	{
+		RenderObject picked = null;
+		float closest = float.MaxValue;
+
+		foreach (var obj in world.RenderObjects)
+		{
+			var boundingBox = obj.BoundingBox;
+			if (!ray.Intersects(ref boundingBox, out float distance))
+				continue;
+
+			if (distance < closest)
+			{
+				closest = distance;
+				picked = obj;
+			}
+		}
+
+		Log.Debug($"Picked Object: {picked?.Hash}");
 	}
 
 	[DllImport("user32.dll")]

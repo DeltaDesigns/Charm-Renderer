@@ -1,4 +1,4 @@
-﻿using SharpDX;
+﻿using HelixToolkit.Maths;
 using SharpDX.Direct3D11;
 using SharpDX.DirectInput;
 using System.Collections.Concurrent;
@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Tiger.Schema;
 using TracyWrapper;
+using Buffer = SharpDX.Direct3D11.Buffer;
 
 namespace Charm.Renderer;
 
@@ -39,10 +40,27 @@ public partial class CharmRenderer
 		_fullHemiSkyTempVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/full_hemi_sky_temp_vs.hlsl", "main", "vs_5_0"));
 		_fullHemiSkyTempPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/full_hemi_sky_temp_ps.hlsl", "main", "ps_5_0"));
 
-		var vs = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/entity_skeleton_view_vs.hlsl", "VSMain", "vs_5_0");
-		_skeleVS ??= new VertexShader(Device, vs);
-		_skelePS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/entity_skeleton_view_ps.hlsl", "PSMain", "ps_5_0"));
-		_skeleLayout ??= new InputLayout(Device, vs.Bytecode, RenderHelpers.GetInputLayout(0).ToArray());
+		var vs = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/debug_lines_vs.hlsl", "VSMain", "vs_5_0");
+		_debugLinesVS ??= new VertexShader(Device, vs);
+		_debugLinesPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/debug_lines_ps.hlsl", "PSMain", "ps_5_0"));
+		_debugLinesLayout ??= new InputLayout(Device, vs.Bytecode, RenderHelpers.GetInputLayout(0).ToArray());
+
+		_debugPSCB ??= new Buffer(
+			Device,
+			SharpDX.Utilities.SizeOf<System.Numerics.Vector4>(),
+			ResourceUsage.Default,
+			BindFlags.ConstantBuffer,
+			CpuAccessFlags.None,
+			ResourceOptionFlags.None,
+			0
+		);
+
+		_wireframeRS ??= new RasterizerState(Device, new RasterizerStateDescription
+		{
+			FillMode = FillMode.Wireframe,
+			CullMode = CullMode.None,
+			IsFrontCounterClockwise = false,
+		});
 
 		_pointSampler ??= new SamplerState(Device, new SamplerStateDescription
 		{
@@ -51,7 +69,7 @@ public partial class CharmRenderer
 			AddressV = TextureAddressMode.Clamp,
 			AddressW = TextureAddressMode.Clamp,
 			ComparisonFunction = Comparison.Never,
-			BorderColor = Color4.Black,
+			BorderColor = new(0.0f, 0.0f, 0.0f, 1.0f),
 			MinimumLod = 0,
 			MaximumLod = float.MaxValue,
 		});
@@ -123,6 +141,66 @@ public static class RenderHelpers
 		}
 
 		return new AABB() { Min = min, Max = max };
+	}
+
+	public static BoundingBox CreateFrom(this AABB aabb)
+	{
+		return new BoundingBox(
+			new(aabb.Min.X, aabb.Min.Y, aabb.Min.Z),
+			new(aabb.Max.X, aabb.Max.Y, aabb.Max.Z)
+		);
+	}
+
+	public static BoundingBox CreateFrom(this AABB aabb,
+		Tiger.Schema.Vector4 scale,
+		Tiger.Schema.Vector4 trans)
+	{
+		var min = aabb.Min * scale - trans;
+		var max = aabb.Max * scale + trans;
+		return new BoundingBox(
+			new(min.X, min.Y, min.Z),
+			new(max.X, max.Y, max.Z)
+		);
+	}
+
+	public static System.Numerics.Vector3[] GetBoundingBoxLines(BoundingBox box)
+	{
+		Vector3 min = box.Minimum;
+		Vector3 max = box.Maximum;
+
+		Vector3[] corners =
+		{
+			new(min.X, min.Y, min.Z),
+			new(max.X, min.Y, min.Z),
+			new(max.X, max.Y, min.Z),
+			new(min.X, max.Y, min.Z),
+
+			new(min.X, min.Y, max.Z),
+			new(max.X, min.Y, max.Z),
+			new(max.X, max.Y, max.Z),
+			new(min.X, max.Y, max.Z)
+		};
+
+		return new System.Numerics.Vector3[]
+		{
+			// Bottom
+			corners[0], corners[1],
+			corners[1], corners[2],
+			corners[2], corners[3],
+			corners[3], corners[0],
+
+			// Top
+			corners[4], corners[5],
+			corners[5], corners[6],
+			corners[6], corners[7],
+			corners[7], corners[4],
+
+			// Vertical
+			corners[0], corners[4],
+			corners[1], corners[5],
+			corners[2], corners[6],
+			corners[3], corners[7],
+		};
 	}
 
 	public static List<InputElement> GetInputLayout(int layoutIndex)

@@ -26,6 +26,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	public ObservableCollection<SettingItem> DebugSettings { get; set; }
 	public bool ShowGrid { get; set; } = true;
 	public bool ShowSkele { get; set; } = true;
+	public bool ShowBB { get; set; } = false;
 	public bool CapFPS { get; set; } = true;
 	#endregion
 
@@ -243,6 +244,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 				Text = "Show Skeleton",
 				GetValue = () => ShowSkele,
 				SetValue = v => ShowSkele = v
+			},
+			new ToggleSetting
+			{
+				Text = "Show Bounding Box",
+				GetValue = () => ShowBB,
+				SetValue = v => ShowBB = v
 			},
 			new ToggleSetting
 			{

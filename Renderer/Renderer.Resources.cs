@@ -1,6 +1,7 @@
 ﻿using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
+using Buffer = SharpDX.Direct3D11.Buffer;
 using Vector3 = System.Numerics.Vector3;
 
 namespace Charm.Renderer;
@@ -23,9 +24,16 @@ public partial class CharmRenderer
 	private VertexShader _fullHemiSkyTempVS;
 	private PixelShader _fullHemiSkyTempPS;
 
-	private VertexShader _skeleVS;
-	private PixelShader _skelePS;
-	private InputLayout _skeleLayout;
+	private VertexShader _debugLinesVS;
+	private PixelShader _debugLinesPS;
+	private InputLayout _debugLinesLayout;
+	public Buffer _debugPSCB;
+	private RasterizerState _wireframeRS;
+
+	private Buffer _debugShapeVB;
+	private Buffer _debugShapeIB;
+
+	public Buffer _bboxVB;
 
 	private SamplerState _pointSampler;
 
@@ -38,8 +46,8 @@ public partial class CharmRenderer
 	private void LookAtMeshInitial()
 	{
 		var bbox = World.RenderObjects.First().BoundingBox; // TODO
-		var center = (bbox.Min + bbox.Max) / 2f;
-		var size = bbox.Max - bbox.Min;
+		var center = (bbox.Minimum + bbox.Maximum) / 2f;
+		var size = bbox.Maximum - bbox.Minimum;
 		var radius = size.Length() / 2f;
 		Camera.Position = new Vector3(center.X, center.Y - radius * 1.75f, center.Z + radius * 0.75f);
 		Camera.LookAt(new Vector3(center.X, center.Y, center.Z));

@@ -10,7 +10,6 @@ using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
-// I have no fucking clue whats going wrong here with trying to dipose/create after a few times causing "corrupted memory".
 public class TempScopes : GpuResource
 {
 	public Buffer ChunkModelScopeBuffer;  // Static
@@ -87,7 +86,7 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeRigidModelTemp _cachedRigidModel = new ScopeRigidModelTemp();
-	public void UpdateRigidModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms)
+	public void UpdateRigidModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms, Transform offset)
 	{
 		if (_disposed)
 			return;
@@ -111,13 +110,13 @@ public class TempScopes : GpuResource
 
 		var t = transforms[0];
 		Matrix4x4ButGood transform =
-			Matrix4x4.CreateScale(t.Scale) *
-			Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat()) *
-			Matrix4x4.CreateTranslation(t.Position);
+			Matrix4x4.CreateScale(!mesh.Material.Skinned ? (t.Scale * offset.Scale) : Vector3.One) *
+			Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
+			Matrix4x4.CreateTranslation(t.Position + offset.Position);
 
 		ref var cb1_data = ref _cachedRigidModel;
 
-		cb1_data.LocalToWorld = mesh.Material.Skinned ? Matrix4x4.Identity : transform;
+		cb1_data.LocalToWorld = transform;
 		cb1_data.MeshScale = mesh.MeshScale;
 		cb1_data.MeshOffset = mesh.MeshTransform;
 		cb1_data.UVTransform = mesh.MeshUVTransform;
@@ -129,7 +128,12 @@ public class TempScopes : GpuResource
 		RenderHelpers.EndProfile();
 	}
 
+	private ScopeRigidModelTemp _cachedRigidModelCustom = new ScopeRigidModelTemp();
 	public void UpdateRigidModelScopeCustom(DeviceContext context, MapTransform mapTrans)
+	{
+		UpdateRigidModelScopeCustom(context, mapTrans, new Transform());
+	}
+	public void UpdateRigidModelScopeCustom(DeviceContext context, MapTransform mapTrans, Transform offset)
 	{
 		if (_disposed)
 			return;
@@ -165,15 +169,15 @@ public class TempScopes : GpuResource
 		);
 
 		Matrix4x4ButGood transform =
-			Matrix4x4.CreateScale(scale) *
-			Matrix4x4.CreateFromQuaternion(rotation) *
-			Matrix4x4.CreateTranslation(translation);
+			Matrix4x4.CreateScale(scale * offset.Scale.ToSys()) *
+			Matrix4x4.CreateFromQuaternion(rotation * offset.Quaternion.ToQuat()) *
+			Matrix4x4.CreateTranslation(translation + offset.Position.ToSys());
 
-		ref var cb1_data = ref _cachedRigidModel;
+		ref var cb1_data = ref _cachedRigidModelCustom;
 
 		cb1_data.LocalToWorld = transform;
-		//cb1_data.MeshScale = scale;
-		//cb1_data.MeshOffset = mesh.MeshTransform;
+		cb1_data.MeshScale = Vector4.One;
+		cb1_data.MeshOffset = Vector4.Zero;
 		//cb1_data.UVTransform = mesh.MeshUVTransform;
 		//cb1_data.DynamicAOValues = Vector4.UnitW;
 
