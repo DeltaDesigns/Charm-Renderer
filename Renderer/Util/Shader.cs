@@ -103,3 +103,30 @@ public static class ShaderFactory
 		};
 	}
 }
+
+public enum ShaderStage
+{
+	Pixel = 1,
+	Vertex = 2,
+	Geometry = 3,
+	Hull = 4,
+	Compute = 5,
+	Domain = 6,
+}
+
+public static class ShaderStageExtensions
+{
+	public static ShaderStage? FromIndex(byte index)
+	{
+		return index switch
+		{
+			1 => ShaderStage.Pixel,
+			2 => ShaderStage.Vertex,
+			3 => ShaderStage.Geometry,
+			4 => ShaderStage.Hull,
+			5 => ShaderStage.Compute,
+			6 => ShaderStage.Domain,
+			_ => null
+		};
+	}
+}

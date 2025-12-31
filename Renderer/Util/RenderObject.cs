@@ -284,6 +284,8 @@ public class RenderObject : GpuResource
 {
 	public FileHash Hash;
 	public TfxFeatureRenderer MeshType;
+	public RenderStageSubscription Stages;
+
 	public HelixToolkit.Maths.BoundingBox BoundingBox { get; set; }
 	public int InstanceCount = 1;
 
@@ -356,6 +358,8 @@ public class RenderObject : GpuResource
 	private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
 	{
 		MeshType = meshType;
+		Stages = RenderStageSubscriptionExtensions.FromStages(parts.Select(x => x.RenderStage).Distinct());
+
 		foreach (var part in parts)
 		{
 			if (part.Material is null)
@@ -392,6 +396,9 @@ public class RenderObject : GpuResource
 
 	public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
 	{
+		if (!Stages.IsSubscribed(renderStage))
+			return;
+
 		RenderHelpers.Profile($"{MeshType} {Hash} Bind");
 
 		MeshPartData[] meshes;

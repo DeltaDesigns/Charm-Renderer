@@ -6,7 +6,6 @@ using SharpDX.Mathematics.Interop;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Tiger;
 using Device = SharpDX.Direct3D11.Device;
 using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
@@ -549,86 +548,5 @@ public struct Matrix4x4ButGood
 	public static implicit operator Matrix4x4ButGood(Matrix4x4 m)
 	{
 		return Unsafe.As<Matrix4x4, Matrix4x4ButGood>(ref m);
-	}
-}
-
-[Flags]
-public enum FeatureRendererSubscription : uint
-{
-	None = 0,
-
-	StaticObjects = 1u << TfxFeatureRenderer.StaticObjects,
-	DynamicObjects = 1u << TfxFeatureRenderer.DynamicObjects,
-	ExampleEntity = 1u << TfxFeatureRenderer.ExampleEntity,
-	SkinnedObject = 1u << TfxFeatureRenderer.SkinnedObject,
-	Gear = 1u << TfxFeatureRenderer.Gear,
-	RigidObject = 1u << TfxFeatureRenderer.RigidObject,
-	Cloth = 1u << TfxFeatureRenderer.Cloth,
-	ChunkedInstanceObjects = 1u << TfxFeatureRenderer.ChunkedInstanceObjects,
-	SoftDeformable = 1u << TfxFeatureRenderer.SoftDeformable,
-	TerrainPatch = 1u << TfxFeatureRenderer.TerrainPatch,
-	SpeedtreeTrees = 1u << TfxFeatureRenderer.SpeedtreeTrees,
-	EditorTerrainTile = 1u << TfxFeatureRenderer.EditorTerrainTile,
-	EditorMesh = 1u << TfxFeatureRenderer.EditorMesh,
-	BatchedEditorMesh = 1u << TfxFeatureRenderer.BatchedEditorMesh,
-	EditorDecal = 1u << TfxFeatureRenderer.EditorDecal,
-	Particles = 1u << TfxFeatureRenderer.Particles,
-	ChunkedLights = 1u << TfxFeatureRenderer.ChunkedLights,
-	DeferredLights = 1u << TfxFeatureRenderer.DeferredLights,
-	SkyTransparent = 1u << TfxFeatureRenderer.SkyTransparent,
-	Widget = 1u << TfxFeatureRenderer.Widget,
-	Decals = 1u << TfxFeatureRenderer.Decals,
-	DynamicDecals = 1u << TfxFeatureRenderer.DynamicDecals,
-	RoadDecals = 1u << TfxFeatureRenderer.RoadDecals,
-	Water = 1u << TfxFeatureRenderer.Water,
-	LensFlares = 1u << TfxFeatureRenderer.LensFlares,
-	Volumetrics = 1u << TfxFeatureRenderer.Volumetrics,
-	Cubemaps = 1u << TfxFeatureRenderer.Cubemaps,
-
-	All = uint.MaxValue
-}
-
-public static class FeatureRendererSubscriptionExtensions
-{
-	public static FeatureRendererSubscription AllBut(
-		TfxFeatureRenderer feature)
-	{
-		var bit = (FeatureRendererSubscription)(1u << (int)feature);
-		return FeatureRendererSubscription.All & ~bit;
-	}
-
-	public static bool IsSubscribed(
-		this FeatureRendererSubscription subscription,
-		TfxFeatureRenderer feature)
-	{
-		var bit = (FeatureRendererSubscription)(1u << (int)feature);
-		return (subscription & bit) != 0;
-	}
-}
-
-public enum ShaderStage
-{
-	Pixel = 1,
-	Vertex = 2,
-	Geometry = 3,
-	Hull = 4,
-	Compute = 5,
-	Domain = 6,
-}
-
-public static class ShaderStageExtensions
-{
-	public static ShaderStage? FromIndex(byte index)
-	{
-		return index switch
-		{
-			1 => ShaderStage.Pixel,
-			2 => ShaderStage.Vertex,
-			3 => ShaderStage.Geometry,
-			4 => ShaderStage.Hull,
-			5 => ShaderStage.Compute,
-			6 => ShaderStage.Domain,
-			_ => null
-		};
 	}
 }
