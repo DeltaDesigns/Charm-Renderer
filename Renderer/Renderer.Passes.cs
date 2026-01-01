@@ -25,8 +25,8 @@ public partial class CharmRenderer
 		GBuffers.SetRenderTargets(Context);
 		Context.Rasterizer.SetViewport(GBuffers.RT0.GetViewport());
 
-		SetStencilRef(7);
-		CreateStates(new(0, 2, 2, 0));
+		CMD.States.SetStencilRef(Context, 7);
+		CMD.States.CreateStates(Context, new(0, 2, 2, 0));
 		RenderMesh(TfxRenderStage.GenerateGbuffer, "GBuffer Pass");
 
 		Externs.Deferred.Update(Context, GBuffers);
@@ -35,11 +35,11 @@ public partial class CharmRenderer
 		TfxScopes[Tiger.TfxScope.DECAL].Bind(Context);
 
 		// Decal Pass
-		CreateStates(new(8, 15, 2, 1));
+		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 		RenderMesh(TfxRenderStage.Decals, "Decal Pass");
 
 		// Vertex AO workaround
-		CreateStates(new(0, 0, 0, 0));
+		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 		GBuffers.RT2.CopyTo(Context, GBuffers.RT2_Clone);
 
 		Context.OutputMerger.SetRenderTargets(null, null, null, GBuffers.RT2.RTV);
@@ -125,19 +125,19 @@ public partial class CharmRenderer
 
 		if (Viewport.RenderSky)
 		{
-			SetStencilRef(0);
+			CMD.States.SetStencilRef(Context, 0);
 			// Supposed to be Diffuse and IBL but swapping IBL with Specular instead cus it just looks better with this setup
 			Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
 			RenderGlobalPipeline("cubemap_apply_sky_copy_ao");
 
 			Externs.GlobalLighting.Update(World.GlobalChannels);
 			Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
-			CreateStates(new(2, 16, 0, 0));
+			CMD.States.CreateStates(Context, new(2, 16, 0, 0));
 			RenderGlobalPipeline("global_lighting_gel");
 		}
 		else
 		{
-			CreateStates(new(0, 0, 0, 0));
+			CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 			Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
 			MatCapRenderer.Draw(Context, Externs);
 		}
@@ -159,25 +159,25 @@ public partial class CharmRenderer
 		// Sky
 		if (Viewport.RenderSky)
 		{
-			SetStencilRef(0x10);
-			CreateStates(new(0, 77, 0, 0));
+			CMD.States.SetStencilRef(Context, 0x10);
+			CMD.States.CreateStates(Context, new(0, 77, 0, 0));
 			Context.VertexShader.Set(_blitVS);
 			Context.PixelShader.Set(null);
 			Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
 			Context.Draw(4, 0);
 
-			SetStencilRef(0);
-			CreateStates(new(0, 50, 0, 0));
+			CMD.States.SetStencilRef(Context, 0);
+			CMD.States.CreateStates(Context, new(0, 50, 0, 0));
 			RenderGlobalPipeline("sky");
 
-			SetStencilRef(0);
-			CreateStates(new(0, 31, 0, 0));
+			CMD.States.SetStencilRef(Context, 0);
+			CMD.States.CreateStates(Context, new(0, 31, 0, 0));
 			//RenderGlobalPipeline("deferred_shading");
 		}
 		else
 		{
-			SetStencilRef(0);
-			CreateStates(new(0, 0, 0, 0));
+			CMD.States.SetStencilRef(Context, 0);
+			CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 		}
 
 		RenderGlobalPipeline("deferred_shading_no_atm");
@@ -187,14 +187,14 @@ public partial class CharmRenderer
 	private void RenderTransparent()
 	{
 		RenderHelpers.Profile("Render Transparent");
-		SetStencilRef(4);
+		CMD.States.SetStencilRef(Context, 4);
 		Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
 		TempScopes.UpdateTransparentAdvancedScope(Context);
 		TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(Context);
 
 		// Decal Additive Pass
-		CreateStates(new(8, 15, 2, 1));
+		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 		RenderMesh(TfxRenderStage.DecalsAdditive, "Decal Additive Pass");
 
 		GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
@@ -203,12 +203,12 @@ public partial class CharmRenderer
 		// Sky Objects Pass
 		if (Viewport.RenderSky && Viewport.RenderSkyObjs)
 		{
-			CreateStates(new(8, 15, 2, 1));
+			CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 			RenderMesh(TfxRenderStage.Transparents, FeatureRendererSubscription.SkyTransparent, "Sky Objects Pass");
 		}
 
 		// Transparent Pass
-		CreateStates(new(8, 15, 2, 1));
+		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 		RenderMesh(TfxRenderStage.Transparents,
 			FeatureRendererSubscriptionExtensions.AllBut(TfxFeatureRenderer.SkyTransparent),
 			"Transparent Pass");
@@ -221,7 +221,7 @@ public partial class CharmRenderer
 	{
 		RenderHelpers.Profile("Render Post Process");
 		Annotation.BeginEvent("Post Process");
-		CreateStates(new(0, 0, 0, 0));
+		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
 		//Externs.PostProcess.Update(Context, GBuffers);
 		Externs.ScreenArea.Update(Context, GBuffers);
@@ -260,7 +260,7 @@ public partial class CharmRenderer
 			Annotation.EndEvent();
 		}
 
-		CreateStates(new(0, 0, 0, 0));
+		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 		Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
 
 		Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
@@ -282,7 +282,7 @@ public partial class CharmRenderer
 	{
 		RenderHelpers.Profile("Render Skeleton");
 		Annotation.BeginEvent("Entity Skeleton");
-		CreateStates(new(8, 15, 2, 1));
+		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 
 		Context.InputAssembler.InputLayout = _debugLinesLayout;
 		Context.VertexShader.Set(_debugLinesVS);
@@ -300,7 +300,7 @@ public partial class CharmRenderer
 	{
 		RenderHelpers.Profile("Render Bounding Boxes");
 		Annotation.BeginEvent("Render Bounding Boxes");
-		CreateStates(new(8, 15, 2, 1));
+		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 
 		Context.InputAssembler.InputLayout = _debugLinesLayout;
 		Context.VertexShader.Set(_debugLinesVS);
@@ -334,6 +334,32 @@ public partial class CharmRenderer
 		foreach (var renderable in persistentObjects)
 		{
 			renderable?.Bind(this, renderStage);
+		}
+		Annotation.EndEvent();
+	}
+
+
+	// TODO, actually make this work
+	private void RenderParallel(TfxRenderStage renderStage, string passName)
+	{
+		Annotation.BeginEvent(passName);
+		RenderObject[] renderObjects;
+		RenderObject[] persistentObjects;
+
+		lock (World.WorldLock)
+		{
+			renderObjects = World.RenderObjects.ToArray();
+			persistentObjects = World.PersistantRenderObjects.ToArray();
+		}
+
+		foreach (var renderable in renderObjects)
+		{
+			renderable?.BindParallel(this, renderStage, 6);
+		}
+
+		foreach (var renderable in persistentObjects)
+		{
+			renderable?.BindParallel(this, renderStage, 6);
 		}
 		Annotation.EndEvent();
 	}
@@ -444,7 +470,7 @@ public partial class CharmRenderer
 				});
 		}
 
-		CreateStates(new(8, 15, 2, 1));
+		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
 		Context.InputAssembler.InputLayout = _debugLinesLayout;
 		Context.VertexShader.Set(_debugLinesVS);
 		Context.PixelShader.Set(_debugLinesPS);

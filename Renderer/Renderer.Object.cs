@@ -32,6 +32,9 @@ public partial class CharmRenderer
 		var children = entity.GetEntityChildren();
 		foreach (var child in children)
 		{
+			if (child.Model is null)
+				continue;
+
 			obj = new();
 			obj.Create(Context, child);
 			obj.TransformOffset = new Transform

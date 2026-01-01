@@ -3,7 +3,7 @@ using Tiger.Schema;
 
 namespace Charm.Renderer;
 
-public partial class CharmRenderer
+public class States
 {
 	public StateSelection CurrentState { get; set; }
 
@@ -23,7 +23,7 @@ public partial class CharmRenderer
 		CurrentBlendState = -1;
 	}
 
-	public void CreateStates(StateSelection state)
+	public void CreateStates(DeviceContext context, StateSelection state)
 	{
 		if (state.Raw() == CurrentState.Raw())
 			return;
@@ -31,34 +31,34 @@ public partial class CharmRenderer
 		ResetStates();
 		CurrentState = state;
 
-		Context.Rasterizer.State = CreateRasterizerState(state.RasterizerState(), state.DepthBiasState()) ?? throw new ArgumentNullException();
-		Context.OutputMerger.DepthStencilState = CreateDepthStencilState(state.DepthStencilState()) ?? throw new ArgumentNullException();
-		Context.OutputMerger.BlendState = CreateBlendState(state.BlendState()) ?? throw new ArgumentNullException();
+		context.Rasterizer.State = CreateRasterizerState(context, state.RasterizerState(), state.DepthBiasState()) ?? throw new ArgumentNullException();
+		context.OutputMerger.DepthStencilState = CreateDepthStencilState(context, state.DepthStencilState()) ?? throw new ArgumentNullException();
+		context.OutputMerger.BlendState = CreateBlendState(context, state.BlendState()) ?? throw new ArgumentNullException();
 	}
 
-	private void SetStencilRef(int stencilRef)
+	public void SetStencilRef(DeviceContext context, int stencilRef)
 	{
 		if (CurrentStencilRef != stencilRef)
 		{
 			CurrentStencilRef = stencilRef;
 			int d = CurrentDepthState;
-			CreateDepthStencilState(d);
+			CreateDepthStencilState(context, d);
 
 			CurrentDepthState = -1;
-			SetDepthStencilState(d);
+			SetDepthStencilState(context, d);
 		}
 	}
 
-	private void SetDepthStencilState(int index)
+	private void SetDepthStencilState(DeviceContext context, int index)
 	{
 		if (CurrentDepthState != index)
 		{
 			CurrentDepthState = index;
-			Context.OutputMerger.SetDepthStencilState(_depthStencilStates[index], CurrentStencilRef);
+			context.OutputMerger.SetDepthStencilState(_depthStencilStates[index], CurrentStencilRef);
 		}
 	}
 
-	private RasterizerState CreateRasterizerState(int rast, int depthBias)
+	private RasterizerState CreateRasterizerState(DeviceContext context, int rast, int depthBias)
 	{
 		if (rast == -1)
 			return null;
@@ -86,13 +86,13 @@ public partial class CharmRenderer
 			state.IsScissorEnabled = rasState.ScissorEnable;
 		}
 
-		var rasterizerState = new RasterizerState(Device, state);
+		var rasterizerState = new RasterizerState(context.Device, state);
 		_rasStates.TryAdd((rast, depthBias), rasterizerState);
 
 		return rasterizerState;
 	}
 
-	private DepthStencilState CreateDepthStencilState(int state)
+	private DepthStencilState CreateDepthStencilState(DeviceContext context, int state)
 	{
 		if (state == -1)
 			return null;
@@ -103,7 +103,7 @@ public partial class CharmRenderer
 
 		RenderStates.BungieDepthStencilDesc dsState = RenderStates.DepthStencilStates[state];
 
-		var depthStencilState = new DepthStencilState(Device, new DepthStencilStateDescription
+		var depthStencilState = new DepthStencilState(context.Device, new DepthStencilStateDescription
 		{
 			IsDepthEnabled = dsState.Depth.Enable,
 			DepthWriteMask = (DepthWriteMask)dsState.Depth.WriteMask,
@@ -131,7 +131,7 @@ public partial class CharmRenderer
 		return depthStencilState;
 	}
 
-	private BlendState CreateBlendState(int state)
+	private BlendState CreateBlendState(DeviceContext context, int state)
 	{
 		if (state == -1)
 			return null;
@@ -150,7 +150,7 @@ public partial class CharmRenderer
 		blendStateDescription.RenderTarget[2] = blendState.BlendDesc[2];
 		blendStateDescription.RenderTarget[3] = blendState.BlendDesc[3];
 
-		var blend = new BlendState(Device, blendStateDescription);
+		var blend = new BlendState(context.Device, blendStateDescription);
 		_blendStates.TryAdd(state, blend);
 
 		return blend;

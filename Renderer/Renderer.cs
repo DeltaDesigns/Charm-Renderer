@@ -45,6 +45,7 @@ public partial class CharmRenderer : IDisposable
 
 	public Device Device => _GPU?.Device;
 	public DeviceContext Context => _GPU?.Context;
+	public CommandList CMD => _GPU?.CMD;
 
 	private volatile bool _isRunning = false;
 	private Thread _renderThread;
@@ -289,7 +290,7 @@ public partial class CharmRenderer : IDisposable
 				RenderBoundingBoxes();
 		}
 
-		CreateStates(new(0, 0, 0, 0));
+		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 		// Blits to final RT/Correct format for WPF cus it hates everything
 		BlitToWPF(blitRT);
 		wpfRT.Present(Context, Viewport.RT0);
@@ -405,7 +406,6 @@ public partial class CharmRenderer : IDisposable
 
 		DisposeControl();
 		DisposeRenderingResources();
-		DisposeStates();
 
 		foreach (var pipeline in _pipelineCache.Values)
 		{

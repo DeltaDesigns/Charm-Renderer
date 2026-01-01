@@ -394,6 +394,89 @@ public class RenderObject : GpuResource
 		}
 	}
 
+	// TODO, WIP
+	public void BindParallel(CharmRenderer renderer, TfxRenderStage renderStage, int jobCount)
+	{
+		if (!Stages.IsSubscribed(renderStage))
+			return;
+
+		RenderHelpers.Profile($"{MeshType} {Hash} Bind (Parallel)");
+
+		MeshPartData[] meshes;
+		lock (renderer.World.WorldLock)
+			meshes = Meshes.ToArray();
+
+		// Filter once on main thread
+		var stageMeshes = meshes
+			.Where(m => m.RenderStage == renderStage)
+			.ToArray();
+
+		if (stageMeshes.Length == 0)
+			return;
+
+		jobCount = Math.Min(jobCount, stageMeshes.Length);
+
+		var initialState = new GPUState().Backup(renderer.CMD);
+
+		var deferredContexts = new DeviceContext[jobCount];
+		var commandLists = new SharpDX.Direct3D11.CommandList[jobCount];
+
+		for (int i = 0; i < jobCount; i++)
+			deferredContexts[i] = new DeviceContext(renderer.Device);
+
+		Parallel.For(0, jobCount, jobIndex =>
+		{
+			int start = (jobIndex * stageMeshes.Length) / jobCount;
+			int end = ((jobIndex + 1) * stageMeshes.Length) / jobCount;
+
+			var ctx = deferredContexts[jobIndex];
+
+			var cmdCopy = new CommandList
+			{
+				Parent = renderer.CMD.Parent,
+				GpuState = renderer.CMD.GpuState,
+				DeferredContext = ctx,
+				States = renderer.CMD.States
+			};
+			initialState.Restore(cmdCopy);
+
+			for (int i = start; i < end; i++)
+			{
+				var mesh = stageMeshes[i];
+
+				if (MeshType == TfxFeatureRenderer.StaticObjects)
+				{
+					renderer.TempScopes.UpdateChunkModelScope(ctx, mesh, GlobalTransforms);
+					if (InstanceCount > 1)
+						mesh.DrawInstanced(ctx, InstanceCount);
+					else
+						mesh.Draw(ctx);
+				}
+				else
+				{
+					renderer.TempScopes.UpdateRigidModelScope(ctx, mesh, GlobalTransforms, TransformOffset);
+					if (Investment is not null)
+						Investment.Bind(ctx);
+
+					mesh.Draw(ctx);
+				}
+			}
+
+			commandLists[jobIndex] = ctx.FinishCommandList(false);
+		});
+
+		for (int i = 0; i < jobCount; i++)
+		{
+			renderer.Context.ExecuteCommandList(commandLists[i], false);
+			commandLists[i].Dispose();
+			deferredContexts[i].Dispose();
+		}
+
+		initialState.Restore(renderer.CMD);
+
+		RenderHelpers.EndProfile();
+	}
+
 	public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
 	{
 		if (!Stages.IsSubscribed(renderStage))
@@ -691,8 +774,8 @@ public class MaterialData : GpuResource
 		Pixel?.Bind(context);
 		Compute?.Bind(context);
 
-		var states = CharmRenderer.Instance.CurrentState.Select(States);
-		CharmRenderer.Instance.CreateStates(states);
+		var states = GPU.Instance.CMD.CurrentState.Select(States);
+		GPU.Instance.CMD.States.CreateStates(context, states);
 	}
 
 	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
