@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Tiger;
@@ -11,7 +13,6 @@ using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
 using static Charm.Renderer.CharmRenderer;
-using static Tiger.Schema.Entity.EntityModelParent;
 
 namespace Charm.Renderer;
 
@@ -25,8 +26,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	#region Debug Options
 	public ObservableCollection<SettingItem> DebugSettings { get; set; }
 	public bool ShowGrid { get; set; } = true;
-	public bool ShowSkele { get; set; } = true;
-	public bool ShowBB { get; set; } = false;
 	public bool CapFPS { get; set; } = true;
 	#endregion
 
@@ -41,6 +40,13 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
+	#endregion
+
+	#region Object Options
+	public ObservableCollection<SettingItem> ObjectSettings { get; set; }
+	public bool ShowSkele { get; set; } = true;
+	public bool ShowBB { get; set; } = false;
+	public SliderSetting MaterialPermutationOverride { get; set; }
 	#endregion
 
 	private bool _isFullscreen = false;
@@ -259,6 +265,23 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 			},
 		};
 		DebugOptions.ItemsSource = DebugSettings;
+
+		ObjectSettings = new ObservableCollection<SettingItem>
+		{
+			new ToggleSetting
+			{
+				Text = "Show Skeleton",
+				GetValue = () => ShowSkele,
+				SetValue = v => ShowSkele = v
+			},
+			new ToggleSetting
+			{
+				Text = "Show Bounding Box",
+				GetValue = () => ShowBB,
+				SetValue = v => ShowBB = v
+			},
+		};
+		ObjectOptions.ItemsSource = ObjectSettings;
 	}
 
 	private void Dropdown_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -349,30 +372,28 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 			Console.WriteLine($"Global Channel {gc.Index} ({gc.Name}) : {gc.Value}");
 		}
 	}
-	#endregion
 
-	public static Grid FindParentGridByName(DependencyObject start, string gridName)
+	private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
 	{
-		DependencyObject current = start;
+		if (sender is not RadioButton rb)
+			return;
 
-		while (current != null)
+		_ = int.TryParse((string)rb.Tag, out int order);
+
+		var items = InvestmentShaders.ItemsSource.Cast<ToggleSetting>();
+		switch (order)
 		{
-			// Look at parent
-			current = VisualTreeHelper.GetParent(current);
+			case 0:
+				items = items.OrderBy(x => ((ToggleSetting)x).Text);
+				break;
 
-			// If it's a Grid, check the name
-			if (current is Grid grid && grid.Name == gridName)
-			{
-				return grid;
-			}
-
-			// If we hit a Window or the root, bail out
-			if (current is Window)
-				return null;
+			case 1:
+				items = items.OrderByDescending(x => (((ToggleSetting)x).Tag as InventoryItem).GetItemIndex());
+				break;
 		}
-
-		return null;
+		InvestmentShaders.ItemsSource = items;
 	}
+	#endregion
 
 	#region Mesh Loading (Temp?)
 	private Entity _currentEntity; // temp
@@ -396,7 +417,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 				CreateMaterialVariants(entity);
 			});
 		});
-
 	}
 
 	public void ReloadEntity()
@@ -409,7 +429,30 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		Renderer.Start();
 	}
 
-	// TODO move into own control?
+	public ObservableCollection<SettingItem> GroupToggles { get; set; } = new();
+	public void CreateMeshGroups(Entity entity)
+	{
+		MeshGroupsExpander.Visibility = Visibility.Visible;
+		var parts = entity.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal);
+		parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
+
+		var groupIndices = parts
+			.Select(m => m.GroupIndex)
+			.Distinct()
+			.OrderBy(i => i);
+
+		GroupToggles.Clear();
+		foreach (int idx in groupIndices)
+		{
+			var vm = new GroupToggleVM(idx);
+			vm.VisibilityChanged += (i, visible) => Renderer.GroupVisibility.SetVisible(i, visible);
+
+			GroupToggles.Add(vm);
+		}
+		MeshGroups.ItemsSource = GroupToggles;
+	}
+
+	// TODO move into own control? also support physics model? though idk if those would be the same as their regular model
 	private void CreateMaterialVariants(Entity entity)
 	{
 		MaterialPermutationsExpander.Visibility = Visibility.Collapsed;
@@ -422,6 +465,27 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		var permutations = entity.ModelParent.MaterialPermutations;
 		if (permutations is null)
 			return;
+
+		int variantCount = entity.ModelParent.Reader.ExternalMaterialsMap
+							.Enumerate(entity.ModelParent.GetReader())
+							//.Where(m => m.Unk08 != 0)
+							.Select(m => (int)m.MaterialCount)
+							.Max();
+
+		MaterialPermutationOverride = new SliderSetting()
+		{
+			Max = variantCount,
+			Min = -1,
+			Text = "Override Index",
+			GetValue = () => permutations.OverrideIndex,
+			SetValue = v =>
+			{
+				permutations.OverrideIndex = (int)Math.Floor(v);
+				MaterialPermutationOverride.NotifyValueChanged();
+				//ReloadEntity();
+			}
+		};
+		PermIndexOverride.Content = MaterialPermutationOverride;
 
 		foreach (var permutation in permutations.Keys)
 		{
@@ -468,11 +532,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 
 	private void MaterialVariant_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
 	{
-		var selection = (sender as ComboBox);
 		var permutations = _currentEntity.ModelParent.MaterialPermutations;
-
-		//Console.WriteLine($"{(selection.SelectedItem as ComboBoxItem).Content}");
-
+		var selection = (sender as ComboBox);
 		var newConfig = new Dictionary<uint, uint>();
 		foreach (var child in MaterialVariantPanel.Children)
 		{
@@ -499,7 +560,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		//    Console.WriteLine($"Key: {k}, Value: {v}");
 		//}
 
-		ReloadEntity();
+		//ReloadEntity();
 	}
 
 	public void CreateInvestmentShaders()
@@ -561,6 +622,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	}
 	#endregion
 
+	#region Scene World
 	private void SceneWorld_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
 	{
 		if (Renderer is null)
@@ -597,25 +659,56 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 		Neomuna = 0x81046404,
 		[Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
 	}
+	#endregion
 
-	private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
+
+	private void MeshGroup_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
 	{
-		if (sender is not RadioButton rb)
-			return;
-
-		_ = int.TryParse((string)rb.Tag, out int order);
-
-		var items = InvestmentShaders.ItemsSource.Cast<ToggleSetting>();
-		switch (order)
+		if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
 		{
-			case 0:
-				items = items.OrderBy(x => ((ToggleSetting)x).Text);
-				break;
+			if (sender is ToggleButton tb && tb.DataContext is GroupToggleVM selected)
+			{
+				foreach (var item in GroupToggles)
+				{
+					if (item is GroupToggleVM toggle)
+						toggle.IsChecked = ReferenceEquals(toggle, selected);
+				}
 
-			case 1:
-				items = items.OrderByDescending(x => (((ToggleSetting)x).Tag as InventoryItem).GetItemIndex());
-				break;
+				e.Handled = true;
+			}
 		}
-		InvestmentShaders.ItemsSource = items;
+	}
+
+	private void ResetMeshGroups_Click(object sender, RoutedEventArgs e)
+	{
+		foreach (var item in GroupToggles)
+		{
+			if (item is GroupToggleVM toggle)
+				toggle.IsChecked = true;
+		}
+	}
+
+
+	public static Grid FindParentGridByName(DependencyObject start, string gridName)
+	{
+		DependencyObject current = start;
+
+		while (current != null)
+		{
+			// Look at parent
+			current = VisualTreeHelper.GetParent(current);
+
+			// If it's a Grid, check the name
+			if (current is Grid grid && grid.Name == gridName)
+			{
+				return grid;
+			}
+
+			// If we hit a Window or the root, bail out
+			if (current is Window)
+				return null;
+		}
+
+		return null;
 	}
 }

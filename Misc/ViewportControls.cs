@@ -37,12 +37,17 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
 	public Func<float> GetValue { get; set; }
 	public Action<float> SetValue { get; set; }
 
+	private float _value;
 	public float Value
 	{
-		get => GetValue();
+		get => GetValue != null ? GetValue() : _value;
 		set
 		{
-			SetValue(value);
+			if (SetValue != null)
+				SetValue(value);
+			else
+				_value = value;
+
 			OnPropertyChanged(nameof(Value));
 		}
 	}
@@ -76,5 +81,39 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
 	public void NotifyValueChanged()
 	{
 		OnPropertyChanged(nameof(Value));
+	}
+}
+
+public class GroupToggleVM : SettingItem, INotifyPropertyChanged
+{
+	public GroupToggleVM(int groupIndex)
+	{
+		GroupIndex = groupIndex;
+	}
+
+	public int GroupIndex { get; }
+
+	private bool _isChecked = true;
+	public bool IsChecked
+	{
+		get => _isChecked;
+		set
+		{
+			if (_isChecked == value)
+				return;
+
+			_isChecked = value;
+			PropertyChanged?.Invoke(this, new(nameof(IsChecked)));
+			VisibilityChanged?.Invoke(GroupIndex, value);
+		}
+	}
+
+	public string Text => $"Group {GroupIndex}";
+	public event Action<int, bool>? VisibilityChanged;
+
+	public event PropertyChangedEventHandler PropertyChanged;
+	protected virtual void OnPropertyChanged(string propName)
+	{
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
 	}
 }

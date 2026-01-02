@@ -24,10 +24,14 @@ public partial class CharmRenderer
 	public void LoadEntity(Entity entity, MapTransform transform, bool lookAt = true)
 	{
 		World?.Dispose();
+		GroupVisibility.Clear();
+
+		// todo? move away
+		Viewport.CreateMeshGroups(entity);
 
 		RenderObject obj = new();
-		obj.Create(Context, entity);
-		World.RenderObjects.Enqueue(obj);
+		obj.Create(Context, entity, World);
+		GroupVisibility.AddObject(obj);
 
 		var children = entity.GetEntityChildren();
 		foreach (var child in children)
@@ -36,14 +40,14 @@ public partial class CharmRenderer
 				continue;
 
 			obj = new();
-			obj.Create(Context, child);
+			obj.Create(Context, child, World);
 			obj.TransformOffset = new Transform
 			{
 				Quaternion = child.Model.RotationOffset,
 				Position = child.Model.TranslationOffset.ToVec3()
 			};
 
-			World.RenderObjects.Enqueue(obj);
+			GroupVisibility.AddObject(obj);
 		}
 
 		if (entity.Skeleton != null)
@@ -51,12 +55,16 @@ public partial class CharmRenderer
 		else
 			Viewport.OverrideWarning.Visibility = Visibility.Collapsed;
 
+		CreateObjectChannels(entity);
+		if (lookAt)
+			LookAtMeshInitial();
+	}
+
+	public void CreateObjectChannels(Entity entity)
+	{
 		EntityObjectChannels = new(entity);
 		Viewport.ObjectChannelsExpander.Visibility = EntityObjectChannels.Channels.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 		Viewport.ObjectChannelsEditor.ItemsSource = EntityObjectChannels.Channels;
-
-		if (lookAt)
-			LookAtMeshInitial();
 	}
 
 	public void LoadInvestmentItem(InventoryItem item)
@@ -71,8 +79,7 @@ public partial class CharmRenderer
 		foreach (var ent in entities)
 		{
 			RenderObject obj = new();
-			obj.Create(Context, ent, item);
-			World.RenderObjects.Enqueue(obj);
+			obj.Create(Context, ent, World, item);
 		}
 
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;

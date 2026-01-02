@@ -295,6 +295,12 @@ public class RenderObject : GpuResource
 
 	public InvestmentData Investment { get; set; }
 
+	// todo, seperate different types (static, entity, etc) into own RenderObject type class
+	public Entity Entity;
+	public ModelPermutation Permutations;
+	public List<Material> MaterialMap;
+	public List<SExternalMaterialMapEntry> MaterialRangeMap;
+
 	public Transform[] GlobalTransforms = new Transform[]
 	{
 		new()
@@ -312,23 +318,48 @@ public class RenderObject : GpuResource
 		Scale = Tiger.Schema.Vector3.One
 	};
 
-	public void AddMesh(MeshPartData mesh)
-	{
-		_meshes.Add(mesh);
-	}
-
-	public void Create(DeviceContext context, Entity entity)
+	public void Create(DeviceContext context, Entity entity, RenderWorld world, InventoryItem inventoryItem = null)
 	{
 		Hash = entity.Hash;
-		var parts = entity.Load(ExportDetailLevel.MostDetailed);
-		CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
+		Entity = entity;
+		if (inventoryItem is not null)
+			Investment = new(context, entity, inventoryItem);
 
 		if (entity.Skeleton is not null)
 			Bones = entity.Skeleton.GetBoneNodes();
 
-		// This works fine but some entity bounding boxes just dont feel good to orbit around
 		if (entity.Model is not null)
+		{
+			var parts = entity.LoadModel(ExportDetailLevel.MostDetailed);
+			CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
+
+			// This works fine but some entity bounding boxes just dont feel good to orbit around
 			BoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
+
+			using TigerReader reader = entity.ModelParent.GetReader();
+			Permutations = entity.ModelParent.MaterialPermutations;
+			MaterialMap = entity.ModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
+			MaterialRangeMap = entity.ModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
+
+			world.RenderObjects.Enqueue(this);
+		}
+
+		// this kinda sucks but i want physics models to be separate render objects
+		if (entity.PhysicsModel is not null)
+		{
+			RenderObject obj = new();
+			obj.BoundingBox = entity.PhysicsModelParent.GetBoundingBox().CreateFrom();
+
+			var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed);
+			obj.CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
+
+			using TigerReader reader = entity.PhysicsModelParent.GetReader();
+			obj.Permutations = entity.PhysicsModelParent.MaterialPermutations;
+			obj.MaterialMap = entity.PhysicsModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
+			obj.MaterialRangeMap = entity.PhysicsModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
+
+			world.RenderObjects.Enqueue(obj);
+		}
 	}
 
 	public void Create(DeviceContext context, EntityModel entModel, TfxFeatureRenderer type)
@@ -347,12 +378,6 @@ public class RenderObject : GpuResource
 
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
 		//CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
-	}
-
-	public void Create(DeviceContext context, Entity entity, InventoryItem inventoryItem)
-	{
-		Investment = new(context, entity, inventoryItem);
-		Create(context, entity);
 	}
 
 	private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
@@ -384,14 +409,20 @@ public class RenderObject : GpuResource
 				MeshUVTransform = part.UVTransform,
 				MaxColorIndex = part.MaxVertexColorIndex,
 				Material = AssetManager.GetInstance().GetOrCreateMaterial(context, part.Material),
-				GroupIndex = part.GroupIndex
-			};
 
+				GroupIndex = part.GroupIndex,
+				VariantMaterialIndex = part.VariantShaderIndex,
+			};
 			meshData.Material.UsesVertexColor = part.VertexBuffer2 != null && part.Material.Vertex.Shader.OutputSignatures.Any(x => x.RegisterIndex == 5 && x.SemanticIndex == 8);
 			meshData.InputLayout = new InputLayout(context.Device, part.Material.Vertex.Shader.GetBytecode(), RenderHelpers.GetInputLayout(part.VertexLayoutIndex).ToArray());
 
 			AddMesh(meshData);
 		}
+	}
+
+	public void AddMesh(MeshPartData mesh)
+	{
+		_meshes.Add(mesh);
 	}
 
 	// TODO, WIP
@@ -490,7 +521,7 @@ public class RenderObject : GpuResource
 
 		foreach (var mesh in meshes)
 		{
-			if (mesh.RenderStage != renderStage)
+			if (mesh.RenderStage != renderStage || !renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex))
 				continue;
 
 			if (MeshType == TfxFeatureRenderer.StaticObjects)
@@ -506,6 +537,28 @@ public class RenderObject : GpuResource
 				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh, GlobalTransforms, TransformOffset);
 				if (Investment is not null)
 					Investment.Bind(renderer.Context);
+
+				// This is bad and stupid and sucks
+				if (Permutations is not null && mesh.VariantMaterialIndex != -1)
+				{
+					RenderHelpers.Profile($"{MeshType} {Hash} Permutations");
+
+					var index = Permutations.CalculatePermutationIndexFast();
+					var overrideIndex = Permutations.OverrideIndex;
+
+					var newIndex = overrideIndex != -1 ? overrideIndex : (index != null ? index.Value : 0);
+					if (mesh.PermutationMaterialIndex != newIndex)
+					{
+						mesh.PermutationMaterialIndex = newIndex;
+						var mapEntry = MaterialRangeMap[mesh.VariantMaterialIndex];
+						var mat = MaterialMap[mapEntry.MaterialStartIndex + (mesh.PermutationMaterialIndex % mapEntry.MaterialCount)];
+						mesh.Material = AssetManager.GetInstance().GetOrCreateMaterial(renderer.Context, mat);
+
+						renderer.EntityObjectChannels?.UpdateChannels(mat);
+					}
+					RenderHelpers.EndProfile();
+				}
+
 
 				mesh.Draw(renderer.Context);
 			}
@@ -664,6 +717,8 @@ public class MeshPartData : GpuResource
 	public Vector4 MeshUVTransform;
 	public int MaxColorIndex;
 	public int GroupIndex;
+	public int VariantMaterialIndex;
+	public int PermutationMaterialIndex = -1;
 
 	public void Draw(DeviceContext context)
 	{

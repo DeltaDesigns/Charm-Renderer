@@ -11,8 +11,6 @@ using Device = SharpDX.Direct3D11.Device;
 using Microsoft.VisualBasic.Devices;
 
 
-
-
 // Please do not look at this. It is an absolute mess and unoptimized and ugly and im ashamed yet proud at the same time.
 // This in its current state *could* handle maps but with very low FPS.
 // Massive credits to Cohae cus everything learned making this came from Alkahest.
@@ -39,6 +37,7 @@ public partial class CharmRenderer : IDisposable
 	public MatCap MatCapRenderer;
 
 	public RenderWorld World = new();
+	public GroupVisibility GroupVisibility { get; } = new(64);
 
 	public RendererViewport Viewport;
 	public GPU _GPU { get; set; }
