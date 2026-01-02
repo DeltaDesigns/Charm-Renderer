@@ -19,7 +19,7 @@ namespace Charm.Renderer;
 // TODO: Support multiple viewports?
 // Gonna need lots of reworking in here and in the renderer to remove reliance on Instance (singleton)
 
-public partial class RendererViewport : UserControl, INotifyPropertyChanged
+public partial class RendererViewport : UserControl, INotifyPropertyChanged, Shared.IRenderer
 {
 	public CharmRenderer Renderer => CharmRenderer.Instance;
 
@@ -396,8 +396,28 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged
 	#endregion
 
 	#region Mesh Loading (Temp?)
-	private Entity _currentEntity; // temp
+	public void LoadStatic(FileHash hash, MapTransform transform)
+	{
+		if (Renderer is null)
+			Initialize();
 
+		Renderer.Stop();
+		Renderer.LoadStatic(hash, new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) });
+		Renderer.Start();
+	}
+
+	public void LoadInvestmentItem(InventoryItem item)
+	{
+		if (Renderer is null)
+			Initialize();
+
+		CreateInvestmentShaders();
+		Renderer.Pause();
+		Renderer.LoadInvestmentItem(item);
+		Renderer.Resume();
+	}
+
+	private Entity _currentEntity; // temp
 	public async void LoadEntity(FileHash hash)
 	{
 		if (Renderer is null)

@@ -113,25 +113,25 @@ public class AssetManager : IDisposable
 			BlackTextureWAlpha.DebugName = "Placeholder Black W Alpha";
 		}
 
-		var bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/entity_vs_override.hlsl", "VSMain", "vs_5_0");
+		var bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/entity_vs_override.hlsl", "VSMain", "vs_5_0");
 		EntityOverrideVS_NoVC = new SharpDX.Direct3D11.VertexShader(GPU.Instance.Device, bytecode)
 		{
 			DebugName = "Entity Override Vertex Shader"
 		};
 
-		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/entity_vs_override_vc.hlsl", "VSMain", "vs_5_0");
+		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/entity_vs_override_vc.hlsl", "VSMain", "vs_5_0");
 		EntityOverrideVS_VC = new SharpDX.Direct3D11.VertexShader(GPU.Instance.Device, bytecode)
 		{
 			DebugName = "Entity Override VC Vertex Shader"
 		};
 
-		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/investment_vs_override.hlsl", "VSMain", "vs_5_0", ShaderFlags.Debug | ShaderFlags.SkipOptimization);
+		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/investment_vs_override.hlsl", "VSMain", "vs_5_0", ShaderFlags.Debug | ShaderFlags.SkipOptimization);
 		InvestmentOverrideVS_NoVC = new SharpDX.Direct3D11.VertexShader(GPU.Instance.Device, bytecode)
 		{
 			DebugName = "Investment Override Vertex Shader"
 		};
 
-		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/investment_vs_override_vc.hlsl", "VSMain", "vs_5_0", ShaderFlags.Debug | ShaderFlags.SkipOptimization);
+		bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/investment_vs_override_vc.hlsl", "VSMain", "vs_5_0", ShaderFlags.Debug | ShaderFlags.SkipOptimization);
 		InvestmentOverrideVS_VC = new SharpDX.Direct3D11.VertexShader(GPU.Instance.Device, bytecode)
 		{
 			DebugName = "Investment Override VC Vertex Shader"

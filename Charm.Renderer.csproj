@@ -6,109 +6,101 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
-    <OutputPath>..\Charm_Main\Charm\Charm\bin\$(Platform)\$(Configuration)\</OutputPath>
+	<Platforms>AnyCPU;x64</Platforms>
+	<PlatformTarget>x64</PlatformTarget>
+	<OutputPath>..\Charm_Main\Charm\Charm\bin\$(Platform)\$(Configuration)\</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Shaders\blit.hlsl" />
-    <None Remove="Shaders\blit_linear.hlsl" />
-    <None Remove="Shaders\blit_srgb.hlsl" />
-    <None Remove="Shaders\clear_ao.hlsl" />
-    <None Remove="Shaders\debug_lines_ps.hlsl" />
-    <None Remove="Shaders\debug_lines_vs.hlsl" />
-    <None Remove="Shaders\entity_vs_override.hlsl" />
-    <None Remove="Shaders\entity_vs_override_vc.hlsl" />
-    <None Remove="Shaders\full_hemi_sky_temp_ps.hlsl" />
-    <None Remove="Shaders\full_hemi_sky_temp_vs.hlsl" />
-    <None Remove="Shaders\grid.hlsl" />
-    <None Remove="Shaders\investment_ps_override.hlsl" />
-    <None Remove="Shaders\investment_vs_override.hlsl" />
-    <None Remove="Shaders\investment_vs_override_vc.hlsl" />
-    <None Remove="Shaders\matcap.hlsl" />
-    <None Remove="Textures\matcap.png" />
-    <None Remove="Textures\matcap_new.png" />
-    <None Remove="Textures\matcap_specular.png" />
-    <None Remove="Textures\matcap_specular_new.png" />
+    <None Remove="Renderer Assets\Shaders\blit.hlsl" />
+    <None Remove="Renderer Assets\Shaders\blit_linear.hlsl" />
+    <None Remove="Renderer Assets\Shaders\blit_srgb.hlsl" />
+    <None Remove="Renderer Assets\Shaders\clear_ao.hlsl" />
+    <None Remove="Renderer Assets\Shaders\debug_lines_ps.hlsl" />
+    <None Remove="Renderer Assets\Shaders\debug_lines_vs.hlsl" />
+    <None Remove="Renderer Assets\Shaders\entity_vs_override.hlsl" />
+    <None Remove="Renderer Assets\Shaders\entity_vs_override_vc.hlsl" />
+    <None Remove="Renderer Assets\Shaders\full_hemi_sky_temp_ps.hlsl" />
+    <None Remove="Renderer Assets\Shaders\full_hemi_sky_temp_vs.hlsl" />
+    <None Remove="Renderer Assets\Shaders\grid.hlsl" />
+    <None Remove="Renderer Assets\Shaders\investment_ps_override.hlsl" />
+    <None Remove="Renderer Assets\Shaders\investment_vs_override.hlsl" />
+    <None Remove="Renderer Assets\Shaders\investment_vs_override_vc.hlsl" />
+    <None Remove="Renderer Assets\Shaders\matcap.hlsl" />
+    <None Remove="Renderer Assets\Textures\matcap.png" />
+    <None Remove="Renderer Assets\Textures\matcap_new.png" />
+    <None Remove="Renderer Assets\Textures\matcap_specular.png" />
+    <None Remove="Renderer Assets\Textures\matcap_specular_new.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ConcurrentHashSet" Version="1.3.0" />
     <PackageReference Include="Evergine.Bindings.RenderDoc" Version="2024.10.7.18" />
-    <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
     <PackageReference Include="TracyWrapper" Version="0.20.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Shaders\blit.hlsl">
+    <Content Include="Renderer Assets\Shaders\blit.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\blit_linear.hlsl">
+    <Content Include="Renderer Assets\Shaders\blit_linear.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\clear_ao.hlsl">
+    <Content Include="Renderer Assets\Shaders\clear_ao.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\debug_lines_vs.hlsl">
+    <Content Include="Renderer Assets\Shaders\debug_lines_vs.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\debug_lines_ps.hlsl">
+    <Content Include="Renderer Assets\Shaders\debug_lines_ps.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\entity_vs_override.hlsl">
+    <Content Include="Renderer Assets\Shaders\entity_vs_override.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\entity_vs_override_vc.hlsl">
+    <Content Include="Renderer Assets\Shaders\entity_vs_override_vc.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\full_hemi_sky_temp_ps.hlsl">
+    <Content Include="Renderer Assets\Shaders\full_hemi_sky_temp_ps.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\full_hemi_sky_temp_vs.hlsl">
+    <Content Include="Renderer Assets\Shaders\full_hemi_sky_temp_vs.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\grid.hlsl">
+    <Content Include="Renderer Assets\Shaders\grid.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\investment_vs_override.hlsl">
+    <Content Include="Renderer Assets\Shaders\investment_vs_override.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\investment_vs_override_vc.hlsl">
+    <Content Include="Renderer Assets\Shaders\investment_vs_override_vc.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\matcap.hlsl">
+    <Content Include="Renderer Assets\Shaders\matcap.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\postprocess.ps.cso">
+    <Content Include="Renderer Assets\Textures\matcap.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Shaders\postprocess.ps.hlsl">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Textures\matcap.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Textures\matcap_new.png">
+    <Content Include="Renderer Assets\Textures\matcap_new.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\matcap_specular.png">
+    <Content Include="Renderer Assets\Textures\matcap_specular.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Textures\matcap_specular_new.png">
+    <Content Include="Renderer Assets\Textures\matcap_specular_new.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Charm_Main\Charm\Charm.Shared\Charm.Shared.csproj" />
-    <ProjectReference Include="..\Charm_Main\Charm\Tiger\Tiger.csproj" />
+    <ProjectReference Include="..\Charm_Main\Charm\Charm.Shared\Charm.Shared.csproj" Private="false" />
+	<ProjectReference Include="..\Charm_Main\Charm\Tiger\Tiger.csproj" Private="false" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="Shaders\investment_vs_override_simple.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="RD /S /Q &quot;$(TargetDir)cs\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)da\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)de\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)es\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)fa\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)fi\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)fr\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)it\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)ko\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)mk\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)nl\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)pl\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)pt\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)ru\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)sv\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)tr\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)zh-CN\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)ja\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)pt-BR\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)zh-Hans\&quot;&#xD;&#xA;RD /S /Q &quot;$(TargetDir)zh-Hant\&quot;" />
+  </Target>
 
 </Project>

@@ -20,10 +20,10 @@ public class MatCap : GpuResource
 	public MatCap(DeviceContext context)
 	{
 		if (VertexShader is null)
-			VertexShader = new VertexShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/matcap.hlsl", "VSMain", "vs_5_0"));
+			VertexShader = new VertexShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/matcap.hlsl", "VSMain", "vs_5_0"));
 
 		if (PixelShader is null)
-			PixelShader = new PixelShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/matcap.hlsl", "PSMain", "ps_5_0"));
+			PixelShader = new PixelShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/matcap.hlsl", "PSMain", "ps_5_0"));
 
 		if (LinearSampler is null)
 			LinearSampler = new SamplerState(context.Device, new SamplerStateDescription
@@ -34,10 +34,10 @@ public class MatCap : GpuResource
 				AddressW = TextureAddressMode.Clamp,
 			});
 
-		MatCapDiffuse = TextureLoader.FromFileAsShaderResourceView(context.Device, "textures/matcap_new.png", true);
+		MatCapDiffuse = TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_new.png", true);
 		MatCapDiffuse.DebugName = "MatCap Diffuse";
 
-		MatCapSpecular = TextureLoader.FromFileAsShaderResourceView(context.Device, "textures/matcap_specular_new.png", true);
+		MatCapSpecular = TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_specular_new.png", true);
 		MatCapSpecular.DebugName = "MatCap Specular";
 
 		Constants = new Constants("Constants MatCap")

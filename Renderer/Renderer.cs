@@ -1,14 +1,13 @@
-﻿using System.Diagnostics;
+﻿using SharpDX;
+using SharpDX.Direct3D11;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
-using SharpDX;
-using SharpDX.Direct3D11;
-using SharpDX.DirectInput;
 using Tiger;
 using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
-using Microsoft.VisualBasic.Devices;
+using TracyWrapper;
 
 
 // Please do not look at this. It is an absolute mess and unoptimized and ugly and im ashamed yet proud at the same time.
@@ -156,7 +155,7 @@ public partial class CharmRenderer : IDisposable
 	private void RenderLoop()
 	{
 #if DEBUG
-		TracyWrapper.Profiler.InitThread("Render Thread");
+		Profiler.InitThread("Render Thread");
 #endif
 
 		var stopwatch = Stopwatch.StartNew();
@@ -203,7 +202,7 @@ public partial class CharmRenderer : IDisposable
 			}
 
 #if DEBUG
-			TracyWrapper.Profiler.HeartBeat();
+			Profiler.HeartBeat();
 #endif
 			_frameCompleteEvent.Set();
 		}

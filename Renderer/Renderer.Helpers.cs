@@ -31,18 +31,18 @@ public partial class CharmRenderer
 
 		Annotation ??= Context.QueryInterface<UserDefinedAnnotation>();
 
-		_blitVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/blit.hlsl", "VSMain", "vs_5_0"));
-		_blitPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/blit.hlsl", "PSMain", "ps_5_0"));
+		_blitVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/blit.hlsl", "VSMain", "vs_5_0"));
+		_blitPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/blit.hlsl", "PSMain", "ps_5_0"));
 
-		_clearAOVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/clear_ao.hlsl", "VSMain", "vs_5_0"));
-		_clearAOPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/clear_ao.hlsl", "PSMainOne", "ps_5_0"));
+		_clearAOVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/clear_ao.hlsl", "VSMain", "vs_5_0"));
+		_clearAOPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/clear_ao.hlsl", "PSMainOne", "ps_5_0"));
 
-		_fullHemiSkyTempVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/full_hemi_sky_temp_vs.hlsl", "main", "vs_5_0"));
-		_fullHemiSkyTempPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/full_hemi_sky_temp_ps.hlsl", "main", "ps_5_0"));
+		_fullHemiSkyTempVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/full_hemi_sky_temp_vs.hlsl", "main", "vs_5_0"));
+		_fullHemiSkyTempPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/full_hemi_sky_temp_ps.hlsl", "main", "ps_5_0"));
 
-		var vs = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/debug_lines_vs.hlsl", "VSMain", "vs_5_0");
+		var vs = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/debug_lines_vs.hlsl", "VSMain", "vs_5_0");
 		_debugLinesVS ??= new VertexShader(Device, vs);
-		_debugLinesPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/debug_lines_ps.hlsl", "PSMain", "ps_5_0"));
+		_debugLinesPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/debug_lines_ps.hlsl", "PSMain", "ps_5_0"));
 		_debugLinesLayout ??= new InputLayout(Device, vs.Bytecode, RenderHelpers.GetInputLayout(0).ToArray());
 
 		_debugPSCB ??= new Buffer(

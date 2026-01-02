@@ -110,7 +110,7 @@ public partial class CharmRenderer
 	private PixelShader _gridShaderPS;
 	public void CreateGrid()
 	{
-		_gridShaderVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/grid.hlsl", "VSMain", "vs_5_0"));
-		_gridShaderPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("shaders/grid.hlsl", "PSMain", "ps_5_0"));
+		_gridShaderVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/grid.hlsl", "VSMain", "vs_5_0"));
+		_gridShaderPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/grid.hlsl", "PSMain", "ps_5_0"));
 	}
 }
