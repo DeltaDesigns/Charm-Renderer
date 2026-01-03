@@ -8,6 +8,7 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <local:FloatConverter x:Key="FloatConverter" />
+        <local:VectorComponentVisibilityConverter x:Key="VectorComponentVisibilityConverter" />
 
         <Style x:Key="DraggableNumericTextBox" TargetType="TextBox">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -28,22 +29,30 @@
     </UserControl.Resources>
 
     <StackPanel Orientation="Horizontal">
-        <TextBox Style="{StaticResource DraggableNumericTextBox}" Text="{Binding X, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FloatConverter}}" />
 
+        <!--  X  -->
+        <TextBox
+            Style="{StaticResource DraggableNumericTextBox}"
+            Text="{Binding X, Converter={StaticResource FloatConverter}}"
+            Visibility="{Binding VectorType, Converter={StaticResource VectorComponentVisibilityConverter}, ConverterParameter=0}" />
+
+        <!--  Y  -->
         <TextBox
             Style="{StaticResource DraggableNumericTextBox}"
             Text="{Binding Y, Converter={StaticResource FloatConverter}}"
-            Visibility="{Binding IsFloat, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            Visibility="{Binding VectorType, Converter={StaticResource VectorComponentVisibilityConverter}, ConverterParameter=1}" />
 
+        <!--  Z  -->
         <TextBox
             Style="{StaticResource DraggableNumericTextBox}"
             Text="{Binding Z, Converter={StaticResource FloatConverter}}"
-            Visibility="{Binding IsFloat, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            Visibility="{Binding VectorType, Converter={StaticResource VectorComponentVisibilityConverter}, ConverterParameter=2}" />
 
+        <!--  W  -->
         <TextBox
             Style="{StaticResource DraggableNumericTextBox}"
             Text="{Binding W, Converter={StaticResource FloatConverter}}"
-            Visibility="{Binding IsFloat, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            Visibility="{Binding VectorType, Converter={StaticResource VectorComponentVisibilityConverter}, ConverterParameter=3}" />
 
         <Button
             Margin="5,0,0,0"

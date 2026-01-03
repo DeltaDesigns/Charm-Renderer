@@ -129,11 +129,11 @@ public class TempScopes : GpuResource
 	}
 
 	private ScopeRigidModelTemp _cachedRigidModelCustom = new ScopeRigidModelTemp();
-	public void UpdateRigidModelScopeCustom(DeviceContext context, MapTransform mapTrans)
+	public void UpdateRigidModelScopeCustom(DeviceContext context, Transform mapTrans)
 	{
 		UpdateRigidModelScopeCustom(context, mapTrans, new Transform());
 	}
-	public void UpdateRigidModelScopeCustom(DeviceContext context, MapTransform mapTrans, Transform offset)
+	public void UpdateRigidModelScopeCustom(DeviceContext context, Transform mapTrans, Transform offset)
 	{
 		if (_disposed)
 			return;
@@ -153,25 +153,11 @@ public class TempScopes : GpuResource
 			RigidModelScopeBuffer.DebugName = $"RigidModelScopeBuffer Buffer";
 		}
 
-		Vector3 translation = new Vector3(
-			mapTrans.Translation.X,
-			mapTrans.Translation.Y,
-			mapTrans.Translation.Z
-		);
-
-		Vector3 scale = new Vector3(mapTrans.Translation.W);
-
-		System.Numerics.Quaternion rotation = new(
-			mapTrans.Rotation.X,
-			mapTrans.Rotation.Y,
-			mapTrans.Rotation.Z,
-			mapTrans.Rotation.W
-		);
 
 		Matrix4x4ButGood transform =
-			Matrix4x4.CreateScale(scale * offset.Scale.ToSys()) *
-			Matrix4x4.CreateFromQuaternion(rotation * offset.Quaternion.ToQuat()) *
-			Matrix4x4.CreateTranslation(translation + offset.Position.ToSys());
+			Matrix4x4.CreateScale(mapTrans.Scale * offset.Scale) *
+			Matrix4x4.CreateFromQuaternion(mapTrans.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
+			Matrix4x4.CreateTranslation(mapTrans.Position + offset.Position);
 
 		ref var cb1_data = ref _cachedRigidModelCustom;
 

@@ -47,6 +47,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public bool ShowSkele { get; set; } = true;
 	public bool ShowBB { get; set; } = false;
 	public SliderSetting MaterialPermutationOverride { get; set; }
+	public VectorSetting Translation { get; set; }
+	public VectorSetting EularAngles { get; set; }
 	#endregion
 
 	private bool _isFullscreen = false;
@@ -266,6 +268,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		};
 		DebugOptions.ItemsSource = DebugSettings;
 
+		// Object Options
 		ObjectSettings = new ObservableCollection<SettingItem>
 		{
 			new ToggleSetting
@@ -282,6 +285,41 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			},
 		};
 		ObjectOptions.ItemsSource = ObjectSettings;
+
+		List<VectorSetting> transforms = new()
+		{
+			new VectorSetting
+			{
+				Text = "Translation",
+				Value = new EditableVector4(Vector4.Zero, EditableVector4.VectorInputType.Vec3),
+				SetValue = v => UpdateTranslation(v.Vec4)
+			},
+			new VectorSetting
+			{
+				Text = "Rotation",
+				Value = new EditableVector4(Vector4.Zero, EditableVector4.VectorInputType.Vec3),
+				SetValue = v => UpdateRotation(v.Vec4)
+			},
+		};
+		ObjectTransforms.ItemsSource = transforms;
+	}
+
+	// these suck
+	private void UpdateTranslation(Vector4 loc)
+	{
+		foreach (var obj in Renderer.World.RenderObjects)
+		{
+			obj.GlobalTransforms[0].Position = loc.ToVec3();
+		}
+	}
+
+	private void UpdateRotation(Vector4 rot)
+	{
+		foreach (var obj in Renderer.World.RenderObjects)
+		{
+			var quat = HelixToolkit.Maths.QuaternionHelper.RotationYawPitchRoll(rot.X, rot.Y, rot.Z);
+			obj.GlobalTransforms[0].Quaternion = new(quat);
+		}
 	}
 
 	private void Dropdown_OnSelectionChanged(object sender, SelectionChangedEventArgs e)

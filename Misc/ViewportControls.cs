@@ -117,3 +117,37 @@ public class GroupToggleVM : SettingItem, INotifyPropertyChanged
 		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
 	}
 }
+
+public class VectorSetting : SettingItem
+{
+	public string Text { get; set; }
+
+	public Func<EditableVector4> GetValue { get; set; }
+	public Action<EditableVector4> SetValue { get; set; }
+
+	private EditableVector4 _value;
+	public EditableVector4 Value
+	{
+		get => GetValue != null ? GetValue() : _value;
+		set
+		{
+			if (ReferenceEquals(_value, value))
+				return;
+
+			if (_value != null)
+				_value.PropertyChanged -= OnVectorPropertyChanged;
+
+			_value = value;
+
+			if (_value != null)
+				_value.PropertyChanged += OnVectorPropertyChanged;
+
+			SetValue?.Invoke(_value);
+		}
+	}
+
+	private void OnVectorPropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		SetValue?.Invoke(_value);
+	}
+}

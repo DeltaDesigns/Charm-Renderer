@@ -12,6 +12,18 @@
 
     <UserControl.Resources>
         <local:ChannelHashToString x:Key="ChannelHashToString" />
+        <DataTemplate DataType="{x:Type local:VectorSetting}">
+            <StackPanel Margin="2" Orientation="Horizontal">
+                <TextBlock
+                    Width="100"
+                    Margin="0"
+                    VerticalAlignment="Center"
+                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                    FontSize="14"
+                    Text="{Binding Text}" />
+                <local:Vector4Editor HorizontalAlignment="Left" DataContext="{Binding Value}" />
+            </StackPanel>
+        </DataTemplate>
 
         <DataTemplate DataType="{x:Type local:ToggleSetting}">
             <StackPanel Margin="3" Orientation="Horizontal">
@@ -309,6 +321,14 @@
                     <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
 
                         <StackPanel>
+                            <ItemsControl x:Name="ObjectTransforms">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Margin="5" Orientation="Vertical" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+
                             <ItemsControl x:Name="ObjectOptions">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>

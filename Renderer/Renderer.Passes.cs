@@ -8,7 +8,6 @@ using Tiger;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Vector3 = System.Numerics.Vector3;
-using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
@@ -428,8 +427,7 @@ public partial class CharmRenderer
 
 	private int _sphereIndexCount;
 	public void RenderSphere(
-		System.Numerics.Vector3 pos,
-		float radius,
+		Transform transform,
 		System.Numerics.Vector4 color,
 		bool wireframe = false,
 		Transform? offset = null)
@@ -476,14 +474,15 @@ public partial class CharmRenderer
 		Context.PixelShader.Set(_debugLinesPS);
 
 		var rotated = Vector3.Transform(
-			pos,
-			offset != null ? offset.Value.Quaternion.ToQuat() : System.Numerics.Quaternion.Identity
+			transform.Position,
+			transform.Quaternion.ToQuat() * (offset != null ? offset.Value.Quaternion.ToQuat() : System.Numerics.Quaternion.Identity)
 		);
 
-		TempScopes.UpdateRigidModelScopeCustom(Context, new MapTransform
+		TempScopes.UpdateRigidModelScopeCustom(Context, new Transform
 		{
-			Translation = new Tiger.Schema.Vector4(rotated, radius),
-			Rotation = Vector4.UnitW,
+			Position = rotated,
+			Scale = transform.Scale,
+			Quaternion = transform.Quaternion,
 		}, offset != null ? offset.Value : new Transform());
 
 		Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_debugShapeVB, Utilities.SizeOf<Vector3>(), 0));

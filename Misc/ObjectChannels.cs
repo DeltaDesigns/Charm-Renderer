@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Globalization;
-using System.Windows.Data;
-using Tiger.Schema;
+﻿using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
 using Tiger.Schema.Shaders;
@@ -62,7 +59,7 @@ public class ObjectChannels
 							val = Vector4.Zero;
 							break;
 					}
-					Channels.TryAdd(hash, new(val, isFloat));
+					Channels.TryAdd(hash, new(val, isFloat ? EditableVector4.VectorInputType.Float : EditableVector4.VectorInputType.Vec4));
 				}
 			}
 		}
@@ -98,7 +95,7 @@ public class ObjectChannels
 				}
 				try
 				{
-					Channels.TryAdd(hash, new(val, isFloat));
+					Channels.TryAdd(hash, new(val, isFloat ? EditableVector4.VectorInputType.Float : EditableVector4.VectorInputType.Vec4));
 				}
 				catch { }
 			}
@@ -109,71 +106,7 @@ public class ObjectChannels
 	{
 		foreach (var channel in Channels.Values)
 		{
-			channel.Reset();
+			channel.Reset(Vector4.One);
 		}
-	}
-}
-
-
-public class EditableVector4 : INotifyPropertyChanged
-{
-	private float x, y, z, w;
-
-	public EditableVector4(Vector4 vec, bool isVector = true)
-	{
-		X = vec.X;
-		Y = vec.Y;
-		Z = vec.Z;
-		W = vec.W;
-		IsFloat = !isVector;
-	}
-
-	public Vector4 Vec4 => new Vector4(X, Y, Z, W);
-
-	public bool IsFloat { get; set; }
-	public float X { get => x; set { x = value; OnPropertyChanged(nameof(X)); } }
-	public float Y { get => y; set { y = value; OnPropertyChanged(nameof(Y)); } }
-	public float Z { get => z; set { z = value; OnPropertyChanged(nameof(Z)); } }
-	public float W { get => w; set { w = value; OnPropertyChanged(nameof(W)); } }
-
-	public event PropertyChangedEventHandler PropertyChanged;
-	private void OnPropertyChanged(string propertyName)
-	{
-		//Console.WriteLine($"EditableVector4 changed: {propertyName} = {GetValue(propertyName)}");
-		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-	}
-
-	private float GetValue(string name) => name switch
-	{
-		nameof(X) => X,
-		nameof(Y) => Y,
-		nameof(Z) => Z,
-		nameof(W) => W,
-		_ => 0
-	};
-
-	public void Reset()
-	{
-		X = 1f;
-		Y = 1f;
-		Z = 1f;
-		W = 1f;
-	}
-}
-
-public class FloatConverter : IValueConverter
-{
-	public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-	{
-		return value;
-	}
-
-	public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-	{
-		// return an invalid value in case of the value ends with a point
-		//if (value.ToString() == string.Empty)
-		//    return 0.0f;
-
-		return value.ToString().EndsWith(".") ? "." : value;
 	}
 }

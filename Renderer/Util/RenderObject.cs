@@ -605,7 +605,16 @@ public class RenderObject : GpuResource
 			}
 
 			// not the best option but it works, would be better to use MeshBuilder to make them all one mesh
-			renderer.RenderSphere(bone.DefaultObjectSpaceTransform.Translation, 0.01f, new(0.5f, 0, 0, 1), offset: TransformOffset);
+			renderer.RenderSphere(new Transform
+			{
+				Position = bone.DefaultObjectSpaceTransform.Translation,
+				Scale = new(0.01f),
+				Quaternion = GlobalTransforms[0].Quaternion
+			}, new(0.5f, 0, 0, 1), offset: new Transform
+			{
+				Position = GlobalTransforms[0].Position + TransformOffset.Position,
+				Quaternion = TransformOffset.Quaternion
+			});
 		}
 
 		DataBox dataBox = renderer.Context.MapSubresource(_skeletonVB, 0, MapMode.WriteDiscard, MapFlags.None);
@@ -618,11 +627,7 @@ public class RenderObject : GpuResource
 			renderer.Context.UnmapSubresource(_skeletonVB, 0);
 		}
 
-		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, new MapTransform
-		{
-			Translation = Vector4.UnitW,
-			Rotation = Vector4.UnitW,
-		}, TransformOffset);
+		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, GlobalTransforms[0], TransformOffset);
 
 		Vector4 col = new(1f, 0f, 0f, 1f);
 		renderer.Context.UpdateSubresource(ref col, renderer._debugPSCB);
@@ -661,11 +666,7 @@ public class RenderObject : GpuResource
 			renderer.Context.UnmapSubresource(renderer._bboxVB, 0);
 		}
 
-		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, new MapTransform
-		{
-			Translation = Vector4.UnitW,
-			Rotation = Vector4.UnitW,
-		}, TransformOffset);
+		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, GlobalTransforms[0], TransformOffset);
 
 		Vector4 col = new(1f, 1f, 0f, 1f);
 		renderer.Context.UpdateSubresource(ref col, renderer._debugPSCB);
