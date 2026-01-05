@@ -5,8 +5,11 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Tiger.Schema;
-using TracyWrapper;
 using Buffer = SharpDX.Direct3D11.Buffer;
+
+#if DEBUG
+using TracyWrapper;
+#endif
 
 namespace Charm.Renderer;
 

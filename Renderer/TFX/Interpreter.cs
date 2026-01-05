@@ -1,17 +1,14 @@
-﻿using System.Runtime.CompilerServices;
-using Arithmic;
+﻿using Arithmic;
 using Charm.Renderer;
-using Tiger;
-using Vec4 = System.Numerics.Vector4;
 using SharpDX.Direct3D11;
+using System.Runtime.CompilerServices;
+using Tiger;
 using Tiger.Schema;
 using static TfxBytecodeOp;
-
+using Vec4 = System.Numerics.Vector4;
 
 #if DEBUG
-using TracyWrapper;
 #endif
-
 
 public class TfxBytecodeInterpreter
 {
@@ -95,7 +92,7 @@ public class TfxBytecodeInterpreter
 		RendererGlobalChannels globalChannels = null)
 	{
 #if DEBUG
-		Profiler.PushProfileZone(Name);
+		RenderHelpers.Profile(Name);
 #endif
 
 		// Reset state
@@ -643,7 +640,7 @@ public class TfxBytecodeInterpreter
 		}
 
 #if DEBUG
-		Profiler.PopProfileZone();
+		RenderHelpers.EndProfile();
 #endif
 	}
 

@@ -7,8 +7,11 @@ using System.Windows.Threading;
 using Tiger;
 using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
-using TracyWrapper;
 
+#if DEBUG
+using TracyWrapper;
+using Evergine.Bindings.RenderDoc;
+#endif
 
 // Please do not look at this. It is an absolute mess and unoptimized and ugly and im ashamed yet proud at the same time.
 // This in its current state *could* handle maps but with very low FPS.
@@ -16,10 +19,6 @@ using TracyWrapper;
 
 // Realistically, I shouldn't bother with actual map rendering as thats Alkahest's job and it does it far better than I ever could.
 // Charm's renderer should just focus on rendering individual assets, maybe with some more in-depth features for that, idk.
-
-#if DEBUG
-using Evergine.Bindings.RenderDoc;
-#endif
 
 namespace Charm.Renderer;
 

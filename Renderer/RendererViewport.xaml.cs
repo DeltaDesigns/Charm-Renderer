@@ -47,8 +47,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public bool ShowSkele { get; set; } = true;
 	public bool ShowBB { get; set; } = false;
 	public SliderSetting MaterialPermutationOverride { get; set; }
-	public VectorSetting Translation { get; set; }
-	public VectorSetting EularAngles { get; set; }
 	#endregion
 
 	private bool _isFullscreen = false;
