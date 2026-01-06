@@ -432,13 +432,13 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	#endregion
 
 	#region Mesh Loading (Temp?)
-	public void LoadStatic(FileHash hash, MapTransform transform)
+	public void LoadStatic(FileHash hash)
 	{
 		if (Renderer is null)
 			Initialize();
 
 		Renderer.Stop();
-		Renderer.LoadStatic(hash, new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) });
+		Renderer.LoadStatic(hash);
 		Renderer.Start();
 	}
 
@@ -463,7 +463,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		_currentEntity = entity;
 
 		Renderer.Stop();
-		Renderer.LoadEntity(_currentEntity, new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) });
+		Renderer.LoadEntity(_currentEntity);
 		Renderer.Start();
 
 		await Task.Run(() =>
@@ -481,7 +481,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			return;
 
 		Renderer.Stop();
-		Renderer.LoadEntity(_currentEntity, new MapTransform { Translation = new Vector4(0f, 0f, 0f, 1f) }, false);
+		Renderer.LoadEntity(_currentEntity, false);
 		Renderer.Start();
 	}
 
@@ -702,18 +702,22 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		}
 	}
 
-	// TODO maybe, get from actual maps
+	// TODO get from actual maps, hardcode bad
 	private enum SceneWorld : uint
 	{
 		[Description("The Tower")] Tower = 0x81141179,
-		Mars = 0x80D44F41,
 		[Description("Dreaming City")] DreamingCity = 0x80BDCF1A,
 		[Description("EDZ: Trostland")] EDZTrostland = 0x80BB301E,
+		[Description("The Dreadnaught")] Dreadnaught = 0x813985A0,
+		[Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
+		[Description("The Pale Heart")] PaleHeart = 0x80E523F3,
+		[Description("The Black Garden")] BlackGarden = 0x80CD96D7,
+		[Description("Vesper Station")] VesperStation = 0x80EF4378,
+		Cosmodrome = 0x80C86FD6,
+		Mars = 0x80D44F41,
 		Eternity = 0x80F2CB14,
-		[Description("Europa: Cadmus Ridge")] Europa = 0x810E94BF,
 		Kepler = 0x80DB556A,
 		Neomuna = 0x81046404,
-		[Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
 	}
 	#endregion
 

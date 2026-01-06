@@ -51,9 +51,9 @@ public class InvestmentData : GpuResource
 		if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S77738080)
 		{
 			S1C6E8080 plates = parentResource.TexturePlates.TagData;
-			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.AlbedoPlate).SRV;
-			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.NormalPlate).SRV;
-			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.GStackPlate).SRV;
+			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.AlbedoPlate)?.SRV ?? null;
+			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.NormalPlate)?.SRV ?? null;
+			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.GStackPlate)?.SRV ?? null;
 			DyePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.DyemapPlate)?.SRV ?? null;
 
 			CreateDefaultDyes(context, item);

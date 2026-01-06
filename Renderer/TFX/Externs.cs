@@ -52,6 +52,9 @@ public class Externs : IDisposable
 		[ExternField(0x1C)] public float ExposureScale { get; set; } = 0.8f;
 		[ExternField(0x20)] public float Unk20 { get; set; } = 1f;
 		[ExternField(0x28)] public float ExposureIllumRelative { get; set; } = 1f;
+		[ExternField(0xA8)] public ShaderResourceView SpecularLobeLookup { get; set; }
+		[ExternField(0xB0)] public ShaderResourceView SpecularLobe3DLookup { get; set; }
+		[ExternField(0xB8)] public ShaderResourceView SpecularTintLookup { get; set; }
 		[ExternField(0xC0)] public ShaderResourceView IridesenceLookup { get; set; }
 
 		[ExternField(0x1B0)] public Vector4 Unk1B0 { get; set; } = new(0f, 0f, 0f, 1f);
@@ -59,8 +62,15 @@ public class Externs : IDisposable
 
 		public ExternFrame()
 		{
-			var tex = Globals.Get().RenderGlobals.TagData.Textures.TagData.IridescenceLookup;
-			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, tex).SRV;
+			var speclobe = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup;
+			var speclobe3d = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup3D;
+			var spectint = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularTintLookup;
+			var iri = Globals.Get().RenderGlobals.TagData.Textures.TagData.IridescenceLookup;
+
+			SpecularLobeLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, speclobe).SRV;
+			SpecularLobe3DLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, speclobe3d).SRV;
+			SpecularTintLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, spectint).SRV;
+			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, iri).SRV;
 		}
 
 		public void Update(CharmRenderer renderer)
@@ -143,10 +153,10 @@ public class Externs : IDisposable
 
 	public class ExternTransparent : IDisposable
 	{
-		[ExternField(0x00)] public ShaderResourceView AtmosFarLookup { get; set; }
-		[ExternField(0x08)] public ShaderResourceView AtmosFarLookupDS { get; set; }
-		[ExternField(0x10)] public ShaderResourceView AtmosNearLookup { get; set; }
-		[ExternField(0x18)] public ShaderResourceView AtmosNearLookupDS { get; set; }
+		[ExternField(0x00)] public ShaderResourceView AtmosFar { get; set; }
+		[ExternField(0x08)] public ShaderResourceView AtmosFarDS { get; set; }
+		[ExternField(0x10)] public ShaderResourceView AtmosNear { get; set; }
+		[ExternField(0x18)] public ShaderResourceView AtmosNearDS { get; set; }
 		[ExternField(0x20)] public ShaderResourceView AtmosDepthAngleDensity { get; set; }
 
 		[ExternField(0x48)] public ShaderResourceView Unk48 { get; set; }
@@ -166,14 +176,14 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			AtmosFarLookup?.Dispose();
-			AtmosFarLookup = null;
-			AtmosNearLookup?.Dispose();
-			AtmosNearLookup = null;
-			AtmosFarLookupDS?.Dispose();
-			AtmosFarLookupDS = null;
-			AtmosNearLookupDS?.Dispose();
-			AtmosNearLookupDS = null;
+			AtmosFar?.Dispose();
+			AtmosFar = null;
+			AtmosNear?.Dispose();
+			AtmosNear = null;
+			AtmosFarDS?.Dispose();
+			AtmosFarDS = null;
+			AtmosNearDS?.Dispose();
+			AtmosNearDS = null;
 			AtmosDepthAngleDensity?.Dispose();
 			AtmosDepthAngleDensity = null;
 			ShadingResult?.Dispose();

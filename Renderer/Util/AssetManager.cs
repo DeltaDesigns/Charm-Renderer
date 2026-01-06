@@ -410,6 +410,9 @@ public class AssetManager : IDisposable
 
 	public TextureAsset CreateFromPlate(DeviceContext context, TexturePlate plate)
 	{
+		if (plate is null)
+			return null;
+
 		using TigerReader reader = plate.GetReader();
 		var hashes = plate.TagData.PlateTransforms.Enumerate(reader).Select(x => x.Texture.Hash.Hash32).ToArray();
 		if (hashes.Length == 0)

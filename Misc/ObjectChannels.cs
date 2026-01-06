@@ -28,6 +28,20 @@ public class ObjectChannels
 		}
 
 		GetObjectChannels(parts);
+
+		if (item.IsGhost)
+		{
+			ResetAllChannels(Vector4.Zero);
+			SetObjectChannel(0x14BDBC8F, new(5f));
+		}
+	}
+
+	private void SetObjectChannel(uint hash, Vector4 value)
+	{
+		if (!Channels.TryGetValue(hash, out var temp))
+			return;
+
+		Channels[hash] = new EditableVector4(value, temp.VectorType);
 	}
 
 	private void GetObjectChannels(List<DynamicMeshPart> parts)
@@ -107,6 +121,14 @@ public class ObjectChannels
 		foreach (var channel in Channels.Values)
 		{
 			channel.Reset(Vector4.One);
+		}
+	}
+
+	public void ResetAllChannels(Vector4 vec)
+	{
+		foreach (var channel in Channels.Values)
+		{
+			channel.Reset(vec);
 		}
 	}
 }

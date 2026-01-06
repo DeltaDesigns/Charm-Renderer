@@ -9,7 +9,7 @@ namespace Charm.Renderer;
 public partial class CharmRenderer
 {
 	// TODO? Move these to RenderWorld
-	public void LoadStatic(FileHash hash, MapTransform transform)
+	public void LoadStatic(FileHash hash)
 	{
 		World?.Dispose();
 
@@ -21,7 +21,7 @@ public partial class CharmRenderer
 		LookAtMeshInitial();
 	}
 
-	public void LoadEntity(Entity entity, MapTransform transform, bool lookAt = true)
+	public void LoadEntity(Entity entity, bool lookAt = true)
 	{
 		World?.Dispose();
 		GroupVisibility.Clear();

@@ -79,23 +79,10 @@ public partial class CharmRenderer
 		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
 
 		Externs.Atmosphere.Update(this);
-
-		far.Bind(Context);
-		RenderGlobalPipeline("sky_lookup_generate_far");
-		Externs.Atmosphere.AtmosFar = far.SRV;
-		Externs.Transparent.AtmosFarLookup = far.SRV;
-
-		near.Bind(Context);
-		RenderGlobalPipeline("sky_lookup_generate_near");
-		Externs.Atmosphere.AtmosNear = near.SRV;
-		Externs.Transparent.AtmosNearLookup = far.SRV;
-
-		depthangle.Bind(Context);
-		RenderGlobalPipeline("atmo_depth_angle_density_lookup_generate");
-		Externs.Transparent.AtmosDepthAngleDensity = depthangle.SRV;
+		Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup0).SRV;
+		Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
 		hemisphere.Bind(Context);
-		//RenderGlobalPipeline("full_hemisphere_sky_color_generate");
 		{
 			Annotation.BeginEvent($"Global Pipeline: full_hemisphere_sky_color_generate");
 			ExecutePipeline("full_hemisphere_sky_color_generate");
@@ -108,7 +95,27 @@ public partial class CharmRenderer
 			Context.Draw(4, 0);
 			Annotation.EndEvent();
 		}
-		//MatCapRenderer.MatCapSpecular = hemisphere.SRV;
+
+		far.Bind(Context);
+		RenderGlobalPipeline("sky_lookup_generate_far");
+		Externs.Atmosphere.AtmosFar = far.SRV;
+		Externs.Transparent.AtmosFar = far.SRV;
+
+		// I guess this is how it actually works? Far uses first 2 textures, Near uses last 2, even if they are the same
+		if (World.Atmosphere?.Lookup2 is not null)
+			Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup2).SRV;
+
+		if (World.Atmosphere?.Lookup3 is not null)
+			Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup3).SRV;
+
+		near.Bind(Context);
+		RenderGlobalPipeline("sky_lookup_generate_near");
+		Externs.Atmosphere.AtmosNear = near.SRV;
+		Externs.Transparent.AtmosNear = near.SRV;
+
+		depthangle.Bind(Context);
+		RenderGlobalPipeline("atmo_depth_angle_density_lookup_generate");
+		Externs.Transparent.AtmosDepthAngleDensity = depthangle.SRV;
 
 		RenderHelpers.EndProfile();
 	}
@@ -413,6 +420,7 @@ public partial class CharmRenderer
 		_rtFinal.SetRenderTarget(Context, true);
 		Context.VertexShader.Set(_blitVS);
 		Context.PixelShader.Set(_blitPS);
+		//Context.PixelShader.Set(DisplayPass == RenderPass.final_color_grade ? _blitPS_Linear : _blitPS);
 		Context.PixelShader.SetSampler(0, _pointSampler);
 
 		rt.SetShaderResource(Context, 0, ShaderStage.Pixel);

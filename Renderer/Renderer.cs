@@ -381,6 +381,7 @@ public partial class CharmRenderer : IDisposable
 		Utilities.Dispose(ref _rtFinal);
 		Utilities.Dispose(ref _blitVS);
 		Utilities.Dispose(ref _blitPS);
+		Utilities.Dispose(ref _blitPS_Linear);
 		Utilities.Dispose(ref _gridShaderVS);
 		Utilities.Dispose(ref _gridShaderPS);
 		Utilities.Dispose(ref _pointSampler);

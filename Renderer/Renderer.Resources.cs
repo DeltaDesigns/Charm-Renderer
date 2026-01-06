@@ -17,6 +17,7 @@ public partial class CharmRenderer
 
 	private VertexShader _blitVS;
 	private PixelShader _blitPS;
+	private PixelShader _blitPS_Linear;
 
 	private VertexShader _clearAOVS;
 	private PixelShader _clearAOPS;
@@ -45,7 +46,7 @@ public partial class CharmRenderer
 
 	private void LookAtMeshInitial()
 	{
-		var bbox = World.RenderObjects.First().BoundingBox; // TODO
+		var bbox = World.RenderObjects.FirstOrDefault()?.BoundingBox ?? new HelixToolkit.Maths.BoundingBox();
 		var center = (bbox.Minimum + bbox.Maximum) / 2f;
 		var size = bbox.Maximum - bbox.Minimum;
 		var radius = size.Length() / 2f;
