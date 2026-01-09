@@ -96,6 +96,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Charm_Main\Charm\Charm.Shared\Charm.Shared.csproj" Private="false" />
+    <ProjectReference Include="..\Charm_Main\Charm\Charm\Charm.csproj" />
 	<ProjectReference Include="..\Charm_Main\Charm\Tiger\Tiger.csproj" Private="false" />
   </ItemGroup>
 

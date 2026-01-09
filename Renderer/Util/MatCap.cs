@@ -1,5 +1,4 @@
-﻿using HelixToolkit.SharpDX.Utilities;
-using SharpDX;
+﻿using SharpDX;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using System.Numerics;
@@ -34,10 +33,10 @@ public class MatCap : GpuResource
 				AddressW = TextureAddressMode.Clamp,
 			});
 
-		MatCapDiffuse = TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_new.png", true);
+		MatCapDiffuse = HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_new.png", true);
 		MatCapDiffuse.DebugName = "MatCap Diffuse";
 
-		MatCapSpecular = TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_specular_new.png", true);
+		MatCapSpecular = HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_specular_new.png", true);
 		MatCapSpecular.DebugName = "MatCap Specular";
 
 		Constants = new Constants("Constants MatCap")

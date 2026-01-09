@@ -47,6 +47,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public bool ShowSkele { get; set; } = true;
 	public bool ShowBB { get; set; } = false;
 	public SliderSetting MaterialPermutationOverride { get; set; }
+	public SocketCategory ItemShadersCategory { get; set; }
+	public ObservableCollection<SettingItem> GroupToggles { get; set; } = new();
 	#endregion
 
 	private bool _isFullscreen = false;
@@ -408,27 +410,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			Console.WriteLine($"Global Channel {gc.Index} ({gc.Name}) : {gc.Value}");
 		}
 	}
-
-	private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
-	{
-		if (sender is not RadioButton rb)
-			return;
-
-		_ = int.TryParse((string)rb.Tag, out int order);
-
-		var items = InvestmentShaders.ItemsSource.Cast<ToggleSetting>();
-		switch (order)
-		{
-			case 0:
-				items = items.OrderBy(x => ((ToggleSetting)x).Text);
-				break;
-
-			case 1:
-				items = items.OrderByDescending(x => (((ToggleSetting)x).Tag as InventoryItem).GetItemIndex());
-				break;
-		}
-		InvestmentShaders.ItemsSource = items;
-	}
 	#endregion
 
 	#region Mesh Loading (Temp?)
@@ -440,17 +421,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		Renderer.Stop();
 		Renderer.LoadStatic(hash);
 		Renderer.Start();
-	}
-
-	public void LoadInvestmentItem(InventoryItem item)
-	{
-		if (Renderer is null)
-			Initialize();
-
-		CreateInvestmentShaders();
-		Renderer.Pause();
-		Renderer.LoadInvestmentItem(item);
-		Renderer.Resume();
 	}
 
 	private Entity _currentEntity; // temp
@@ -475,17 +445,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		});
 	}
 
-	public void ReloadEntity()
-	{
-		if (_currentEntity is null)
-			return;
-
-		Renderer.Stop();
-		Renderer.LoadEntity(_currentEntity, false);
-		Renderer.Start();
-	}
-
-	public ObservableCollection<SettingItem> GroupToggles { get; set; } = new();
 	public void CreateMeshGroups(Entity entity)
 	{
 		MeshGroupsExpander.Visibility = Visibility.Visible;
@@ -619,33 +578,83 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		//ReloadEntity();
 	}
 
-	public void CreateInvestmentShaders()
+	#region Investment
+	public void LoadInvestmentItem(InventoryItem item)
 	{
-		InvestmentShadersExpander.Visibility = Visibility.Visible;
+		if (Renderer is null)
+			Initialize();
 
-		var shaders = new ObservableCollection<SettingItem>();
-		IEnumerable<InventoryItem> inventoryItems = Investment.Get().GetInventoryItemsUnloaded();
-
-		foreach (var invItem in inventoryItems)
-		{
-			if (!invItem.IsShader)
-				continue;
-
-			shaders.Add(new ToggleSetting
-			{
-				Text = invItem.Name,
-				Tag = invItem,
-			});
-		}
-
-		InvestmentShaders.ItemsSource = shaders.OrderBy(x => ((ToggleSetting)x).Text);
+		CreateInvestmentShaders(item);
+		Renderer.Pause();
+		Renderer.LoadInvestmentItem(item);
+		Renderer.Resume();
 	}
 
-	private void LoadInvestmentShader(object sender, RoutedEventArgs e)
+	public void CreateInvestmentShaders(InventoryItem item)
 	{
-		if ((sender as RadioButton).Tag is not InventoryItem shader)
+		ItemShadersExpander.Visibility = Visibility.Visible;
+
+		if (ItemShadersCategory is null)
+		{
+			ItemShadersCategory = new()
+			{
+				CategoryStyle = DestinySocketCategoryStyle.Consumable,
+				Sockets = new List<SocketEntry>()
+			};
+
+			SocketEntry socketEntry = new();
+			socketEntry.CategoryStyle = DestinySocketCategoryStyle.Consumable;
+
+			IEnumerable<InventoryItem> inventoryItems = Investment.Get().GetInventoryItemsUnloaded();
+
+			foreach (var invItem in inventoryItems)
+			{
+				if (!invItem.IsShader)
+					continue;
+
+				var plugitem = new APIPlugItem(invItem)
+				{
+					IsSelected = false,
+					Index = invItem.GetItemIndex(),
+					ParentSocket = socketEntry,
+				};
+				socketEntry.PlugItems.Add(plugitem);
+			}
+
+			socketEntry.PlugItems = socketEntry.PlugItems.OrderByDescending(x => x.Index).ToList();
+
+			var initial = socketEntry.PlugItems.Last();
+			socketEntry.PlugItems.Remove(initial);
+			socketEntry.PlugItems.Insert(0, initial);
+
+			socketEntry.SelectedPlug = initial;
+			socketEntry.SingleInitialItem = initial;
+
+			ItemShadersCategory.Sockets.Add(socketEntry);
+		}
+
+		ItemShadersCategory.Sockets[0].SelectedPlug = ItemShadersCategory.Sockets[0].SingleInitialItem;
+		ItemShaders.Content = ItemShadersCategory;
+	}
+
+	private void PlugItem_Checked(object sender, RoutedEventArgs e)
+	{
+		if ((sender as FrameworkElement)?.DataContext is not APIPlugItem)
 			return;
 
+		APIPlugItem item = (APIPlugItem)(sender as FrameworkElement).DataContext;
+		if (item.IsSelected)
+		{
+			item.ParentSocket.SelectedPlug = item;
+			if (item.Item.Name == "Default Shader")
+				ResetInvestmentShader();
+			else
+				LoadInvestmentShader(item.Item);
+		}
+	}
+
+	private void LoadInvestmentShader(InventoryItem shader)
+	{
 		if (!Renderer.World.RenderObjects.Any() || !Renderer.World.RenderObjects.Any(x => x.Investment != null))
 			return;
 
@@ -663,7 +672,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		Renderer.Resume();
 	}
 
-	private void ResetInvestmentShader(object sender, RoutedEventArgs e)
+	private void ResetInvestmentShader()
 	{
 		if (!Renderer.World.RenderObjects.Any())
 			return;
@@ -676,6 +685,35 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			obj.Investment.ResetDyes(Renderer.Context);
 		}
 	}
+
+	private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not RadioButton rb)
+			return;
+
+		_ = int.TryParse((string)rb.Tag, out int order);
+
+		var items = ItemShadersCategory.Sockets[0].PlugItems;
+		switch (order)
+		{
+			case 0:
+				items = [.. items.OrderBy(x => x.Item.Name)];
+				break;
+
+			case 1:
+				items = [.. items.OrderByDescending(x => x.Item.GetItemIndex())];
+				break;
+		}
+		var initial = ItemShadersCategory.Sockets[0].SingleInitialItem;
+		items.Remove(initial);
+		items.Insert(0, initial);
+
+		ItemShadersCategory.Sockets[0].PlugItems = items;
+
+		ItemShaders.Content = null;
+		ItemShaders.Content = ItemShadersCategory;
+	}
+	#endregion
 	#endregion
 
 	#region Scene World

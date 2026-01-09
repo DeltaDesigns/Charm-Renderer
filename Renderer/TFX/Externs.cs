@@ -583,6 +583,8 @@ public class Externs : IDisposable
 		ShadowMask.Dispose();
 		PostProcess.Dispose();
 		ScreenArea.Dispose();
+		Fxaa.Dispose();
+		GlobalLighting.Dispose();
 	}
 
 	private static Dictionary<int, Func<object, object>> GetFieldMap(Type type)
