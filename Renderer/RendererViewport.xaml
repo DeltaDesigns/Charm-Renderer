@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Charm.Renderer"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:shared="clr-namespace:Charm.Shared;assembly=Charm.Shared"
     d:DesignHeight="1080"
     d:DesignWidth="1920"
     Loaded="UserControl_Loaded"
@@ -27,7 +28,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type local:ToggleSetting}">
-            <StackPanel Margin="3" Orientation="Horizontal">
+            <StackPanel Margin="4" Orientation="Horizontal">
                 <ToggleButton IsChecked="{Binding IsChecked, Mode=TwoWay}" Style="{DynamicResource D2StyleToggleBoxButton}">
                     <ToggleButton.LayoutTransform>
                         <ScaleTransform ScaleX=".75" ScaleY=".75" />
@@ -44,7 +45,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type local:SliderSetting}">
-            <StackPanel Margin="10,5,10,5" Orientation="Horizontal">
+            <StackPanel Margin="4" Orientation="Horizontal">
 
                 <ToggleButton
                     Margin="0,0,5,0"
@@ -308,27 +309,27 @@
             TextAlignment="Center"
             Visibility="Hidden" />
 
-        <Grid
-            Grid.Column="0"
-            Margin="15,25,25,25"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Panel.ZIndex="100">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Grid
-                x:Name="InfoPanel"
-                Grid.Column="0"
-                Margin="0,0,5,0"
-                VerticalAlignment="Top"
+        <Canvas x:Name="InfoPanel" Grid.ColumnSpan="2">
+            <StackPanel
+                shared:Draggable.ClampToParent="True"
+                shared:Draggable.Handle="{Binding ElementName=InfoPanelDragHeader}"
+                shared:Draggable.InitialLeft="10"
+                shared:Draggable.InitialTop="25"
+                shared:Draggable.IsEnabled="True"
                 Background="#75000000">
-                <Expander
-                    HorizontalAlignment="Stretch"
-                    Background="Transparent"
-                    Header="Controls">
+                <Border
+                    x:Name="InfoPanelDragHeader"
+                    BorderBrush="#75000000"
+                    BorderThickness="5" />
+
+                <Expander HorizontalAlignment="Stretch" Background="Transparent">
+                    <Expander.Header>
+                        <TextBlock
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="White"
+                            Text="Controls" />
+                    </Expander.Header>
 
                     <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
                         <StackPanel
@@ -491,26 +492,38 @@
                                     SelectionChanged="Dropdown_OnSelectionChanged"
                                     Style="{DynamicResource D2StyleComboBox}" />
                             </Grid>
-
-
                         </StackPanel>
                     </Border>
                 </Expander>
-            </Grid>
+            </StackPanel>
+        </Canvas>
 
-            <Grid
-                x:Name="ObjectPanel"
-                Grid.Column="1"
-                Margin="5,0,0,0"
-                VerticalAlignment="Top"
+        <Canvas x:Name="ObjectPanel" Grid.ColumnSpan="2">
+            <StackPanel
+                shared:Draggable.ClampToParent="True"
+                shared:Draggable.Handle="{Binding ElementName=ObjectPanelDragHeader}"
+                shared:Draggable.InitialLeft="175"
+                shared:Draggable.InitialTop="25"
+                shared:Draggable.IsEnabled="True"
                 Background="#75000000">
+                <Border
+                    x:Name="ObjectPanelDragHeader"
+                    BorderBrush="#75000000"
+                    BorderThickness="5" />
+
                 <Expander
                     HorizontalAlignment="Stretch"
                     Background="Transparent"
-                    Header="Object"
                     KeyboardNavigation.DirectionalNavigation="None">
-                    <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
+                    <Expander.Header>
+                        <TextBlock
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="White"
+                            Text="Object" />
+                    </Expander.Header>
 
+                    <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
                         <StackPanel>
                             <ItemsControl x:Name="ObjectTransforms">
                                 <ItemsControl.ItemsPanel>
@@ -694,6 +707,7 @@
                                 </StackPanel>
                             </Expander>
 
+
                             <Expander
                                 x:Name="ItemShadersExpander"
                                 Margin="0,5,0,5"
@@ -740,8 +754,10 @@
                     </Border>
 
                 </Expander>
-            </Grid>
-        </Grid>
+            </StackPanel>
+
+
+        </Canvas>
 
         <Grid
             x:Name="ViewportContainer"

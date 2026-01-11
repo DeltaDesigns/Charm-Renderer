@@ -249,18 +249,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			},
 			new ToggleSetting
 			{
-				Text = "Show Skeleton",
-				GetValue = () => ShowSkele,
-				SetValue = v => ShowSkele = v
-			},
-			new ToggleSetting
-			{
-				Text = "Show Bounding Box",
-				GetValue = () => ShowBB,
-				SetValue = v => ShowBB = v
-			},
-			new ToggleSetting
-			{
 				Text = "Cap FPS",
 				GetValue = () => CapFPS,
 				SetValue = v => CapFPS = v
