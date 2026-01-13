@@ -14,32 +14,19 @@ public class MatCap : GpuResource
 	public Constants Constants { get; set; }
 	public ShaderResourceView MatCapDiffuse { get; set; }
 	public ShaderResourceView MatCapSpecular { get; set; }
-	public SamplerState LinearSampler { get; set; }
 
 	public MatCap(DeviceContext context)
 	{
-		if (VertexShader is null)
-			VertexShader = new VertexShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/matcap.hlsl", "VSMain", "vs_5_0"));
+		VertexShader ??= new VertexShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/matcap.hlsl", "VSMain", "vs_5_0"));
+		PixelShader ??= new PixelShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/matcap.hlsl", "PSMain", "ps_5_0"));
 
-		if (PixelShader is null)
-			PixelShader = new PixelShader(context.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/matcap.hlsl", "PSMain", "ps_5_0"));
-
-		if (LinearSampler is null)
-			LinearSampler = new SamplerState(context.Device, new SamplerStateDescription
-			{
-				Filter = Filter.MinMagMipLinear,
-				AddressU = TextureAddressMode.Clamp,
-				AddressV = TextureAddressMode.Clamp,
-				AddressW = TextureAddressMode.Clamp,
-			});
-
-		MatCapDiffuse = HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_new.png", true);
+		MatCapDiffuse ??= HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_new.png", true);
 		MatCapDiffuse.DebugName = "MatCap Diffuse";
 
-		MatCapSpecular = HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_specular_new.png", true);
+		MatCapSpecular ??= HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(context.Device, "renderer assets/textures/matcap_specular_new.png", true);
 		MatCapSpecular.DebugName = "MatCap Specular";
 
-		Constants = new Constants("Constants MatCap")
+		Constants ??= new Constants("Constants MatCap")
 		{
 			Buffer = new Buffer(context.Device, new BufferDescription
 			{
@@ -64,11 +51,13 @@ public class MatCap : GpuResource
 
 		context.PixelShader.Set(PixelShader);
 		context.PixelShader.SetConstantBuffer(0, Constants.Buffer);
-		context.PixelShader.SetSampler(0, LinearSampler);
 
-		context.PixelShader.SetShaderResource(0, externs.Deferred.DeferredRT1);
-		context.PixelShader.SetShaderResource(1, MatCapDiffuse);
-		context.PixelShader.SetShaderResource(2, MatCapSpecular);
+		context.PixelShader.SetShaderResources(0, new ShaderResourceView[]
+		{
+			externs.Deferred.DeferredRT1,
+			MatCapDiffuse,
+			MatCapSpecular
+		});
 
 		context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 		context.OutputMerger.SetDepthStencilState(null);
@@ -104,8 +93,6 @@ public class MatCap : GpuResource
 		MatCapDiffuse = null;
 		MatCapSpecular?.Dispose();
 		MatCapSpecular = null;
-		LinearSampler?.Dispose();
-		LinearSampler = null;
 
 		base.Dispose();
 	}

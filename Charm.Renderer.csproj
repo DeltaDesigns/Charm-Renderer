@@ -28,6 +28,7 @@
     <None Remove="Renderer Assets\Shaders\investment_ps_override.hlsl" />
     <None Remove="Renderer Assets\Shaders\investment_vs_override.hlsl" />
     <None Remove="Renderer Assets\Shaders\investment_vs_override_vc.hlsl" />
+    <None Remove="Renderer Assets\Shaders\luminance.hlsl" />
     <None Remove="Renderer Assets\Shaders\matcap.hlsl" />
     <None Remove="Renderer Assets\Textures\matcap.png" />
     <None Remove="Renderer Assets\Textures\matcap_new.png" />
@@ -75,6 +76,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Renderer Assets\Shaders\investment_vs_override_vc.hlsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Renderer Assets\Shaders\luminance.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Renderer Assets\Shaders\matcap.hlsl">

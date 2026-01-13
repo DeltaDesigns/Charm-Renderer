@@ -145,6 +145,7 @@ public partial class CharmRenderer : IDisposable
 		_pausedEvent.Set();
 	}
 
+	private int _frameCounter = 0;
 	public float Time { get; private set; }
 	public float DeltaTime { get; private set; }
 	public float FPS { get; private set; } = 0;
@@ -200,10 +201,11 @@ public partial class CharmRenderer : IDisposable
 				fpsTimer = 0;
 			}
 
+			_frameCounter++;
+			_frameCompleteEvent.Set();
 #if DEBUG
 			Profiler.HeartBeat();
 #endif
-			_frameCompleteEvent.Set();
 		}
 
 		_pausedEvent.Set();
@@ -243,7 +245,7 @@ public partial class CharmRenderer : IDisposable
 			var far = Camera.Far;
 			Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
 			Externs.Decal.DepthConstants = Externs.Deferred.DepthConstants;
-			Externs.Frame.ExposureScale = Viewport.Exposure;
+			//Externs.Frame.ExposureScale = Viewport.Exposure;
 		}
 
 		Externs.Update(this);
@@ -266,6 +268,7 @@ public partial class CharmRenderer : IDisposable
 		RenderShading();
 		RenderTransparent();
 		RenderPostProcess();
+		RenderLuminance();
 
 		if (DisplayPass > RenderPass.final_color_grade)
 			RenderGlobalPipeline(DisplayPass.ToString());

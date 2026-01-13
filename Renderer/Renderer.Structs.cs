@@ -43,6 +43,9 @@ public partial class CharmRenderer
 		public RenderTarget2D ColorGradingLUT { get; private set; }
 		public UAVTarget3D LUTVolume { get; private set; }
 
+		public RenderTarget2D Luminance { get; private set; }
+		public Texture2D LuminanceStaging { get; private set; }
+
 		public int Width { get; }
 		public int Height { get; }
 
@@ -78,6 +81,21 @@ public partial class CharmRenderer
 
 			ColorGradingLUT = new RenderTarget2D(device, 1024, 32, Format.R16G16B16A16_Float, debugName: "Color Grading LUT");
 			LUTVolume = new UAVTarget3D(device, 32, 32, 32, Format.R11G11B10_Float, "LUT Volume");
+
+			Luminance = new RenderTarget2D(device, width, height, Format.R32_Float, debugName: "Luminance");
+
+			LuminanceStaging = new Texture2D(device, new Texture2DDescription
+			{
+				Width = 1,
+				Height = 1,
+				MipLevels = 1,
+				ArraySize = 1,
+				Format = Luminance.Texture.Description.Format,
+				Usage = ResourceUsage.Staging,
+				BindFlags = BindFlags.None,
+				CpuAccessFlags = CpuAccessFlags.Read,
+				SampleDescription = new SampleDescription(1, 0)
+			});
 		}
 
 		public void SetRenderTargets(DeviceContext ctx)

@@ -32,10 +32,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	#region Render Options
 	public ObservableCollection<SettingItem> AtmosSettings { get; set; }
 	public SliderSetting TimeOfDaySetting { get; set; }
+	public SliderSetting ExposureSetting { get; set; }
 	public bool RenderSky { get; set; } = true;
 	public bool RenderSkyObjs { get; set; } = true;
 	public float TimeOfDay { get; set; } = 0.675f;
 	public float Exposure { get; set; } = 0.8f;
+	public bool AutoExposure { get; set; } = false;
 	public float FOV { get; set; } = 60f;
 	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.825f;
@@ -109,6 +111,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				CameraPosition.Text = $"Camera Position: {camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2}";
 				CameraRotation.Text = $"Camera Rotation: {camRot.X:F2}, {camRot.Y:F2}, {camRot.Z:F2}, {camRot.W:F2}";
 				FPSCounter.Text = $"FPS: {Math.Ceiling(Renderer.FPS)}";
+
+				if (AutoExposure)
+				{
+					Exposure = Renderer.Externs.Frame.ExposureScale;
+					ExposureSetting.NotifyValueChanged();
+				}
 
 				if (Renderer.World.UseDayCycle)
 				{
@@ -223,15 +231,23 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		AtmosOptions.ItemsSource = AtmosSettings;
 
 		ShowDebugSettings.Content = new ToggleSetting { Text = "Debug Options" };
+		ExposureSetting = new SliderSetting
+		{
+			Text = "Exposure",
+			Max = 5f,
+			GetValue = () => Exposure,
+			SetValue = v => Exposure = v,
+
+			LockTooltip = "Toggles autoexposure",
+			IsLocked = true,
+			SetLockState = locked =>
+			{
+				AutoExposure = !locked;
+			}
+		};
 		DebugSettings = new ObservableCollection<SettingItem>
 		{
-			new SliderSetting
-			{
-				Text = "Exposure",
-				Max = 2f,
-				GetValue = () => Exposure,
-				SetValue = v => Exposure = v
-			},
+			ExposureSetting,
 			new SliderSetting
 			{
 				Text = "Time Scale",

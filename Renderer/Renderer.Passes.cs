@@ -284,6 +284,82 @@ public partial class CharmRenderer
 		RenderHelpers.EndProfile();
 	}
 
+	private float _currentExposure = 1.0f;
+	private float _targetExposure = 1.0f;
+	private void RenderLuminance()
+	{
+		if (!Viewport.AutoExposure || !Viewport.RenderSky)
+		{
+			Externs.Frame.ExposureScale = Viewport.Exposure;
+			return;
+		}
+
+		RenderHelpers.Profile("Render Luminance");
+		Annotation.BeginEvent("Luminance");
+
+		Context.OutputMerger.SetRenderTargets(null, GBuffers.Luminance.RTV);
+		Context.VertexShader.Set(_luminanceVS);
+		Context.PixelShader.Set(_luminancePS);
+		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+		Context.PixelShader.SetShaderResources(0, GBuffers.PostProcessResult.SRV);
+
+		Context.Draw(4, 0);
+
+		Context.GenerateMips(GBuffers.Luminance.SRV);
+
+		//if (_frameCounter % 2 == 0)
+		{
+			int lastMip = GBuffers.Luminance.Texture.Description.MipLevels - 1;
+			Context.CopySubresourceRegion(
+				GBuffers.Luminance.Texture,
+				Resource.CalculateSubResourceIndex(lastMip, 0, GBuffers.Luminance.Texture.Description.MipLevels),
+				null,
+				GBuffers.LuminanceStaging,
+				0
+			);
+
+			DataBox box = Context.MapSubresource(GBuffers.LuminanceStaging, 0, MapMode.Read, MapFlags.None);
+			float avgLogLum;
+			unsafe
+			{
+				avgLogLum = *(float*)box.DataPointer;
+			}
+			Context.UnmapSubresource(GBuffers.LuminanceStaging, 0);
+
+			float avgLum = MathF.Exp(avgLogLum);
+			_targetExposure = ComputeTargetExposure(avgLum);
+		}
+
+		_currentExposure = UpdateExposure(_currentExposure, _targetExposure, Externs.Frame.DeltaTime);
+		Externs.Frame.ExposureScale = _currentExposure;
+
+		Annotation.EndEvent();
+		RenderHelpers.EndProfile();
+
+		float UpdateExposure(float currentExposure, float targetExposure, float deltaTime)
+		{
+			if (MathF.Abs(targetExposure - currentExposure) < 0.001f)
+				return currentExposure;
+
+			const float speedUp = 2.0f;   // dark → bright
+			const float speedDown = 1.0f; // bright → dark
+
+			float speed = targetExposure > currentExposure
+				? speedUp
+				: speedDown;
+
+			float t = 1.0f - MathF.Exp(-speed * deltaTime);
+			return float.Lerp(currentExposure, targetExposure, t);
+		}
+
+		float ComputeTargetExposure(float avgLum)
+		{
+			const float middleGray = 0.18f;
+			return middleGray / Math.Max(avgLum, 1e-4f);
+		}
+	}
+
+
 	private void RenderSkeleton()
 	{
 		RenderHelpers.Profile("Render Skeleton");
