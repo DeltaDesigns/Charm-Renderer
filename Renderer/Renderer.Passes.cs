@@ -272,7 +272,7 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
 		Context.Rasterizer.SetViewport(GBuffers.PostProcessResult.GetViewport());
 
-		RenderGlobalPipeline("screen_area_global_lut3d");
+		RenderGlobalPipeline("screen_area_global_lut3d_hdr");
 
 		// I cant notice a difference here, not sure whats going on
 		//GBuffers.Shading_Clone.SetRenderTarget(Context, false);

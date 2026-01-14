@@ -447,6 +447,7 @@ public class Externs : IDisposable
 		[ExternField(0x150)] public Vector4 Unk150 { get; set; } = new(0.3f, 0.5f, 0f, 0.02f);
 		[ExternField(0x160)] public Vector4 Unk160 { get; set; } = new(0.3f, 0.5f, 0f, 0.5f);
 		[ExternField(0x170)] public Vector4 Unk170 { get; set; } = Vector4.One;
+		[ExternField(0x18C)] public float Unk18C { get; set; } = 0.5f;
 
 		public ExternScreenArea()
 		{
