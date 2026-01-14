@@ -391,7 +391,7 @@
                                             BorderThickness="1"
                                             Focusable="False"
                                             IsReadOnly="False"
-                                            SelectionChanged="Dropdown_OnSelectionChanged"
+                                            SelectionChanged="SceneWorld_OnSelectionChanged"
                                             Style="{DynamicResource D2StyleComboBox}" />
                                     </Grid>
                                 </StackPanel>

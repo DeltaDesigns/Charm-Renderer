@@ -38,6 +38,9 @@ public partial class CharmRenderer
 		_blitPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/blit.hlsl", "PSMain", "ps_5_0"));
 		_blitPS_Linear ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/blit_linear.hlsl", "PSMain", "ps_5_0"));
 
+		_luminanceVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/luminance.hlsl", "VSMain", "vs_5_0"));
+		_luminancePS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/luminance.hlsl", "PSMain", "ps_5_0"));
+
 		_clearAOVS ??= new VertexShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/clear_ao.hlsl", "VSMain", "vs_5_0"));
 		_clearAOPS ??= new PixelShader(Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/clear_ao.hlsl", "PSMainOne", "ps_5_0"));
 

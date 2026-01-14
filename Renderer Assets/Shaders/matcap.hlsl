@@ -42,7 +42,7 @@ cbuffer scope_frame : register(b13)
     float4 overrides		    : packoffset(c3);
 } // cbuffer scope_frame
 
-SamplerState s_linear_clamp : register(s1);
+SamplerState s_linear_clamp : register(s0);
 
 Texture2D RtNormal : register(t0);
 

@@ -22,6 +22,9 @@ public partial class CharmRenderer
 	private VertexShader _clearAOVS;
 	private PixelShader _clearAOPS;
 
+	private VertexShader _luminanceVS;
+	private PixelShader _luminancePS;
+
 	private VertexShader _fullHemiSkyTempVS;
 	private PixelShader _fullHemiSkyTempPS;
 
@@ -37,10 +40,6 @@ public partial class CharmRenderer
 	public Buffer _bboxVB;
 
 	private SamplerState _pointSampler;
-
-	private DateTime _lastRender = DateTime.MinValue;
-	private readonly double _fps = 1000.0 / 240f; // 90 FPS
-	private DateTime _lastFrameTime = DateTime.Now;
 
 	public ObjectChannels EntityObjectChannels { get; set; }
 
