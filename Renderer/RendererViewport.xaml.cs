@@ -230,7 +230,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		};
 		AtmosOptions.ItemsSource = AtmosSettings;
 
-		ShowDebugSettings.Content = new ToggleSetting { Text = "Debug Options" };
 		ExposureSetting = new SliderSetting
 		{
 			Text = "Exposure",
