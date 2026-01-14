@@ -36,6 +36,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public bool RenderSkyObjs { get; set; } = true;
 	public float TimeOfDay { get; set; } = 0.675f;
 	public float Exposure { get; set; } = 0.8f;
+	public float ExposureIllum { get; set; } = 1f;
 	public float FOV { get; set; } = 60f;
 	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.825f;
@@ -228,9 +229,16 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			new SliderSetting
 			{
 				Text = "Exposure",
-				Max = 2f,
+				Max = 5f,
 				GetValue = () => Exposure,
 				SetValue = v => Exposure = v
+			},
+			new SliderSetting
+			{
+				Text = "Exposure Illum",
+				Max = 5f,
+				GetValue = () => ExposureIllum,
+				SetValue = v => ExposureIllum = v
 			},
 			new SliderSetting
 			{

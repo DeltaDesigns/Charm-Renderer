@@ -244,6 +244,7 @@ public partial class CharmRenderer : IDisposable
 			Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
 			Externs.Decal.DepthConstants = Externs.Deferred.DepthConstants;
 			Externs.Frame.ExposureScale = Viewport.Exposure;
+			Externs.Frame.ExposureIllumRelative = Viewport.ExposureIllum;
 		}
 
 		Externs.Update(this);

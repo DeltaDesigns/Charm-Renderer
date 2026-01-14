@@ -195,7 +195,7 @@ public class TfxBytecodeInterpreter
 
 					case TfxBytecode.Clamp:
 						var clamp = StackPop(3);
-						StackPush(Vec4.Clamp(clamp[0], clamp[1], clamp[2]));
+						StackPush(Vec4.Clamp(clamp[1], clamp[2], clamp[0]));
 						break;
 
 					case TfxBytecode.Abs:
@@ -627,7 +627,7 @@ public class TfxBytecodeInterpreter
 						break;
 
 					default:
-						Log.Error($"{Name}: Not Implemented: {_curOp.op}");
+						Log.Error($"{Name}: Not Implemented: {_curOp.op} (0x{_curOp.rawOp:X2})");
 						break;
 
 				}
@@ -636,7 +636,7 @@ public class TfxBytecodeInterpreter
 		catch (Exception e)
 		{
 			Log.Error($"{Name}: {e.Message}");
-			throw new Exception($"{Name}: Error evaluating bytecode at opcode {_curOp.op} with data {_curOp.data}.\nOpCodes: {string.Join("\n", Opcodes.Select(x => x.op))}", e);
+			throw new Exception($"{Name}: Error evaluating bytecode at opcode {_curOp.op} (0x{_curOp.rawOp:X2}) with data {_curOp.data}.\nOpCodes: {string.Join("\n", Opcodes.Select(x => x.op))}", e);
 		}
 
 #if DEBUG
