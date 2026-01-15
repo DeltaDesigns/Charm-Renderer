@@ -1,4 +1,5 @@
-﻿using SharpDX.Direct3D11;
+﻿using HelixToolkit.Maths;
+using SharpDX.Direct3D11;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Reflection;
@@ -415,6 +416,15 @@ public class Externs : IDisposable
 			gbuffer.Shading.CopyTo(context, gbuffer.Shading_Clone);
 			Unk00 = gbuffer.Shading_Clone.SRV;
 			RenderHelpers.EndProfile();
+		}
+
+		public void UpdateStageAtmos(ExternAtmosphere atmos)
+		{
+			var up = atmos.AtmosSunDir.ToVector3().GetUp();
+			var right = atmos.AtmosSunDir.ToVector3().GetRight(up);
+			UnkC0 = right.ToVector4(right.Z);
+			UnkD0 = up.ToVector4(up.Z);
+			UnkE0 = atmos.AtmosSunDir;
 		}
 
 		public void Dispose()

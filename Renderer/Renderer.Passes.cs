@@ -13,8 +13,6 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
-	public RenderPass DisplayPass = RenderPass.final;
-
 	private Dictionary<string, MaterialData> _pipelineCache = new();
 
 	private void RenderGBuffer()
@@ -81,6 +79,8 @@ public partial class CharmRenderer
 		Externs.Atmosphere.Update(this);
 		Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup0).SRV;
 		Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
+
+		Externs.PostProcess.UpdateStageAtmos(Externs.Atmosphere);
 
 		hemisphere.Bind(Context);
 		{
@@ -580,32 +580,48 @@ public partial class CharmRenderer
 
 		Context.DrawIndexed(_sphereIndexCount, 0, 0);
 	}
+}
 
-	public enum RenderPass
-	{
-		[Description("Final")] final,
-		[Description("Final (Color Graded)")] final_color_grade,
+public enum RenderPass
+{
+	[Description("Final")] final,
+	[Description("Final (Color Graded)")] final_color_grade,
 
-		// Actual pipelines
-		[Description("Albedo")] debug_source_color,
-		[Description("Normals")] debug_world_normal,
-		[Description("Metal")] debug_metalness,
-		[Description("AO")] debug_ambient_occlusion,
-		//[Description("Texture AO")] debug_texture_ao,
-		[Description("Smoothness")] debug_specular_smoothness,
-		[Description("Emissive")] debug_emissive,
-		[Description("Emissive Intensity")] debug_emissive_intensity,
-		[Description("Transmission")] debug_transmission,
-		[Description("Diffuse Color")] debug_diffuse_color,
-		[Description("Diffuse Light")] debug_diffuse_light,
-		[Description("Diffuse Only")] debug_diffuse_only,
-		//[Description("Diffuse IBL")] debug_diffuse_ibl,
-		[Description("Specular Color")] debug_specular_color,
-		//[Description("Specular Tint")] debug_specular_tint,
-		[Description("Specular Light")] debug_specular_light,
-		[Description("Specular Only")] debug_specular_only,
-		[Description("Depth")] debug_depth,
-		[Description("Depth Edges")] debug_depth_edges,
-		//[Description("Specular IBL")] debug_specular_ibl
-	}
+	// GBuffer
+	[Description("Albedo")] debug_source_color,
+	[Description("Albedo+AO")] debug_ambient_occlusion_source_color,
+	[Description("Normals")] debug_world_normal,
+	[Description("Metal")] debug_metalness,
+	[Description("Ambient Occlusion")] debug_texture_ao, //debug_ambient_occlusion,
+	[Description("Smoothness")] debug_specular_smoothness,
+	[Description("Emission")] debug_emissive,
+	[Description("Emission Intensity")] debug_emissive_intensity,
+	[Description("Transmission")] debug_transmission,
+	[Description("Iridescense ID")] debug_colored_overcoat_id,
+
+	// Diffuse
+	[Description("Diffuse Color")] debug_diffuse_color,
+	[Description("Diffuse Light")] debug_diffuse_light,
+	[Description("Diffuse Only")] debug_diffuse_only,
+	//[Description("Diffuse IBL")] debug_diffuse_ibl,
+
+	// Specular
+	[Description("Specular Color")] debug_specular_color,
+	[Description("Specular Light")] debug_specular_light,
+	[Description("Specular Only")] debug_specular_only,
+	//[Description("Specular IBL")] debug_specular_ibl
+
+	// Depth
+	[Description("Depth")] debug_depth,
+	[Description("Depth Edges")] debug_depth_edges,
+
+	// Misc
+	[Description("Normal Compression")] debug_normal_compression,
+	[Description("Normal Edges")] debug_normal_edges,
+	[Description("Grey Diffuse")] debug_grey_diffuse,
+	[Description("Luminance")] debug_source_color_luminance,
+	[Description("Texture Size")] debug_texture_size,
+	[Description("GBuffer Overdraw")] debug_gbuffer_overdraw,
+	[Description("Smoothness Heatmap")] debug_valid_smoothness_heatmap,
+	[Description("Metalness Heatmap")] debug_valid_layered_metalness,
 }

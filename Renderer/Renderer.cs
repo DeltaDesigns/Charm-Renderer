@@ -270,12 +270,12 @@ public partial class CharmRenderer : IDisposable
 		RenderTransparent();
 		RenderPostProcess();
 
-		if (DisplayPass > RenderPass.final_color_grade)
-			RenderGlobalPipeline(DisplayPass.ToString());
+		if (Viewport.DisplayPass > RenderPass.final_color_grade)
+			RenderGlobalPipeline(Viewport.DisplayPass.ToString());
 		else
 			RenderLuminance();
 
-		var blitRT = DisplayPass == RenderPass.final ? GBuffers.Shading : GBuffers.PostProcessResult;
+		var blitRT = Viewport.DisplayPass == RenderPass.final ? GBuffers.Shading : GBuffers.PostProcessResult;
 		if (Viewport.ShowGrid)
 		{
 			Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);

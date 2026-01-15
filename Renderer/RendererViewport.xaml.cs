@@ -12,7 +12,6 @@ using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
-using static Charm.Renderer.CharmRenderer;
 
 namespace Charm.Renderer;
 
@@ -43,6 +42,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
+	public RenderPass DisplayPass = RenderPass.final;
 	#endregion
 
 	#region Object Options
@@ -338,10 +338,10 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			return;
 
 		var tag = ((sender as ComboBox).SelectedItem as ComboBoxItem).Tag;
-		if (tag is not null && tag is CharmRenderer.RenderPass pass)
-			Renderer.DisplayPass = pass;
+		if (tag is not null && tag is RenderPass pass)
+			DisplayPass = pass;
 		else
-			Renderer.DisplayPass = CharmRenderer.RenderPass.final;
+			DisplayPass = RenderPass.final;
 	}
 
 	private void OnSizeChanged(object sender, SizeChangedEventArgs args)

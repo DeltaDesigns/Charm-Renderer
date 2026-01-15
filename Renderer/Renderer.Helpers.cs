@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
+using Vector3 = System.Numerics.Vector3;
 
 #if DEBUG
 using TracyWrapper;
@@ -126,6 +127,20 @@ public partial class CharmRenderer
 
 public static class RenderHelpers
 {
+	public static Vector3 GetUp(this Vector3 forward)
+	{
+		Vector3 referenceUp = MathF.Abs(forward.Y) > 0.999f ? Vector3.UnitZ : Vector3.UnitY;
+		Vector3 right = Vector3.Normalize(Vector3.Cross(referenceUp, forward));
+		Vector3 up = Vector3.Cross(forward, right);
+
+		return Vector3.Normalize(up);
+	}
+
+	public static Vector3 GetRight(this Vector3 forward, Vector3 up)
+	{
+		return Vector3.Normalize(Vector3.Cross(up, forward));
+	}
+
 	public static AABB ComputeBoundingBox(IReadOnlyList<Tiger.Schema.Vector4> vertices)
 	{
 		Tiger.Schema.Vector4 min = new Tiger.Schema.Vector4(0);
