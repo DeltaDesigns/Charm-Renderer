@@ -10,15 +10,28 @@ public class ObjectChannels
 {
 	public ObservableDictionary<uint, EditableVector4> Channels = new();
 
+	public ObjectChannels()
+	{
+	}
+
 	public ObjectChannels(Entity entity)
 	{
-		var parts = entity.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal);
-		parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
-
-		GetObjectChannels(parts);
+		AddObjectChannels(entity);
 	}
 
 	public ObjectChannels(InventoryItem item)
+	{
+		AddObjectChannels(item);
+	}
+
+	public void AddObjectChannels(Entity entity)
+	{
+		var parts = entity.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal);
+		parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
+		GetObjectChannels(parts);
+	}
+
+	public void AddObjectChannels(InventoryItem item)
 	{
 		List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);
 		List<DynamicMeshPart> parts = new List<DynamicMeshPart>();

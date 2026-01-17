@@ -164,7 +164,7 @@ public class FirstPersonCamera
 		// Middle Mouse = Orbit
 		else if (mouse.Buttons[2])
 		{
-			var bbox = world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new BoundingBox();
+			var bbox = world.OverrideMainBB != null ? world.OverrideMainBB.Value : world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new BoundingBox();
 			if (!IsOrbiting)
 			{
 				IsOrbiting = true;

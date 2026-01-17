@@ -285,6 +285,7 @@ public class RenderObject : GpuResource
 	public FileHash Hash;
 	public TfxFeatureRenderer MeshType;
 	public RenderStageSubscription Stages;
+	public bool Visible = true;
 
 	public HelixToolkit.Maths.BoundingBox BoundingBox { get; set; }
 	public int InstanceCount = 1;
@@ -374,7 +375,7 @@ public class RenderObject : GpuResource
 		Hash = staticMesh.Hash;
 		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
 		//var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
-		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList()).CreateFrom();
+		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
 		//CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
@@ -510,7 +511,7 @@ public class RenderObject : GpuResource
 
 	public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
 	{
-		if (!Stages.IsSubscribed(renderStage))
+		if (!Visible || !Stages.IsSubscribed(renderStage))
 			return;
 
 		RenderHelpers.Profile($"{MeshType} {Hash} Bind");
@@ -640,6 +641,9 @@ public class RenderObject : GpuResource
 
 	public void RenderBoundingBox(CharmRenderer renderer)
 	{
+		if (!Visible)
+			return;
+
 		Vector3[] lines = RenderHelpers.GetBoundingBoxLines(BoundingBox);
 		if (lines.Length == 0)
 			return;

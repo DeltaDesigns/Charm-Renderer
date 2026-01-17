@@ -103,8 +103,8 @@
             <Grid Margin="0,0,0,0" Background="Transparent">
                 <Grid Focusable="False" IsHitTestVisible="False">
                     <Border
-                        Width="12"
-                        Height="12"
+                        Width="10"
+                        Height="10"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Bottom"
                         BorderBrush="#66FFFFFF"
@@ -112,8 +112,8 @@
                         Focusable="False" />
 
                     <Border
-                        Width="12"
-                        Height="12"
+                        Width="10"
+                        Height="10"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Top"
                         BorderBrush="#66FFFFFF"
@@ -121,8 +121,8 @@
                         Focusable="False" />
 
                     <Border
-                        Width="12"
-                        Height="12"
+                        Width="10"
+                        Height="10"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Bottom"
                         BorderBrush="#66FFFFFF"
@@ -130,8 +130,8 @@
                         Focusable="False" />
 
                     <Border
-                        Width="12"
-                        Height="12"
+                        Width="10"
+                        Height="10"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Top"
                         BorderBrush="#66FFFFFF"
@@ -140,35 +140,35 @@
                 </Grid>
                 <Grid Visibility="{Binding IsPlaceholder, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                     <Image
-                        Width="96"
-                        Height="96"
+                        Width="84"
+                        Height="84"
                         Margin="0"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                        RenderOptions.BitmapScalingMode="Linear"
                         Source="{Binding IconBackground}" />
 
                     <Image
-                        Width="96"
-                        Height="96"
+                        Width="84"
+                        Height="84"
                         Margin="0"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                        RenderOptions.BitmapScalingMode="Linear"
                         Source="{Binding Icon}" />
 
                     <Image
-                        Width="96"
-                        Height="96"
+                        Width="84"
+                        Height="84"
                         Margin="0"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                        RenderOptions.BitmapScalingMode="Linear"
                         Source="{Binding IconOverlay}" />
 
                     <RadioButton
-                        Width="96"
-                        Height="96"
+                        Width="84"
+                        Height="84"
                         charm:StyleHelper.BorderThickness="0.75"
                         Checked="PlugItem_Checked"
                         Focusable="False"
@@ -182,16 +182,14 @@
                         Focusable="False"
                         Style="{StaticResource GreyBorderWhiteOnHover}">
                         <Grid
-                            Width="22"
-                            Height="48"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             IsHitTestVisible="False"
                             Visibility="{Binding ItemWatermark, Converter={StaticResource NullToVisibilityConverter}}">
                             <Rectangle
                                 Grid.Row="1"
-                                Width="22"
-                                Height="48"
+                                Width="20"
+                                Height="43"
                                 Opacity="0.6"
                                 Stretch="Fill">
                                 <Rectangle.Fill>
@@ -202,10 +200,11 @@
                                 </Rectangle.Fill>
                             </Rectangle>
                             <Image
-                                Width="20"
-                                Height="20"
+                                Width="18"
+                                Height="18"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Top"
+                                RenderOptions.BitmapScalingMode="Linear"
                                 Source="{Binding ItemWatermark}" />
                         </Grid>
                     </Border>
@@ -214,54 +213,46 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ConsumableSocket">
-            <Grid MaxHeight="96" Margin="0,0,0,10">
-                <charm:HoverPopupWrapper EnableMotionEffect="False" PopupParent="{x:Type charm:SocketCategory}">
-                    <charm:HoverPopupWrapper.Target>
-                        <Grid Grid.Row="0" Margin="0,0,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <ContentControl Content="{Binding SelectedPlug}" ContentTemplate="{StaticResource ConsumableEntry}" />
+            <Grid Margin="5">
+                <StackPanel Orientation="Horizontal">
+                    <charm:HoverPopupWrapper EnableMotionEffect="False" PopupParent="{x:Type charm:SocketCategory}">
+                        <charm:HoverPopupWrapper.Target>
+                            <ContentControl Content="{Binding SelectedPlug}" ContentTemplate="{StaticResource ConsumableEntry}" />
+                        </charm:HoverPopupWrapper.Target>
 
-                                <TextBlock
-                                    Margin="10,0,0,0"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    Panel.ZIndex="1"
-                                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                    FontSize="18"
-                                    Foreground="{StaticResource ForegroundColour100}"
-                                    Text="{Binding SelectedPlug.Item.Name}" />
-                            </StackPanel>
+                        <charm:HoverPopupWrapper.PopupContent>
+                            <!--  negative on the top so it slightly overlays with the target, just for hittest sake  -->
+                            <Grid Margin="-50,-10,-50,-10" Background="Transparent">
+                                <Grid Margin="15,10,15,10" Background="#BB000000">
+                                    <charm:ItemPage
+                                        Margin="0,0,0,0"
+                                        CollapsePageButtons="False"
+                                        Columns="7"
+                                        ItemMargin="4"
+                                        ItemTemplate="{StaticResource ConsumableEntry}"
+                                        Items="{Binding PlugItems}"
+                                        ItemsPerPage="21"
+                                        SelectOnPageChange="False"
+                                        SlideDistance="10"
+                                        TransitionSpeed="0.125"
+                                        UsePlaceholders="True" />
+                                </Grid>
+                            </Grid>
 
-                        </Grid>
-                    </charm:HoverPopupWrapper.Target>
+                        </charm:HoverPopupWrapper.PopupContent>
+                    </charm:HoverPopupWrapper>
 
-                    <charm:HoverPopupWrapper.PopupContent>
-                        <Grid Margin="0,5,0,0">
-                            <Grid.Effect>
-                                <DropShadowEffect
-                                    BlurRadius="10"
-                                    Direction="0"
-                                    ShadowDepth="0"
-                                    Color="#905C5C5C" />
-                            </Grid.Effect>
+                    <TextBlock
+                        Margin="10,0,0,0"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Panel.ZIndex="1"
+                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                        FontSize="18"
+                        Foreground="{StaticResource ForegroundColour100}"
+                        Text="{Binding SelectedPlug.Item.Name}" />
+                </StackPanel>
 
-                            <charm:ItemPage
-                                Margin="-40,0,0,0"
-                                CollapsePageButtons="False"
-                                Columns="7"
-                                ItemMargin="4"
-                                ItemTemplate="{StaticResource ConsumableEntry}"
-                                Items="{Binding PlugItems}"
-                                ItemsPerPage="21"
-                                PageBackgroundColor="#53616164"
-                                SelectOnPageChange="False"
-                                SlideDistance="10"
-                                TransitionSpeed="0.125"
-                                UsePlaceholders="True" />
-                        </Grid>
-
-                    </charm:HoverPopupWrapper.PopupContent>
-                </charm:HoverPopupWrapper>
             </Grid>
         </DataTemplate>
         <!--  End Consumbable  -->
@@ -513,6 +504,7 @@
                     BorderThickness="5" />
 
                 <Expander
+                    MaxHeight="1000"
                     HorizontalAlignment="Stretch"
                     Background="Transparent"
                     KeyboardNavigation.DirectionalNavigation="None">
@@ -524,235 +516,330 @@
                             Text="Object" />
                     </Expander.Header>
 
-                    <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
-                        <StackPanel Margin="5">
-                            <ItemsControl x:Name="ObjectTransforms">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Margin="5" Orientation="Vertical" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
+                    <ScrollViewer
+                        Margin="0,0,0,0"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Resources>
+                            <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                <Setter Property="Width" Value="7" />
+                            </Style>
+                        </ScrollViewer.Resources>
+                        <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
+                            <StackPanel Margin="5">
+                                <ItemsControl x:Name="ObjectTransforms">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Margin="5" Orientation="Vertical" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
 
-                            <ItemsControl x:Name="ObjectOptions">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Margin="5" Orientation="Vertical" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
+                                <ItemsControl x:Name="ObjectOptions">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Margin="5" Orientation="Vertical" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
 
-                            <Expander
-                                x:Name="MeshGroupsExpander"
-                                MaxHeight="500"
-                                Margin="0,5,0,5"
-                                HorizontalAlignment="Stretch"
-                                Background="#75000000"
-                                Visibility="Collapsed">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Foreground="White"
-                                            Text="Mesh Groups" />
-
-                                        <Button
-                                            Margin="10,0,0,0"
-                                            VerticalAlignment="Center"
-                                            Panel.ZIndex="1"
-                                            Click="ResetMeshGroups_Click"
-                                            Focusable="False"
-                                            Style="{StaticResource D2StyleButtonNoOverlay}"
-                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Expander
+                                    x:Name="MeshGroupsExpander"
+                                    MaxHeight="500"
+                                    Margin="0,5,0,5"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#75000000"
+                                    Visibility="Collapsed">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
                                             <TextBlock
-                                                Margin="0"
-                                                VerticalAlignment="Top"
-                                                FontSize="18"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
                                                 Foreground="White"
-                                                Text="⟳" />
-                                        </Button>
-                                    </StackPanel>
-                                </Expander.Header>
+                                                Text="Mesh Groups" />
 
-                                <ScrollViewer
-                                    Margin="0,0,0,0"
-                                    HorizontalScrollBarVisibility="Disabled"
-                                    VerticalScrollBarVisibility="Auto">
-                                    <ScrollViewer.Resources>
-                                        <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
-                                            <Setter Property="Width" Value="7" />
-                                        </Style>
-                                    </ScrollViewer.Resources>
+                                            <Button
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Panel.ZIndex="1"
+                                                Click="ResetMeshGroups_Click"
+                                                Focusable="False"
+                                                Style="{StaticResource D2StyleButtonNoOverlay}"
+                                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock
+                                                    Margin="0"
+                                                    VerticalAlignment="Top"
+                                                    FontSize="18"
+                                                    Foreground="White"
+                                                    Text="⟳" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Expander.Header>
 
-                                    <ItemsControl x:Name="MeshGroups" Margin="20,0,20,10">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type local:ToggleSetting}">
-                                                <StackPanel Margin="3" Orientation="Horizontal">
-                                                    <ToggleButton
-                                                        IsChecked="{Binding IsChecked, Mode=TwoWay}"
-                                                        PreviewMouseLeftButtonDown="MeshGroup_PreviewMouseLeftButtonDown"
-                                                        Style="{DynamicResource D2StyleToggleBoxButton}">
-                                                        <ToggleButton.LayoutTransform>
-                                                            <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                                                        </ToggleButton.LayoutTransform>
-                                                    </ToggleButton>
+                                    <ScrollViewer
+                                        Margin="0,0,0,0"
+                                        HorizontalScrollBarVisibility="Disabled"
+                                        VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer.Resources>
+                                            <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                                <Setter Property="Width" Value="7" />
+                                            </Style>
+                                        </ScrollViewer.Resources>
 
-                                                    <TextBlock
-                                                        Margin="0"
-                                                        VerticalAlignment="Center"
-                                                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                                        FontSize="14"
-                                                        Text="{Binding Text}" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </Expander>
+                                        <ItemsControl x:Name="MeshGroups" Margin="20,0,20,10">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type local:ToggleSetting}">
+                                                    <StackPanel Margin="3" Orientation="Horizontal">
+                                                        <ToggleButton
+                                                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                            PreviewMouseLeftButtonDown="MeshGroup_PreviewMouseLeftButtonDown"
+                                                            Style="{DynamicResource D2StyleToggleBoxButton}">
+                                                            <ToggleButton.LayoutTransform>
+                                                                <ScaleTransform ScaleX=".75" ScaleY=".75" />
+                                                            </ToggleButton.LayoutTransform>
+                                                        </ToggleButton>
 
-                            <Expander
-                                x:Name="ObjectChannelsExpander"
-                                MaxHeight="500"
-                                Margin="0,5,0,5"
-                                HorizontalAlignment="Stretch"
-                                Background="#75000000"
-                                Visibility="Collapsed">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                            Text="Object Channels" />
+                                                        <TextBlock
+                                                            Margin="0"
+                                                            VerticalAlignment="Center"
+                                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                            FontSize="14"
+                                                            Text="{Binding Text}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Expander>
 
-                                        <Button
-                                            Margin="10,0,0,0"
-                                            VerticalAlignment="Center"
-                                            Panel.ZIndex="1"
-                                            Click="ResetObjectChannels_Click"
-                                            Focusable="False"
-                                            Style="{StaticResource D2StyleButtonNoOverlay}"
-                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Expander
+                                    x:Name="ObjectChannelsExpander"
+                                    MaxHeight="500"
+                                    Margin="0,5,0,5"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#75000000"
+                                    Visibility="Collapsed">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
                                             <TextBlock
-                                                Margin="0"
-                                                VerticalAlignment="Top"
-                                                FontSize="18"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                Text="Object Channels" />
+
+                                            <Button
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Panel.ZIndex="1"
+                                                Click="ResetObjectChannels_Click"
+                                                Focusable="False"
+                                                Style="{StaticResource D2StyleButtonNoOverlay}"
+                                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock
+                                                    Margin="0"
+                                                    VerticalAlignment="Top"
+                                                    FontSize="18"
+                                                    Foreground="White"
+                                                    Text="⟳" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Expander.Header>
+
+                                    <ScrollViewer
+                                        Margin="0,0,0,0"
+                                        HorizontalScrollBarVisibility="Disabled"
+                                        VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer.Resources>
+                                            <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                                <Setter Property="Width" Value="7" />
+                                            </Style>
+                                        </ScrollViewer.Resources>
+                                        <ItemsControl x:Name="ObjectChannelsEditor" Margin="20,0,20,10">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <UniformGrid
+                                                        Margin="0,2,0,2"
+                                                        Columns="2"
+                                                        Rows="1">
+                                                        <TextBlock
+                                                            Margin="0,0,10,0"
+                                                            Foreground="White"
+                                                            Text="{Binding Key, Converter={StaticResource ChannelHashToString}}" />
+                                                        <local:Vector4Editor DataContext="{Binding Value}" />
+                                                    </UniformGrid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Expander>
+
+                                <Expander
+                                    x:Name="MaterialPermutationsExpander"
+                                    Margin="0,5,0,5"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#75000000"
+                                    KeyboardNavigation.DirectionalNavigation="None"
+                                    Visibility="Collapsed">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
                                                 Foreground="White"
-                                                Text="⟳" />
-                                        </Button>
-                                    </StackPanel>
-                                </Expander.Header>
+                                                Text="Material Permutations" />
+                                        </StackPanel>
+                                    </Expander.Header>
 
-                                <ScrollViewer
-                                    Margin="0,0,0,0"
-                                    HorizontalScrollBarVisibility="Disabled"
-                                    VerticalScrollBarVisibility="Auto">
-                                    <ScrollViewer.Resources>
-                                        <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
-                                            <Setter Property="Width" Value="7" />
-                                        </Style>
-                                    </ScrollViewer.Resources>
-                                    <ItemsControl x:Name="ObjectChannelsEditor" Margin="20,0,20,10">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <UniformGrid
-                                                    Margin="0,2,0,2"
-                                                    Columns="2"
-                                                    Rows="1">
-                                                    <TextBlock
-                                                        Margin="0,0,10,0"
-                                                        Foreground="White"
-                                                        Text="{Binding Key, Converter={StaticResource ChannelHashToString}}" />
-                                                    <local:Vector4Editor DataContext="{Binding Value}" />
-                                                </UniformGrid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </Expander>
-
-                            <Expander
-                                x:Name="MaterialPermutationsExpander"
-                                Margin="0,5,0,5"
-                                HorizontalAlignment="Stretch"
-                                Background="#75000000"
-                                KeyboardNavigation.DirectionalNavigation="None"
-                                Visibility="Collapsed">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel HorizontalAlignment="Stretch" Orientation="Vertical">
                                         <TextBlock
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Foreground="White"
-                                            Text="Material Permutations" />
-                                    </StackPanel>
-                                </Expander.Header>
-
-                                <StackPanel HorizontalAlignment="Stretch" Orientation="Vertical">
-                                    <TextBlock
-                                        x:Name="PermIndexDebug"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Top"
-                                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                        FontSize="11"
-                                        TextWrapping="Wrap" />
-
-                                    <ContentControl x:Name="PermIndexOverride" />
-
-                                    <StackPanel
-                                        x:Name="MaterialVariantPanel"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch" />
-
-                                </StackPanel>
-                            </Expander>
-
-
-                            <Expander
-                                x:Name="ItemShadersExpander"
-                                Margin="0,5,0,5"
-                                HorizontalAlignment="Stretch"
-                                Background="#75000000"
-                                Visibility="Collapsed">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
+                                            x:Name="PermIndexDebug"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Top"
                                             FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                            Text="Item Shaders" />
+                                            FontSize="11"
+                                            TextWrapping="Wrap" />
+
+                                        <ContentControl x:Name="PermIndexOverride" />
 
                                         <StackPanel
-                                            Margin="15,0,0,0"
-                                            Orientation="Vertical"
-                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <RadioButton
-                                                Margin="2"
-                                                Click="InvesmentShadersOrderBy_Click"
-                                                Content="Name"
-                                                GroupName="InvestmentShaderSortBy"
-                                                IsChecked="False"
-                                                Tag="0" />
-                                            <RadioButton
-                                                Margin="2"
-                                                Click="InvesmentShadersOrderBy_Click"
-                                                Content="Index"
-                                                GroupName="InvestmentShaderSortBy"
-                                                IsChecked="True"
-                                                Tag="1" />
-                                        </StackPanel>
+                                            x:Name="MaterialVariantPanel"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch" />
+
                                     </StackPanel>
-                                </Expander.Header>
+                                </Expander>
 
-                                <ContentControl
-                                    x:Name="ItemShaders"
-                                    Margin="10,0,0,0"
-                                    ContentTemplate="{StaticResource SocketCategory}" />
-                            </Expander>
+                                <Expander
+                                    x:Name="InvestmentExpander"
+                                    Margin="0,5,0,5"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#75000000"
+                                    Visibility="Collapsed">
+                                    <Expander.Header>
+                                        <TextBlock
+                                            Margin="0,0,0,5"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Top"
+                                            Panel.ZIndex="1"
+                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                            FontSize="16"
+                                            Text="Investment Options" />
+                                    </Expander.Header>
+                                    <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
+                                        <StackPanel Margin="0,5,0,5">
 
-                        </StackPanel>
-                    </Border>
+                                            <StackPanel
+                                                Margin="15,0,0,0"
+                                                Orientation="Vertical"
+                                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <RadioButton
+                                                    Margin="2"
+                                                    Click="ArmorGenderToggle_Click"
+                                                    Content="Masculine"
+                                                    GroupName="ArmorGender"
+                                                    Tag="0" />
+                                                <RadioButton
+                                                    Margin="2"
+                                                    Click="ArmorGenderToggle_Click"
+                                                    Content="Feminine"
+                                                    GroupName="ArmorGender"
+                                                    Tag="1" />
+                                            </StackPanel>
+
+                                            <Expander
+                                                x:Name="ItemShadersExpander"
+                                                Margin="0,5,0,5"
+                                                HorizontalAlignment="Stretch"
+                                                Background="Transparent"
+                                                Visibility="Collapsed">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Center"
+                                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                            Text="Item Shaders" />
+
+                                                        <StackPanel
+                                                            Margin="15,0,0,0"
+                                                            Orientation="Vertical"
+                                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <RadioButton
+                                                                Margin="2"
+                                                                Click="InvesmentShadersOrderBy_Click"
+                                                                Content="Name"
+                                                                GroupName="InvestmentShaderSortBy"
+                                                                IsChecked="False"
+                                                                Tag="0" />
+                                                            <RadioButton
+                                                                Margin="2"
+                                                                Click="InvesmentShadersOrderBy_Click"
+                                                                Content="Index"
+                                                                GroupName="InvestmentShaderSortBy"
+                                                                IsChecked="True"
+                                                                Tag="1" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Expander.Header>
+
+                                                <StackPanel Margin="10,0,0,0" Orientation="Vertical">
+
+                                                    <ContentControl x:Name="AllItemShaders" ContentTemplate="{StaticResource SocketCategory}" />
+
+                                                    <ScrollViewer
+                                                        x:Name="PerItemShadersPanel"
+                                                        MaxHeight="300"
+                                                        CanContentScroll="True"
+                                                        HorizontalScrollBarVisibility="Disabled"
+                                                        VerticalScrollBarVisibility="Auto"
+                                                        Visibility="Collapsed">
+                                                        <ScrollViewer.Resources>
+                                                            <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                                                <Setter Property="Width" Value="7" />
+                                                            </Style>
+                                                        </ScrollViewer.Resources>
+
+                                                        <ItemsControl x:Name="PerItemShaders">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Margin="5,0,5,0" Orientation="Horizontal">
+                                                                        <ContentControl
+                                                                            Margin="0,0,0,0"
+                                                                            HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"
+                                                                            Content="{Binding Item}"
+                                                                            ContentTemplate="{StaticResource ConsumableEntry}" />
+
+                                                                        <Border
+                                                                            Width="25"
+                                                                            Height="5"
+                                                                            Margin="10,5,5,5"
+                                                                            HorizontalAlignment="Center"
+                                                                            BorderBrush="Gray"
+                                                                            BorderThickness="0,2,0,0" />
+
+                                                                        <ContentControl
+                                                                            HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"
+                                                                            Content="{Binding ShadersCategory}"
+                                                                            ContentTemplate="{StaticResource SocketCategory}" />
+
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </ScrollViewer>
+                                                </StackPanel>
+
+                                            </Expander>
+                                        </StackPanel>
+                                    </Border>
+                                </Expander>
+
+
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
 
                 </Expander>
             </StackPanel>

@@ -50,8 +50,10 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public bool ShowSkele { get; set; } = true;
 	public bool ShowBB { get; set; } = false;
 	public SliderSetting MaterialPermutationOverride { get; set; }
-	public SocketCategory ItemShadersCategory { get; set; }
 	public ObservableCollection<SettingItem> GroupToggles { get; set; } = new();
+
+	public SocketCategory AllShadersCategories { get; set; }
+	public ObservableCollection<RendererShaderEntry> ItemShadersCategories { get; set; }
 	#endregion
 
 	private bool _isFullscreen = false;
@@ -442,10 +444,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		var entity = FileResourcer.Get().GetFile<Entity>(hash, shouldCache: false);
 		_currentEntity = entity;
 
-		Renderer.Stop();
-		Renderer.LoadEntity(_currentEntity);
-		Renderer.Start();
-
 		await Task.Run(() =>
 		{
 			Dispatcher.Invoke(() =>
@@ -453,6 +451,10 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				CreateMaterialVariants(entity);
 			});
 		});
+
+		Renderer.Stop();
+		Renderer.LoadEntity(_currentEntity);
+		Renderer.Start();
 	}
 
 	public void CreateMeshGroups(Entity entity)
@@ -487,15 +489,22 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		if (entity.ModelParent is null)
 			return;
 
+		int variantCount = entity.ModelParent.Reader.ExternalMaterialsMap
+						.Enumerate(entity.ModelParent.GetReader())
+						//.Where(m => m.Unk08 != 0)
+						.Select(m => (int)m.MaterialCount)
+						.Max();
+
 		var permutations = entity.ModelParent.MaterialPermutations;
-		if (permutations is null)
+		if (permutations is null && variantCount == 0)
 			return;
 
-		int variantCount = entity.ModelParent.Reader.ExternalMaterialsMap
-							.Enumerate(entity.ModelParent.GetReader())
-							//.Where(m => m.Unk08 != 0)
-							.Select(m => (int)m.MaterialCount)
-							.Max();
+		if (permutations is null && variantCount != 0) // ehhh
+		{
+			entity.ModelParent.MaterialPermutations = new();
+			permutations = entity.ModelParent.MaterialPermutations;
+			MaterialPermutationsExpander.Visibility = Visibility.Visible;
+		}
 
 		MaterialPermutationOverride = new SliderSetting()
 		{
@@ -551,7 +560,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			MaterialVariantPanel.Children.Add(matVariants);
 		}
 
-		if (MaterialVariantPanel.Children.Count != 0)
+		if (MaterialVariantPanel.Children.Count > 0)
 			MaterialPermutationsExpander.Visibility = Visibility.Visible;
 	}
 
@@ -594,19 +603,35 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		if (Renderer is null)
 			Initialize();
 
-		CreateInvestmentShaders(item);
+		PerItemShadersPanel.Visibility = Visibility.Collapsed;
+		CreateInvestmentShaders();
 		Renderer.Pause();
 		Renderer.LoadInvestmentItem(item);
 		Renderer.Resume();
 	}
 
-	public void CreateInvestmentShaders(InventoryItem item)
+	public void LoadInvestmentItems(IEnumerable<InventoryItem> items)
 	{
+		if (Renderer is null)
+			Initialize();
+
+		CreateInvestmentShaders();
+		Renderer.Pause();
+		Renderer.LoadInvestmentItems(items);
+		Renderer.Resume();
+
+		CreatePerObjectInvestmentShaders(items);
+		SetArmorGenderVisibility(DestinyGenderDefinition.Masculine);
+	}
+
+	public void CreateInvestmentShaders()
+	{
+		InvestmentExpander.Visibility = Visibility.Visible;
 		ItemShadersExpander.Visibility = Visibility.Visible;
 
-		if (ItemShadersCategory is null)
+		if (AllShadersCategories is null)
 		{
-			ItemShadersCategory = new()
+			AllShadersCategories = new()
 			{
 				CategoryStyle = DestinySocketCategoryStyle.Consumable,
 				Sockets = new List<SocketEntry>()
@@ -640,11 +665,65 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			socketEntry.SelectedPlug = initial;
 			socketEntry.SingleInitialItem = initial;
 
-			ItemShadersCategory.Sockets.Add(socketEntry);
+			AllShadersCategories.Sockets.Add(socketEntry);
 		}
 
-		ItemShadersCategory.Sockets[0].SelectedPlug = ItemShadersCategory.Sockets[0].SingleInitialItem;
-		ItemShaders.Content = ItemShadersCategory;
+		AllShadersCategories.Sockets[0].SelectedPlug = AllShadersCategories.Sockets[0].SingleInitialItem;
+		AllItemShaders.Content = AllShadersCategories;
+	}
+
+	public void CreatePerObjectInvestmentShaders(IEnumerable<InventoryItem> items)
+	{
+		PerItemShadersPanel.Visibility = Visibility.Visible;
+
+		ItemShadersCategories = new();
+		IEnumerable<InventoryItem> shaders = Investment.Get().GetInventoryItemsUnloaded().Where(x => x.IsShader);
+
+		foreach (var item in items)
+		{
+			RendererShaderEntry entry = new();
+			entry.Item = new APIPlugItem(item);
+
+			entry.ShadersCategory = new()
+			{
+				CategoryStyle = DestinySocketCategoryStyle.Consumable,
+				Sockets = new List<SocketEntry>()
+			};
+
+			SocketEntry socketEntry = new();
+			socketEntry.ParentItem = entry.Item;
+			socketEntry.CategoryStyle = DestinySocketCategoryStyle.Consumable;
+
+			foreach (var invItem in shaders)
+			{
+				if (!invItem.IsShader)
+					continue;
+
+				var plugitem = new APIPlugItem(invItem)
+				{
+					IsSelected = false,
+					Index = invItem.GetItemIndex(),
+					ParentSocket = socketEntry,
+				};
+				socketEntry.PlugItems.Add(plugitem);
+			}
+
+			socketEntry.PlugItems = socketEntry.PlugItems.OrderByDescending(x => x.Index).ToList();
+
+			var initial = socketEntry.PlugItems.Last();
+			socketEntry.PlugItems.Remove(initial);
+			socketEntry.PlugItems.Insert(0, initial);
+
+			socketEntry.SelectedPlug = initial;
+			socketEntry.SingleInitialItem = initial;
+
+			entry.ShadersCategory.Sockets.Add(socketEntry);
+			entry.ShadersCategory.Sockets[0].SelectedPlug = entry.ShadersCategory.Sockets[0].SingleInitialItem;
+
+			ItemShadersCategories.Add(entry);
+		}
+
+		PerItemShaders.ItemsSource = ItemShadersCategories;
 	}
 
 	private void PlugItem_Checked(object sender, RoutedEventArgs e)
@@ -653,17 +732,17 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			return;
 
 		APIPlugItem item = (APIPlugItem)(sender as FrameworkElement).DataContext;
-		if (item.IsSelected)
+		if (item.IsSelected && item.ParentSocket is not null)
 		{
 			item.ParentSocket.SelectedPlug = item;
 			if (item.Item.Name == "Default Shader")
-				ResetInvestmentShader();
+				ResetInvestmentShader(item.ParentSocket.ParentItem);
 			else
-				LoadInvestmentShader(item.Item);
+				LoadInvestmentShader(item.Item, item.ParentSocket.ParentItem);
 		}
 	}
 
-	private void LoadInvestmentShader(InventoryItem shader)
+	private void LoadInvestmentShader(InventoryItem shader, APIPlugItem parent = null)
 	{
 		if (!Renderer.World.RenderObjects.Any() || !Renderer.World.RenderObjects.Any(x => x.Investment != null))
 			return;
@@ -672,7 +751,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			shader.Load(true);
 
 		Renderer.Pause();
-		foreach (var obj in Renderer.World.RenderObjects)
+		var items = parent is null ? Renderer.World.RenderObjects : Renderer.World.RenderObjects.Where(x => x.Investment != null && x.Investment.BaseItem.ApiHash == parent.Item.ApiHash);
+		foreach (var obj in items)
 		{
 			if (obj.Investment is null)
 				continue;
@@ -682,18 +762,21 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		Renderer.Resume();
 	}
 
-	private void ResetInvestmentShader()
+	private void ResetInvestmentShader(APIPlugItem parent = null)
 	{
 		if (!Renderer.World.RenderObjects.Any())
 			return;
 
-		foreach (var obj in Renderer.World.RenderObjects)
+		Renderer.Pause();
+		var items = parent is null ? Renderer.World.RenderObjects : Renderer.World.RenderObjects.Where(x => x.Investment != null && x.Investment.BaseItem.ApiHash == parent.Item.ApiHash);
+		foreach (var obj in items)
 		{
 			if (obj.Investment is null)
 				continue;
 
 			obj.Investment.ResetDyes(Renderer.Context);
 		}
+		Renderer.Resume();
 	}
 
 	private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
@@ -703,7 +786,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
 		_ = int.TryParse((string)rb.Tag, out int order);
 
-		var items = ItemShadersCategory.Sockets[0].PlugItems;
+		var items = AllShadersCategories.Sockets[0].PlugItems;
 		switch (order)
 		{
 			case 0:
@@ -714,14 +797,36 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				items = [.. items.OrderByDescending(x => x.Item.GetItemIndex())];
 				break;
 		}
-		var initial = ItemShadersCategory.Sockets[0].SingleInitialItem;
+		var initial = AllShadersCategories.Sockets[0].SingleInitialItem;
 		items.Remove(initial);
 		items.Insert(0, initial);
 
-		ItemShadersCategory.Sockets[0].PlugItems = items;
+		AllShadersCategories.Sockets[0].PlugItems = items;
 
-		ItemShaders.Content = null;
-		ItemShaders.Content = ItemShadersCategory;
+		AllItemShaders.Content = null;
+		AllItemShaders.Content = AllShadersCategories;
+	}
+
+	private void ArmorGenderToggle_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not RadioButton rb)
+			return;
+
+		_ = int.TryParse((string)rb.Tag, out int order);
+
+		DestinyGenderDefinition gender = order == 0 ? DestinyGenderDefinition.Masculine : DestinyGenderDefinition.Feminine;
+		SetArmorGenderVisibility(gender);
+	}
+
+	private void SetArmorGenderVisibility(DestinyGenderDefinition gender)
+	{
+		foreach (var obj in Renderer.World.RenderObjects)
+		{
+			if (obj.Investment is null || obj.Entity is null || obj.Entity.Gender == DestinyGenderDefinition.None)
+				continue;
+
+			obj.Visible = obj.Entity.Gender == gender;
+		}
 	}
 	#endregion
 	#endregion
@@ -796,7 +901,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		}
 	}
 
-
 	public static Grid FindParentGridByName(DependencyObject start, string gridName)
 	{
 		DependencyObject current = start;
@@ -819,4 +923,10 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
 		return null;
 	}
+}
+
+public class RendererShaderEntry : CharmUIElement
+{
+	public APIPlugItem Item { get; set; }
+	public SocketCategory ShadersCategory { get; set; }
 }

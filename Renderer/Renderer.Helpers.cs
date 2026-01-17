@@ -107,6 +107,27 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetRenderTargets(null, new RenderTargetView[8]);
 	}
 
+	public void LookAtMeshInitial()
+	{
+		var bbox = World.RenderObjects.FirstOrDefault()?.BoundingBox ?? new HelixToolkit.Maths.BoundingBox();
+		LookAtBoundingBox(bbox);
+	}
+
+	public void LookAtBoundingBox(BoundingBox bbox)
+	{
+		var center = (bbox.Minimum + bbox.Maximum) / 2f;
+		var size = bbox.Maximum - bbox.Minimum;
+		var radius = size.Length() / 2f;
+
+		Camera.Position = new Vector3(center.X, center.Y - radius * 1.75f, center.Z + radius * 0.75f);
+		Camera.LookAt(new Vector3(center.X, center.Y, center.Z));
+		Camera.RotateAround(new Vector3(center.X, center.Y, center.Z), 90f, 0f);
+
+		Camera.Yaw -= 30f;
+		Camera.Position = new Vector3(Camera.Position.X, Camera.Position.Y - radius, Camera.Position.Z);
+		Camera.UpdateVectors();
+	}
+
 	[DllImport("user32.dll")]
 	private static extern IntPtr GetForegroundWindow();
 
@@ -141,17 +162,17 @@ public static class RenderHelpers
 		return Vector3.Normalize(Vector3.Cross(up, forward));
 	}
 
-	public static AABB ComputeBoundingBox(IReadOnlyList<Tiger.Schema.Vector4> vertices)
+	public static BoundingBox ComputeBoundingBox(IReadOnlyList<Tiger.Schema.Vector4> vertices)
 	{
-		Tiger.Schema.Vector4 min = new Tiger.Schema.Vector4(0);
-		Tiger.Schema.Vector4 max = new Tiger.Schema.Vector4(0);
+		Vector4 min = new Vector4(0);
+		Vector4 max = new Vector4(0);
 
 		if (vertices == null || vertices.Count == 0)
-			return new AABB() { Min = min, Max = max };
+			return new BoundingBox() { Minimum = min.ToVec3(), Maximum = max.ToVec3() };
 
 		for (int i = 0; i < vertices.Count; i++)
 		{
-			Tiger.Schema.Vector4 v = vertices[i];
+			Vector4 v = vertices[i];
 
 			if (v.X < min.X) min.X = v.X;
 			if (v.Y < min.Y) min.Y = v.Y;
@@ -162,7 +183,7 @@ public static class RenderHelpers
 			if (v.Z > max.Z) max.Z = v.Z;
 		}
 
-		return new AABB() { Min = min, Max = max };
+		return new BoundingBox() { Minimum = min.ToVec3(), Maximum = max.ToVec3() };
 	}
 
 	public static BoundingBox CreateFrom(this AABB aabb)
@@ -223,6 +244,36 @@ public static class RenderHelpers
 			corners[2], corners[6],
 			corners[3], corners[7],
 		};
+	}
+
+	public static BoundingBox CombineBBs(List<BoundingBox> boxes)
+	{
+		if (boxes.Count == 0)
+			return new BoundingBox();
+
+		if (boxes.Count == 1)
+			return boxes[0];
+
+		bool hasAny = false;
+		Vector3 min = default;
+		Vector3 max = default;
+
+		foreach (var box in boxes)
+		{
+			if (!hasAny)
+			{
+				min = box.Minimum;
+				max = box.Maximum;
+				hasAny = true;
+			}
+			else
+			{
+				min = Vector3.Min(min, box.Minimum);
+				max = Vector3.Max(max, box.Maximum);
+			}
+		}
+
+		return new BoundingBox(min, max);
 	}
 
 	public static List<InputElement> GetInputLayout(int layoutIndex)

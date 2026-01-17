@@ -1,4 +1,5 @@
 ﻿using Arithmic;
+using HelixToolkit.Maths;
 using System.Collections.Concurrent;
 using Tiger;
 using Tiger.Schema;
@@ -13,6 +14,7 @@ public class RenderWorld : IDisposable
 	public RendererGlobalChannels GlobalChannels;
 	public List<Vector4> DayCycleRotations;
 	public Queue<RenderObject> RenderObjects = new();
+	public BoundingBox? OverrideMainBB = null;
 
 	// Temp, this sucks, will fix later
 	public Queue<RenderObject> PersistantRenderObjects = new();

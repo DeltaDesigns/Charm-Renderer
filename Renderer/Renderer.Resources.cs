@@ -2,7 +2,6 @@
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using Buffer = SharpDX.Direct3D11.Buffer;
-using Vector3 = System.Numerics.Vector3;
 
 namespace Charm.Renderer;
 
@@ -42,21 +41,6 @@ public partial class CharmRenderer
 	private SamplerState _pointSampler;
 
 	public ObjectChannels EntityObjectChannels { get; set; }
-
-	private void LookAtMeshInitial()
-	{
-		var bbox = World.RenderObjects.FirstOrDefault()?.BoundingBox ?? new HelixToolkit.Maths.BoundingBox();
-		var center = (bbox.Minimum + bbox.Maximum) / 2f;
-		var size = bbox.Maximum - bbox.Minimum;
-		var radius = size.Length() / 2f;
-		Camera.Position = new Vector3(center.X, center.Y - radius * 1.75f, center.Z + radius * 0.75f);
-		Camera.LookAt(new Vector3(center.X, center.Y, center.Z));
-		Camera.RotateAround(new Vector3(center.X, center.Y, center.Z), 90f, 0f);
-
-		Camera.Yaw -= 30f;
-		Camera.Position = new Vector3(Camera.Position.X, Camera.Position.Y - radius, Camera.Position.Z);
-		Camera.UpdateVectors();
-	}
 
 	private void CreateRenderingResources(int imageWidth, int imageHeight)
 	{
