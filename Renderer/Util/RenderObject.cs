@@ -280,10 +280,18 @@ public class InvestmentDye : GpuResource
 	}
 }
 
+// eh, dont like this
+public enum MeshType
+{
+	Normal,
+	Physics
+}
+
 public class RenderObject : GpuResource
 {
 	public FileHash Hash;
-	public TfxFeatureRenderer MeshType;
+	public TfxFeatureRenderer Feature;
+	public MeshType MeshType = MeshType.Normal;
 	public RenderStageSubscription Stages;
 	public bool Visible = true;
 
@@ -350,6 +358,11 @@ public class RenderObject : GpuResource
 		{
 			RenderObject obj = new();
 			obj.BoundingBox = entity.PhysicsModelParent.GetBoundingBox().CreateFrom();
+			obj.Hash = entity.Hash;
+			obj.Entity = entity;
+			obj.MeshType = MeshType.Physics;
+			if (inventoryItem is not null)
+				obj.Investment = new(context, entity, inventoryItem);
 
 			var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed);
 			obj.CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
@@ -383,7 +396,7 @@ public class RenderObject : GpuResource
 
 	private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
 	{
-		MeshType = meshType;
+		Feature = meshType;
 		Stages = RenderStageSubscriptionExtensions.FromStages(parts.Select(x => x.RenderStage).Distinct());
 
 		foreach (var part in parts)
@@ -432,7 +445,7 @@ public class RenderObject : GpuResource
 		if (!Stages.IsSubscribed(renderStage))
 			return;
 
-		RenderHelpers.Profile($"{MeshType} {Hash} Bind (Parallel)");
+		RenderHelpers.Profile($"{Feature} {Hash} Bind (Parallel)");
 
 		MeshPartData[] meshes;
 		lock (renderer.World.WorldLock)
@@ -476,7 +489,7 @@ public class RenderObject : GpuResource
 			{
 				var mesh = stageMeshes[i];
 
-				if (MeshType == TfxFeatureRenderer.StaticObjects)
+				if (Feature == TfxFeatureRenderer.StaticObjects)
 				{
 					renderer.TempScopes.UpdateChunkModelScope(ctx, mesh, GlobalTransforms);
 					if (InstanceCount > 1)
@@ -514,7 +527,7 @@ public class RenderObject : GpuResource
 		if (!Visible || !Stages.IsSubscribed(renderStage))
 			return;
 
-		RenderHelpers.Profile($"{MeshType} {Hash} Bind");
+		RenderHelpers.Profile($"{Feature} {Hash} Bind");
 
 		MeshPartData[] meshes;
 		lock (renderer.World.WorldLock)
@@ -525,7 +538,7 @@ public class RenderObject : GpuResource
 			if (mesh.RenderStage != renderStage || !renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex))
 				continue;
 
-			if (MeshType == TfxFeatureRenderer.StaticObjects)
+			if (Feature == TfxFeatureRenderer.StaticObjects)
 			{
 				renderer.TempScopes.UpdateChunkModelScope(renderer.Context, mesh, GlobalTransforms);
 				if (InstanceCount > 1)
@@ -535,6 +548,10 @@ public class RenderObject : GpuResource
 			}
 			else
 			{
+				// meh, hopefully 'fixes' the random physics mesh with incorrect transforms
+				if (MeshType == MeshType.Physics && !mesh.Material.Skinned)
+					continue;
+
 				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh, GlobalTransforms, TransformOffset);
 				if (Investment is not null)
 					Investment.Bind(renderer.Context);
@@ -542,7 +559,7 @@ public class RenderObject : GpuResource
 				// This is bad and stupid and sucks
 				if (Permutations is not null && mesh.VariantMaterialIndex != -1)
 				{
-					RenderHelpers.Profile($"{MeshType} {Hash} Permutations");
+					RenderHelpers.Profile($"{Feature} {Hash} Permutations");
 
 					var index = Permutations.CalculatePermutationIndexFast();
 					var overrideIndex = Permutations.OverrideIndex;

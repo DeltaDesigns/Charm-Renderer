@@ -222,7 +222,7 @@
 
                         <charm:HoverPopupWrapper.PopupContent>
                             <!--  negative on the top so it slightly overlays with the target, just for hittest sake  -->
-                            <Grid Margin="-50,-10,-50,-10" Background="Transparent">
+                            <Grid Margin="-50,-10,-60,-10" Background="Transparent">
                                 <Grid Margin="15,10,15,10" Background="#BB000000">
                                     <charm:ItemPage
                                         Margin="0,0,0,0"
@@ -735,6 +735,7 @@
                                                     Click="ArmorGenderToggle_Click"
                                                     Content="Masculine"
                                                     GroupName="ArmorGender"
+                                                    IsChecked="True"
                                                     Tag="0" />
                                                 <RadioButton
                                                     Margin="2"

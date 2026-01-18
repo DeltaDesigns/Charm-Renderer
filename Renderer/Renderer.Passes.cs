@@ -458,7 +458,7 @@ public partial class CharmRenderer
 
 		foreach (var renderable in renderObjects)
 		{
-			if (!features.IsSubscribed(renderable.MeshType))
+			if (!features.IsSubscribed(renderable.Feature))
 				continue;
 
 			renderable?.Bind(this, renderStage);
@@ -466,7 +466,7 @@ public partial class CharmRenderer
 
 		foreach (var renderable in persistentObjects)
 		{
-			if (!features.IsSubscribed(renderable.MeshType))
+			if (!features.IsSubscribed(renderable.Feature))
 				continue;
 
 			renderable?.Bind(this, renderStage);

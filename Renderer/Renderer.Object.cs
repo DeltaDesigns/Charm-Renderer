@@ -63,6 +63,7 @@ public partial class CharmRenderer
 	public void LoadInvestmentItem(InventoryItem item)
 	{
 		World?.Dispose();
+		EntityObjectChannels = new(item);
 
 		List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);
 		Entity? skele = Investment.Get().GetPatternEntityFromHash(item.Parent != null ? item.Parent.TagData.InventoryItemHash : item.TagData.InventoryItemHash);
@@ -74,12 +75,10 @@ public partial class CharmRenderer
 			RenderObject obj = new();
 			obj.Create(Context, ent, World, item);
 		}
+		LoadPlayerSkeleton(item);
 
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;
-
-		EntityObjectChannels = new(item);
-		Viewport.ObjectChannelsExpander.Visibility = EntityObjectChannels.Channels.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-		Viewport.ObjectChannelsEditor.ItemsSource = EntityObjectChannels.Channels;
+		ShouldShowObjectChannels();
 
 		LookAtMeshInitial();
 	}
@@ -108,6 +107,9 @@ public partial class CharmRenderer
 			EntityObjectChannels.AddObjectChannels(item);
 		}
 
+		if (items.Where(x => x.IsArmor || x.IsArmorOrnament).Any()) // meh
+			LoadPlayerSkeleton(items.First());
+
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;
 		ShouldShowObjectChannels();
 
@@ -121,6 +123,20 @@ public partial class CharmRenderer
 		World.OverrideMainBB = combinedBB;
 		LookAtBoundingBox(combinedBB);
 	}
+
+	public void LoadPlayerSkeleton(InventoryItem item)
+	{
+		if (!item.IsGhost && !item.IsArmor && !item.IsArmorOrnament)
+			return;
+
+		var skeleHash = item.IsGhost ? "0000603046D31C68" : "0000670F342E9595";
+		Entity skele = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(skeleHash))); // 64 bit more permanent
+		EntityObjectChannels.AddObjectChannels(skele);
+
+		RenderObject obj = new();
+		obj.Create(Context, skele, World);
+	}
+
 
 	public void CreateObjectChannels(Entity entity)
 	{
