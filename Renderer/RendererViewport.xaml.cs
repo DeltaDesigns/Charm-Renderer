@@ -486,7 +486,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		MaterialVariantPanel.Children.Clear();
 		//UsedMaterialsList.ItemsSource = null;
 
-		if (entity.ModelParent is null)
+		if (entity.ModelParent is null || entity.ModelParent.Reader.ExternalMaterialsMap.Count == 0)
 			return;
 
 		int variantCount = entity.ModelParent.Reader.ExternalMaterialsMap

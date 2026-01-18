@@ -83,6 +83,8 @@ public class ObjectChannels
 					{
 						case 2812804675: // interpolated_world_position
 						case 2046642570: // parent.fp_iron_sight
+						case 286711233: // hydra shield
+						case 2786922960: // belmon shield
 							val = Vector4.Zero;
 							break;
 					}
