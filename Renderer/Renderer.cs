@@ -261,7 +261,7 @@ public partial class CharmRenderer : IDisposable
 		RenderAtmosphere();
 
 		// Gotta set back to main viewport dims since this gets used for other non-atmosphere things for some reason
-		Externs.Atmosphere.RTDimensions = new(Camera.Viewport.Width, Camera.Viewport.Height, 1f / Camera.Viewport.Width, 1f / Camera.Viewport.Height);
+		Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
 
 		// GBuffer Pass
 		RenderGBuffer();
@@ -275,7 +275,7 @@ public partial class CharmRenderer : IDisposable
 		else
 			RenderLuminance();
 
-		var blitRT = Viewport.DisplayPass == RenderPass.final ? GBuffers.Shading : GBuffers.PostProcessResult;
+		var blitRT = Viewport.DisplayPass == RenderPass.final ? GBuffers.Shading : GBuffers.FXAA;
 		if (Viewport.ShowGrid)
 		{
 			Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);

@@ -1,6 +1,7 @@
 ﻿using Arithmic;
 using HelixToolkit.Maths;
 using SharpDX.DirectInput;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using static Charm.Renderer.Externs;
 using Quaternion = System.Numerics.Quaternion;
@@ -295,6 +296,13 @@ public class FirstPersonCamera
 		}
 
 		Log.Debug($"Picked Object: {picked?.Hash}");
+	}
+
+	public Vector4 GetResolutionInverse()
+	{
+		int width = Viewport.Width;
+		int height = Viewport.Height;
+		return new(width, height, 1f / width, 1f / height);
 	}
 
 	[DllImport("user32.dll")]

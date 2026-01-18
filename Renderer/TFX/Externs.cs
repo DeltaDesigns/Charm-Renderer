@@ -294,7 +294,7 @@ public class Externs : IDisposable
 			RenderHelpers.Profile("Extern Atmosphere Update");
 
 			var cam = renderer.Camera;
-			RTDimensions = new Vector4(cam.Viewport.Width, cam.Viewport.Height, 1f / cam.Viewport.Width, 1f / cam.Viewport.Height);
+			RTDimensions = cam.GetResolutionInverse();
 
 			AtmosSunColor = renderer.World.GlobalChannels.Get("sun_glow_color");
 			AtmosUnk150 = renderer.World.GlobalChannels.Get(new TigerHash(0x4aa1bef5)).X;
@@ -509,7 +509,7 @@ public class Externs : IDisposable
 		public void Update(DeviceContext context, GBuffer gbuffer)
 		{
 			RenderHelpers.Profile("Extern Fxaa Update");
-			Unk00 = gbuffer.Shading.SRV;
+			Unk00 = gbuffer.PostProcessResult.SRV;
 			Unk50 = 0.75f;
 			Unk54 = 0.166f;
 			Unk58 = 0.0833f;

@@ -31,6 +31,7 @@ public partial class CharmRenderer
 		public RenderTarget2D Shading_Clone { get; private set; }
 
 		public RenderTarget2D PostProcessResult { get; private set; }
+		public RenderTarget2D FXAA { get; private set; }
 
 		public DepthTarget Depth { get; private set; }
 		public DepthTarget Depth_Clone { get; private set; }
@@ -70,6 +71,7 @@ public partial class CharmRenderer
 			Shading_Clone = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Staging Clone");
 
 			PostProcessResult = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result");
+			FXAA = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "FXAA Result");
 
 			Depth = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth");
 			Depth_Clone = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone");
@@ -134,6 +136,8 @@ public partial class CharmRenderer
 
 			PostProcessResult?.Dispose();
 			PostProcessResult = null;
+			FXAA?.Dispose();
+			FXAA = null;
 
 			Depth?.Dispose();
 			Depth = null;
@@ -225,6 +229,13 @@ public partial class CharmRenderer
 		public void CopyTo(DeviceContext context, RenderTarget2D target)
 		{
 			context.CopyResource(this.Texture, target.Texture);
+		}
+
+		public Vector4 GetResolutionInverse()
+		{
+			int width = Texture.Description.Width;
+			int height = Texture.Description.Height;
+			return new(width, height, 1f / width, 1f / height);
 		}
 
 		public Viewport GetViewport()

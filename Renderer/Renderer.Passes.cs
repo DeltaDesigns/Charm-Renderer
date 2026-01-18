@@ -71,7 +71,7 @@ public partial class CharmRenderer
 		var depthangle = GBuffers.DepthAngleDensityLookup;
 
 		Externs.Frame.Unk10 = Viewport.TimeOfDay;
-		Externs.Atmosphere.RTDimensions = new(far.Width, far.Height, 1f / far.Width, 1f / far.Height);
+		Externs.Atmosphere.RTDimensions = far.GetResolutionInverse();
 		Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
 		//Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
 		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
@@ -139,7 +139,7 @@ public partial class CharmRenderer
 			Externs.GlobalLighting.Update(World.GlobalChannels);
 			Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
 			CMD.States.CreateStates(Context, new(2, 16, 0, 0));
-			RenderGlobalPipeline("global_lighting_gel");
+			RenderGlobalPipeline("global_lighting");
 		}
 		else
 		{
@@ -274,11 +274,9 @@ public partial class CharmRenderer
 
 		RenderGlobalPipeline("screen_area_global_lut3d_hdr");
 
-		// I cant notice a difference here, not sure whats going on
-		//GBuffers.Shading_Clone.SetRenderTarget(Context, false);
-		//Externs.Fxaa.Update(Context, GBuffers);
-		//RenderGlobalPipeline("fxaa");
-		//Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
+		GBuffers.FXAA.SetRenderTarget(Context, false);
+		Externs.Fxaa.Update(Context, GBuffers);
+		RenderGlobalPipeline("fxaa");
 
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
@@ -616,11 +614,9 @@ public enum RenderPass
 	[Description("Depth Edges")] debug_depth_edges,
 
 	// Misc
-	[Description("Normal Compression")] debug_normal_compression,
 	[Description("Normal Edges")] debug_normal_edges,
 	[Description("Grey Diffuse")] debug_grey_diffuse,
 	[Description("Luminance")] debug_source_color_luminance,
-	[Description("Texture Size")] debug_texture_size,
 	[Description("GBuffer Overdraw")] debug_gbuffer_overdraw,
 	[Description("Smoothness Heatmap")] debug_valid_smoothness_heatmap,
 	[Description("Metalness Heatmap")] debug_valid_layered_metalness,
