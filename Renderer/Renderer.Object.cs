@@ -75,12 +75,21 @@ public partial class CharmRenderer
 			RenderObject obj = new();
 			obj.Create(Context, ent, World, item);
 		}
-		LoadPlayerSkeleton(item);
 
+		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
+		// so the view is centered better
+		combinedBB = new HelixToolkit.Maths.BoundingBox()
+		{
+			Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 0, 1),
+			Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 0, 1)
+		};
+		World.OverrideMainBB = combinedBB;
+		LookAtBoundingBox(combinedBB);
+
+		// load player/ghost skele after so its additional meshes dont get included in the main bounding box
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;
 		ShouldShowObjectChannels();
-
-		LookAtMeshInitial();
+		LoadPlayerSkeleton(item);
 	}
 
 	public void LoadInvestmentItems(IEnumerable<InventoryItem> items)
@@ -107,12 +116,6 @@ public partial class CharmRenderer
 			EntityObjectChannels.AddObjectChannels(item);
 		}
 
-		if (items.Where(x => x.IsArmor || x.IsArmorOrnament).Any()) // meh
-			LoadPlayerSkeleton(items.First());
-
-		Viewport.OverrideWarning.Visibility = Visibility.Visible;
-		ShouldShowObjectChannels();
-
 		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
 		// so the view is centered better
 		combinedBB = new HelixToolkit.Maths.BoundingBox()
@@ -122,6 +125,12 @@ public partial class CharmRenderer
 		};
 		World.OverrideMainBB = combinedBB;
 		LookAtBoundingBox(combinedBB);
+
+		if (items.Where(x => x.IsArmor || x.IsArmorOrnament).Any()) // meh
+			LoadPlayerSkeleton(items.First());
+
+		Viewport.OverrideWarning.Visibility = Visibility.Visible;
+		ShouldShowObjectChannels();
 	}
 
 	public void LoadPlayerSkeleton(InventoryItem item)

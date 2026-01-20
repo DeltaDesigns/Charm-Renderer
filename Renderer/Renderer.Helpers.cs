@@ -115,8 +115,8 @@ public partial class CharmRenderer
 
 	public void LookAtBoundingBox(BoundingBox bbox)
 	{
-		var center = (bbox.Minimum + bbox.Maximum) / 2f;
-		var size = bbox.Maximum - bbox.Minimum;
+		var center = bbox.Center;
+		var size = bbox.Size;
 		var radius = size.Length() / 2f;
 
 		Camera.Position = new Vector3(center.X, center.Y - radius * 1.75f, center.Z + radius * 0.75f);
