@@ -107,10 +107,9 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetRenderTargets(null, new RenderTargetView[8]);
 	}
 
-	public void LookAtMeshInitial()
+	public void LookAtMesh(RenderObject obj)
 	{
-		var bbox = World.RenderObjects.FirstOrDefault()?.BoundingBox ?? new HelixToolkit.Maths.BoundingBox();
-		LookAtBoundingBox(bbox);
+		LookAtBoundingBox(obj.BoundingBox);
 	}
 
 	public void LookAtBoundingBox(BoundingBox bbox)

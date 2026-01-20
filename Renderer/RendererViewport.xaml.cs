@@ -49,6 +49,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public ObservableCollection<SettingItem> ObjectSettings { get; set; }
 	public bool ShowSkele { get; set; } = true;
 	public bool ShowBB { get; set; } = false;
+	public bool ShowEntChildren { get; set; } = true;
 	public SliderSetting MaterialPermutationOverride { get; set; }
 	public ObservableCollection<SettingItem> GroupToggles { get; set; } = new();
 
@@ -294,6 +295,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				Text = "Show Bounding Box",
 				GetValue = () => ShowBB,
 				SetValue = v => ShowBB = v
+			},
+			new ToggleSetting
+			{
+				Text = "Show Entity Children",
+				GetValue = () => ShowEntChildren,
+				SetValue = v => ShowEntChildren = v
 			},
 		};
 		ObjectOptions.ItemsSource = ObjectSettings;

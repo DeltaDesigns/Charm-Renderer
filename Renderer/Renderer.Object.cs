@@ -15,13 +15,12 @@ public partial class CharmRenderer
 
 		var staticMesh = FileResourcer.Get().GetFile<StaticMesh>(hash, shouldCache: false);
 		RenderObject obj = new();
-		obj.Create(Context, staticMesh);
-		World.RenderObjects.Enqueue(obj);
+		obj.Create(Context, World, staticMesh);
 
-		LookAtMeshInitial();
+		LookAtMesh(obj);
 	}
 
-	public void LoadEntity(Entity entity, bool lookAt = true)
+	public void LoadEntity(Entity entity)
 	{
 		World?.Dispose();
 		GroupVisibility.Clear();
@@ -30,7 +29,7 @@ public partial class CharmRenderer
 		Viewport.CreateMeshGroups(entity);
 
 		RenderObject obj = new();
-		obj.Create(Context, entity, World);
+		obj.Create(Context, World, entity);
 		GroupVisibility.AddObject(obj);
 
 		var children = entity.GetEntityChildren();
@@ -39,15 +38,16 @@ public partial class CharmRenderer
 			if (child.Model is null)
 				continue;
 
-			obj = new();
-			obj.Create(Context, child, World);
-			obj.TransformOffset = new Transform
+			RenderObject childObj = new();
+			childObj.Create(Context, World, child);
+			childObj.IsChild = true;
+			childObj.TransformOffset = new Transform
 			{
 				Quaternion = child.Model.RotationOffset,
 				Position = child.Model.TranslationOffset.ToVec3()
 			};
 
-			GroupVisibility.AddObject(obj);
+			GroupVisibility.AddObject(childObj);
 		}
 
 		if (entity.Skeleton != null)
@@ -56,8 +56,7 @@ public partial class CharmRenderer
 			Viewport.OverrideWarning.Visibility = Visibility.Collapsed;
 
 		CreateObjectChannels(entity);
-		if (lookAt)
-			LookAtMeshInitial();
+		LookAtMesh(obj); // base ent, no children
 	}
 
 	public void LoadInvestmentItem(InventoryItem item)
@@ -73,7 +72,7 @@ public partial class CharmRenderer
 		foreach (var ent in entities)
 		{
 			RenderObject obj = new();
-			obj.Create(Context, ent, World, item);
+			obj.Create(Context, World, ent, item);
 		}
 
 		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
@@ -110,7 +109,7 @@ public partial class CharmRenderer
 			foreach (var ent in entities)
 			{
 				RenderObject obj = new();
-				obj.Create(Context, ent, World, item);
+				obj.Create(Context, World, ent, item);
 			}
 
 			EntityObjectChannels.AddObjectChannels(item);
@@ -143,7 +142,7 @@ public partial class CharmRenderer
 		EntityObjectChannels.AddObjectChannels(skele);
 
 		RenderObject obj = new();
-		obj.Create(Context, skele, World);
+		obj.Create(Context, World, skele);
 	}
 
 

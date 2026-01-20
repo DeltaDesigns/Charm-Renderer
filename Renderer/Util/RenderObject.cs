@@ -294,6 +294,7 @@ public class RenderObject : GpuResource
 	public MeshType MeshType = MeshType.Normal;
 	public RenderStageSubscription Stages;
 	public bool Visible = true;
+	public bool IsChild = false; // For entity children/attachments
 
 	public HelixToolkit.Maths.BoundingBox BoundingBox { get; set; }
 	public int InstanceCount = 1;
@@ -327,7 +328,14 @@ public class RenderObject : GpuResource
 		Scale = Tiger.Schema.Vector3.One
 	};
 
-	public void Create(DeviceContext context, Entity entity, RenderWorld world, InventoryItem inventoryItem = null)
+	public void Create(DeviceContext context, EntityModel entModel, TfxFeatureRenderer type)
+	{
+		Hash = entModel.Hash;
+		var parts = entModel.Load(ExportDetailLevel.MostDetailed, null);
+		CreateMesh(context, parts.Cast<MeshPart>().ToList(), type);
+	}
+
+	public void Create(DeviceContext context, RenderWorld world, Entity entity, InventoryItem inventoryItem = null)
 	{
 		Hash = entity.Hash;
 		Entity = entity;
@@ -376,14 +384,7 @@ public class RenderObject : GpuResource
 		}
 	}
 
-	public void Create(DeviceContext context, EntityModel entModel, TfxFeatureRenderer type)
-	{
-		Hash = entModel.Hash;
-		var parts = entModel.Load(ExportDetailLevel.MostDetailed, null);
-		CreateMesh(context, parts.Cast<MeshPart>().ToList(), type);
-	}
-
-	public void Create(DeviceContext context, StaticMesh staticMesh)
+	public void Create(DeviceContext context, RenderWorld world, StaticMesh staticMesh)
 	{
 		Hash = staticMesh.Hash;
 		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
@@ -391,6 +392,7 @@ public class RenderObject : GpuResource
 		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
+		world.RenderObjects.Enqueue(this);
 		//CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
 	}
 
@@ -524,7 +526,7 @@ public class RenderObject : GpuResource
 
 	public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
 	{
-		if (!Visible || !Stages.IsSubscribed(renderStage))
+		if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible || !Stages.IsSubscribed(renderStage))
 			return;
 
 		RenderHelpers.Profile($"{Feature} {Hash} Bind");
@@ -588,6 +590,9 @@ public class RenderObject : GpuResource
 	public Buffer _skeletonVB;
 	public void RenderSkeleton(CharmRenderer renderer)
 	{
+		if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
+			return;
+
 		if (Bones is null || Bones.Count == 0)
 			return;
 
@@ -658,7 +663,7 @@ public class RenderObject : GpuResource
 
 	public void RenderBoundingBox(CharmRenderer renderer)
 	{
-		if (!Visible)
+		if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
 			return;
 
 		Vector3[] lines = RenderHelpers.GetBoundingBoxLines(BoundingBox);

@@ -162,7 +162,7 @@ public class RenderWorld : IDisposable
 				int batchCount = Math.Min(remaining, 16);
 
 				RenderObject obj = new();
-				obj.Create(renderer.Context, model);
+				obj.Create(renderer.Context, this, model);
 				obj.InstanceCount = batchCount;
 				obj.GlobalTransforms = new Transform[batchCount];
 
@@ -177,8 +177,6 @@ public class RenderWorld : IDisposable
 						Scale = new(trans.Scale.X)
 					};
 				}
-
-				RenderObjects.Enqueue(obj);
 
 				srcOffset += batchCount;
 				remaining -= batchCount;
