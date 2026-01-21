@@ -10,7 +10,6 @@ using Tiger.Schema.Investment;
 using static Charm.Renderer.CharmRenderer;
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Material = Tiger.Schema.Shaders.Material;
-using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
@@ -296,6 +295,7 @@ public class RenderObject : GpuResource
 	public bool Visible = true;
 	public bool IsChild = false; // For entity children/attachments
 
+	public HelixToolkit.Maths.BoundingBox LocalBoundingBox { get; set; }
 	public HelixToolkit.Maths.BoundingBox BoundingBox { get; set; }
 	public int InstanceCount = 1;
 
@@ -347,11 +347,11 @@ public class RenderObject : GpuResource
 
 		if (entity.Model is not null)
 		{
+			// This works fine but some entity bounding boxes just dont feel good to orbit around
+			LocalBoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
+
 			var parts = entity.LoadModel(ExportDetailLevel.MostDetailed);
 			CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
-
-			// This works fine but some entity bounding boxes just dont feel good to orbit around
-			BoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
 
 			using TigerReader reader = entity.ModelParent.GetReader();
 			Permutations = entity.ModelParent.MaterialPermutations;
@@ -365,7 +365,8 @@ public class RenderObject : GpuResource
 		if (entity.PhysicsModel is not null)
 		{
 			RenderObject obj = new();
-			obj.BoundingBox = entity.PhysicsModelParent.GetBoundingBox().CreateFrom();
+			obj.LocalBoundingBox = entity.PhysicsModelParent.GetBoundingBox().CreateFrom();
+
 			obj.Hash = entity.Hash;
 			obj.Entity = entity;
 			obj.MeshType = MeshType.Physics;
@@ -389,7 +390,7 @@ public class RenderObject : GpuResource
 		Hash = staticMesh.Hash;
 		var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
 		//var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
-		BoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
+		LocalBoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
 		CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
 		world.RenderObjects.Enqueue(this);
@@ -400,6 +401,11 @@ public class RenderObject : GpuResource
 	{
 		Feature = meshType;
 		Stages = RenderStageSubscriptionExtensions.FromStages(parts.Select(x => x.RenderStage).Distinct());
+
+		BoundingBox = RenderHelpers.TransformBoundingBox(
+				LocalBoundingBox,
+				GlobalTransforms[0].Position + TransformOffset.Position,
+				GlobalTransforms[0].Quaternion.ToQuat() * TransformOffset.Quaternion.ToQuat());
 
 		foreach (var part in parts)
 		{
@@ -666,41 +672,8 @@ public class RenderObject : GpuResource
 		if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
 			return;
 
-		Vector3[] lines = RenderHelpers.GetBoundingBoxLines(BoundingBox);
-		if (lines.Length == 0)
-			return;
-
-		if (renderer._bboxVB is null)
-		{
-			renderer._bboxVB = Buffer.Create(
-				renderer.Device,
-				BindFlags.VertexBuffer,
-				lines,
-				Utilities.SizeOf<Vector3>() * lines.Length,
-				ResourceUsage.Dynamic,
-				CpuAccessFlags.Write
-			);
-		}
-
-		DataBox dataBox = renderer.Context.MapSubresource(renderer._bboxVB, 0, MapMode.WriteDiscard, MapFlags.None);
-		try
-		{
-			Utilities.Write(dataBox.DataPointer, lines, 0, lines.Length);
-		}
-		finally
-		{
-			renderer.Context.UnmapSubresource(renderer._bboxVB, 0);
-		}
-
-		renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, GlobalTransforms[0], TransformOffset);
-
-		Vector4 col = new(1f, 1f, 0f, 1f);
-		renderer.Context.UpdateSubresource(ref col, renderer._debugPSCB);
-		renderer.Context.PixelShader.SetConstantBuffer(0, renderer._debugPSCB);
-
-		renderer.Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(renderer._bboxVB, Utilities.SizeOf<Vector3>(), 0));
-		renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-		renderer.Context.Draw(lines.Length, 0);
+		//renderer.RenderBoundingBox(BoundingBox, GlobalTransforms[0], TransformOffset, new(1f, 1f, 0f, 1f));
+		renderer.RenderBoundingBox(BoundingBox, new(1f, 1f, 0f, 1f));
 	}
 
 	public override void Dispose()

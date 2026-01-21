@@ -39,13 +39,14 @@ public partial class CharmRenderer
 				continue;
 
 			RenderObject childObj = new();
-			childObj.Create(Context, World, child);
-			childObj.IsChild = true;
 			childObj.TransformOffset = new Transform
 			{
 				Quaternion = child.Model.RotationOffset,
 				Position = child.Model.TranslationOffset.ToVec3()
 			};
+
+			childObj.Create(Context, World, child);
+			childObj.IsChild = true;
 
 			GroupVisibility.AddObject(childObj);
 		}
@@ -77,11 +78,12 @@ public partial class CharmRenderer
 
 		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
 		// so the view is centered better
-		combinedBB = new HelixToolkit.Maths.BoundingBox()
-		{
-			Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 0, 1),
-			Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 0, 1)
-		};
+		//combinedBB = new HelixToolkit.Maths.BoundingBox()
+		//{
+		//	Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 1, 1),
+		//	Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 1, 1)
+		//};
+		World.LocalOverrideMainBB = combinedBB;
 		World.OverrideMainBB = combinedBB;
 		LookAtBoundingBox(combinedBB);
 
@@ -117,11 +119,12 @@ public partial class CharmRenderer
 
 		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
 		// so the view is centered better
-		combinedBB = new HelixToolkit.Maths.BoundingBox()
-		{
-			Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 0, 1),
-			Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 0, 1)
-		};
+		//combinedBB = new HelixToolkit.Maths.BoundingBox()
+		//{
+		//	Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 1, 1),
+		//	Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 1, 1)
+		//};
+		World.LocalOverrideMainBB = combinedBB;
 		World.OverrideMainBB = combinedBB;
 		LookAtBoundingBox(combinedBB);
 

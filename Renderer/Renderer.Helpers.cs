@@ -1,5 +1,4 @@
-﻿using HelixToolkit.Maths;
-using SharpDX.Direct3D11;
+﻿using SharpDX.Direct3D11;
 using SharpDX.DirectInput;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -7,6 +6,13 @@ using System.Runtime.InteropServices;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Vector3 = System.Numerics.Vector3;
+using Vector4 = System.Numerics.Vector4;
+using SharpDX;
+using SharpDX.Direct3D;
+using BoundingBox = HelixToolkit.Maths.BoundingBox;
+using HelixToolkit.Maths;
+
+
 
 #if DEBUG
 using TracyWrapper;
@@ -127,6 +133,46 @@ public partial class CharmRenderer
 		Camera.UpdateVectors();
 	}
 
+
+	//public void RenderBoundingBox(BoundingBox bbox, Transform transform, Transform offset, Vector4 color)
+	public void RenderBoundingBox(BoundingBox bbox, Vector4 color)
+	{
+		Vector3[] lines = RenderHelpers.GetBoundingBoxLines(bbox);
+		if (lines.Length == 0)
+			return;
+
+		if (_bboxVB is null)
+		{
+			_bboxVB = Buffer.Create(
+				Device,
+				BindFlags.VertexBuffer,
+				lines,
+				Utilities.SizeOf<Vector3>() * lines.Length,
+				ResourceUsage.Dynamic,
+				CpuAccessFlags.Write
+			);
+		}
+
+		DataBox dataBox = Context.MapSubresource(_bboxVB, 0, MapMode.WriteDiscard, MapFlags.None);
+		try
+		{
+			Utilities.Write(dataBox.DataPointer, lines, 0, lines.Length);
+		}
+		finally
+		{
+			Context.UnmapSubresource(_bboxVB, 0);
+		}
+
+		TempScopes.UpdateRigidModelScopeCustom(Context, new(), new());
+
+		Context.UpdateSubresource(ref color, _debugPSCB);
+		Context.PixelShader.SetConstantBuffer(0, _debugPSCB);
+
+		Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_bboxVB, Utilities.SizeOf<Vector3>(), 0));
+		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+		Context.Draw(lines.Length, 0);
+	}
+
 	[DllImport("user32.dll")]
 	private static extern IntPtr GetForegroundWindow();
 
@@ -167,7 +213,7 @@ public static class RenderHelpers
 		Vector4 max = new Vector4(0);
 
 		if (vertices == null || vertices.Count == 0)
-			return new BoundingBox() { Minimum = min.ToVec3(), Maximum = max.ToVec3() };
+			return new BoundingBox() { Minimum = min.ToVector3(), Maximum = max.ToVector3() };
 
 		for (int i = 0; i < vertices.Count; i++)
 		{
@@ -182,7 +228,7 @@ public static class RenderHelpers
 			if (v.Z > max.Z) max.Z = v.Z;
 		}
 
-		return new BoundingBox() { Minimum = min.ToVec3(), Maximum = max.ToVec3() };
+		return new BoundingBox() { Minimum = min.ToVector3(), Maximum = max.ToVector3() };
 	}
 
 	public static BoundingBox CreateFrom(this AABB aabb)
@@ -273,6 +319,13 @@ public static class RenderHelpers
 		}
 
 		return new BoundingBox(min, max);
+	}
+
+	public static BoundingBox TransformBoundingBox(BoundingBox localBox, Vector3 position, System.Numerics.Quaternion rotation)
+	{
+		var matrix = HelixToolkit.Maths.Matrix3x3.RotationQuaternion(rotation).ToMatrix() * MatrixHelper.Translation(position);
+
+		return BoundingBoxHelper.Transform(localBox, matrix);
 	}
 
 	public static List<InputElement> GetInputLayout(int layoutIndex)

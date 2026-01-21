@@ -15,12 +15,13 @@ public class FirstPersonCamera
 	public float Far = 50000f;
 
 	public Viewport Viewport { get; set; }
-	public Vector3 Position { get; set; } = new Vector3(0, 0, 5);
+	public BoundingFrustum Frustum { get; set; }
 	public float Yaw { get; set; } = -90f;
 	public float Pitch { get; set; } = 0f;
 	public float MoveSpeed { get; set; } = 0.075f;
 	public float LookSensitivity { get; set; } = 0.25f;
 
+	public Vector3 Position { get; set; } = new Vector3(0, 0, 5);
 	public Vector3 Forward { get; set; }
 	public Vector3 Right { get; set; }
 	public Vector3 Up { get; set; }
@@ -73,8 +74,9 @@ public class FirstPersonCamera
 		CameraToProjective = Matrix4x4ButGood.PerspectiveInfiniteReverseRightHanded(
 			fov * (MathF.PI / 180f), // Field of view in radians
 			(float)Viewport.Width / (float)Viewport.Height, // Aspect ratio
-			0.01f // Near clipping plane
+			Near // Near clipping plane
 		);
+		Frustum = new(CameraToProjective * WorldToCamera);
 	}
 
 	private bool IsOrbiting = false;

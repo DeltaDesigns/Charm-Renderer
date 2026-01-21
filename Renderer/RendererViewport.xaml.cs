@@ -326,18 +326,57 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	// these suck
 	private void UpdateTranslation(Vector4 loc)
 	{
+		if (Renderer.World.RenderObjects.Count == 0)
+			return;
+
+		var pos = loc.ToVec3();
 		foreach (var obj in Renderer.World.RenderObjects)
 		{
-			obj.GlobalTransforms[0].Position = loc.ToVec3();
+			var transform = obj.GlobalTransforms[0];
+			obj.GlobalTransforms[0].Position = pos;
+
+			obj.BoundingBox = RenderHelpers.TransformBoundingBox(
+				obj.LocalBoundingBox,
+				transform.Position + obj.TransformOffset.Position,
+				transform.Quaternion.ToQuat() * obj.TransformOffset.Quaternion.ToQuat());
+		}
+
+		var mainBB = Renderer.World.OverrideMainBB;
+		if (mainBB is not null)
+		{
+			var first = Renderer.World.RenderObjects.First().GlobalTransforms[0];
+			Renderer.World.OverrideMainBB = RenderHelpers.TransformBoundingBox(
+					Renderer.World.LocalOverrideMainBB.Value,
+					first.Position,
+					first.Quaternion.ToQuat());
 		}
 	}
 
 	private void UpdateRotation(Vector4 rot)
 	{
+		if (Renderer.World.RenderObjects.Count == 0)
+			return;
+
+		var quat = HelixToolkit.Maths.QuaternionHelper.RotationYawPitchRoll(rot.X, rot.Y, rot.Z);
 		foreach (var obj in Renderer.World.RenderObjects)
 		{
-			var quat = HelixToolkit.Maths.QuaternionHelper.RotationYawPitchRoll(rot.X, rot.Y, rot.Z);
+			var transform = obj.GlobalTransforms[0];
 			obj.GlobalTransforms[0].Quaternion = new(quat);
+
+			obj.BoundingBox = RenderHelpers.TransformBoundingBox(
+				obj.LocalBoundingBox,
+				transform.Position + obj.TransformOffset.Position,
+				transform.Quaternion.ToQuat() * obj.TransformOffset.Quaternion.ToQuat());
+		}
+
+		var mainBB = Renderer.World.OverrideMainBB;
+		if (mainBB is not null)
+		{
+			var first = Renderer.World.RenderObjects.First().GlobalTransforms[0];
+			Renderer.World.OverrideMainBB = RenderHelpers.TransformBoundingBox(
+					Renderer.World.LocalOverrideMainBB.Value,
+					first.Position,
+					first.Quaternion.ToQuat());
 		}
 	}
 

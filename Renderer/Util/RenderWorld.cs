@@ -14,6 +14,7 @@ public class RenderWorld : IDisposable
 	public RendererGlobalChannels GlobalChannels;
 	public List<Vector4> DayCycleRotations;
 	public Queue<RenderObject> RenderObjects = new();
+	public BoundingBox? LocalOverrideMainBB = null;
 	public BoundingBox? OverrideMainBB = null;
 
 	// Temp, this sucks, will fix later

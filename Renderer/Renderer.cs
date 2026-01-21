@@ -289,13 +289,23 @@ public partial class CharmRenderer : IDisposable
 				RenderSkeleton();
 
 			if (Viewport.ShowBB)
+			{
 				RenderBoundingBoxes();
+				if (World.OverrideMainBB is not null && World.RenderObjects.Count != 0)
+					RenderBoundingBox(World.OverrideMainBB.Value, new(1, 0, 0, 1));
+			}
 		}
 
 		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 		// Blits to final RT/Correct format for WPF cus it hates everything
 		BlitToWPF(blitRT);
 		wpfRT.Present(Context, Viewport.RT0);
+
+		//if (World.OverrideMainBB is not null)
+		//{
+		//	var bb = World.OverrideMainBB.Value;
+		//	Console.WriteLine($"In Camera Frustum? {Camera.Frustum.Intersects(ref bb)}");
+		//}
 
 		//if (MouseState.Buttons[1])
 		//	Camera.Pick(Camera.GetMouseRay(Camera.Viewport, Externs.View), World);
