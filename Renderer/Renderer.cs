@@ -258,13 +258,8 @@ public partial class CharmRenderer : IDisposable
 		TfxScopes[Tiger.TfxScope.FRAME].Bind(Context);
 		TempScopes.UpdateFrameScope(this);
 
-		RenderAtmosphere();
-
-		// Gotta set back to main viewport dims since this gets used for other non-atmosphere things for some reason
-		Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
-
-		// GBuffer Pass
 		RenderGBuffer();
+		RenderAtmosphere();
 		RenderMatCap();
 		RenderShading();
 		RenderTransparent();
@@ -291,12 +286,11 @@ public partial class CharmRenderer : IDisposable
 			if (Viewport.ShowBB)
 			{
 				RenderBoundingBoxes();
-				if (World.OverrideMainBB is not null && World.RenderObjects.Count != 0)
+				if (World.OverrideMainBB is not null)
 					RenderBoundingBox(World.OverrideMainBB.Value, new(1, 0, 0, 1));
 			}
 		}
 
-		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 		// Blits to final RT/Correct format for WPF cus it hates everything
 		BlitToWPF(blitRT);
 		wpfRT.Present(Context, Viewport.RT0);

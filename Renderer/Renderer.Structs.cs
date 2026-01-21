@@ -36,6 +36,7 @@ public partial class CharmRenderer
 		public DepthTarget Depth { get; private set; }
 		public DepthTarget Depth_Clone { get; private set; }
 
+		public RenderTarget2D SkyGenerateMask { get; private set; }
 		public RenderTarget2D SkyGenerateFar { get; private set; }
 		public RenderTarget2D SkyGenerateNear { get; private set; }
 		public RenderTarget2D FullHemisphereSkyColor { get; private set; }
@@ -76,6 +77,7 @@ public partial class CharmRenderer
 			Depth = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth");
 			Depth_Clone = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone");
 
+			SkyGenerateMask = new RenderTarget2D(device, width / 4, height / 4, Format.R8_UNorm, debugName: "Sky Generate Mask");
 			SkyGenerateFar = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Far");
 			SkyGenerateNear = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Near");
 			FullHemisphereSkyColor = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color Generate");
@@ -144,6 +146,8 @@ public partial class CharmRenderer
 			Depth_Clone?.Dispose();
 			Depth_Clone = null;
 
+			SkyGenerateMask?.Dispose();
+			SkyGenerateMask = null;
 			SkyGenerateFar?.Dispose();
 			SkyGenerateFar = null;
 			SkyGenerateNear?.Dispose();
@@ -359,6 +363,13 @@ public partial class CharmRenderer
 					context.VertexShader.SetShaderResource(slot, DepthSRV);
 					break;
 			}
+		}
+
+		public Vector4 GetResolutionInverse()
+		{
+			int width = Texture.Description.Width;
+			int height = Texture.Description.Height;
+			return new(width, height, 1f / width, 1f / height);
 		}
 
 		public void Dispose()

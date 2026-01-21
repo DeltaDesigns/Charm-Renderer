@@ -64,7 +64,9 @@ public partial class CharmRenderer
 		}
 
 		RenderHelpers.Profile("Render Atmosphere");
+		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
+		var mask = GBuffers.SkyGenerateMask;
 		var far = GBuffers.SkyGenerateFar;
 		var near = GBuffers.SkyGenerateNear;
 		var hemisphere = GBuffers.FullHemisphereSkyColor;
@@ -96,6 +98,14 @@ public partial class CharmRenderer
 			Annotation.EndEvent();
 		}
 
+		//mask.Bind(Context);
+		//{
+		//	Externs.PostProcess.Unk00 = Externs.Deferred.DeferredDepth;
+		//	Externs.PostProcess.Unk50 = GBuffers.Depth.GetResolutionInverse();
+		//	Externs.PostProcess.Unk60 = mask.GetResolutionInverse();
+		//	RenderGlobalPipeline("sky_generate_sky_mask");
+		//}
+
 		far.Bind(Context);
 		RenderGlobalPipeline("sky_lookup_generate_far");
 		Externs.Atmosphere.AtmosFar = far.SRV;
@@ -117,6 +127,9 @@ public partial class CharmRenderer
 		RenderGlobalPipeline("atmo_depth_angle_density_lookup_generate");
 		Externs.Transparent.AtmosDepthAngleDensity = depthangle.SRV;
 
+		// Gotta set back to main viewport dims since this gets used for other non-atmosphere things for some reason
+		Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
+
 		RenderHelpers.EndProfile();
 	}
 
@@ -128,6 +141,7 @@ public partial class CharmRenderer
 		Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0, 0, 0, 1));
 		Context.ClearRenderTargetView(GBuffers.LightSpecular.RTV, new RawColor4(0, 0, 0, 1));
 		Context.ClearRenderTargetView(GBuffers.LightIBL.RTV, new RawColor4(0, 0, 0, 1));
+		Context.Rasterizer.SetViewport(GBuffers.LightDiffuse.GetViewport());
 
 		if (Viewport.RenderSky)
 		{
@@ -490,6 +504,7 @@ public partial class CharmRenderer
 	{
 		RenderHelpers.Profile("Blit To WPF");
 		Annotation.BeginEvent("Blit To WPF");
+		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
 		_rtFinal.SetRenderTarget(Context, true);
 		Context.VertexShader.Set(_blitVS);

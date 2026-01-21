@@ -272,7 +272,7 @@ public class Externs : IDisposable
 		[ExternField(0x1B8)] public float AtmosIntensity { get; set; } = 1f;
 		[ExternField(0x1BC)] public float AtmosUnk1BC { get; set; } = 0.33713f;
 		[ExternField(0x1C0)] public float AtmosUnk1C0 { get; set; } = 0f;
-		[ExternField(0x1C4)] public float AtmosUnk1C4 { get; set; } = 0f;
+		[ExternField(0x1C4)] public float AtmosUnk1C4 { get; set; } = 1f;
 		[ExternField(0x1D0)] public Vector4 AtmosUnk1D0 { get; set; } = Vector4.Zero;
 		[ExternField(0x1E0)] public float AtmosUnk1E0 { get; set; } = -0.8365f;
 		[ExternField(0x1E4)] public float AtmosSunIntensity { get; set; } = 0.05923f;
@@ -402,6 +402,8 @@ public class Externs : IDisposable
 	public class ExternPostProcess : IDisposable
 	{
 		[ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
+		[ExternField(0x50)] public Vector4 Unk50 { get; set; }
+		[ExternField(0x60)] public Vector4 Unk60 { get; set; }
 		[ExternField(0xC0)] public Vector4 UnkC0 { get; set; } = new(0.92537f, 0.0f, 0.37906f, 0.37906f);
 		[ExternField(0xD0)] public Vector4 UnkD0 { get; set; } = new(-0.22681f, 0.80123f, 0.5537f, 0.5537f);
 		[ExternField(0xE0)] public Vector4 UnkE0 { get; set; } = new(-0.30372f, -0.59835f, 0.74144f, 0.74144f);
