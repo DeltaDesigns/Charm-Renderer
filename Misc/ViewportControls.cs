@@ -125,6 +125,8 @@ public class VectorSetting : SettingItem
 	public Func<EditableVector4> GetValue { get; set; }
 	public Action<EditableVector4> SetValue { get; set; }
 
+	public float DragSpeed { get; set; } = 0.02f;
+
 	private EditableVector4 _value;
 	public EditableVector4 Value
 	{

@@ -16,6 +16,33 @@ namespace Charm.Renderer;
 /// </summary>
 public partial class Vector4Editor : UserControl
 {
+	public static readonly DependencyProperty DragSpeedProperty =
+		DependencyProperty.Register(
+			nameof(DragSpeed),
+			typeof(float),
+			typeof(Vector4Editor),
+			new PropertyMetadata(0.02f));
+
+	public float DragSpeed
+	{
+		get => (float)GetValue(DragSpeedProperty);
+		set => SetValue(DragSpeedProperty, value);
+	}
+
+	public static readonly DependencyProperty DragThresholdProperty =
+		DependencyProperty.Register(
+			nameof(DragThreshold),
+			typeof(float),
+			typeof(Vector4Editor),
+			new PropertyMetadata(5.0f));
+
+	public float DragThreshold
+	{
+		get => (float)GetValue(DragThresholdProperty);
+		set => SetValue(DragThresholdProperty, value);
+	}
+
+
 	public Vector4Editor()
 	{
 		InitializeComponent();
@@ -38,8 +65,6 @@ public partial class Vector4Editor : UserControl
 	private Point _mouseDownPos;
 	private float _startValue;
 
-	private const float DragSpeed = 0.02f;
-	private const double DragThreshold = 5.0;
 	private TextBox _target;
 	private void DragEdit_MouseDown(object sender, MouseButtonEventArgs e)
 	{

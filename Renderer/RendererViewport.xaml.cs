@@ -316,6 +316,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			new VectorSetting
 			{
 				Text = "Rotation",
+				DragSpeed = 1f,
 				Value = new EditableVector4(Vector4.Zero, EditableVector4.VectorInputType.Vec3),
 				SetValue = v => UpdateRotation(v.Vec4)
 			},
@@ -357,7 +358,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		if (Renderer.World.RenderObjects.Count == 0)
 			return;
 
-		var quat = HelixToolkit.Maths.QuaternionHelper.RotationYawPitchRoll(rot.X, rot.Y, rot.Z);
+		var quat = HelixToolkit.Maths.QuaternionHelper.RotationYawPitchRoll(
+			float.DegreesToRadians(rot.X),
+			float.DegreesToRadians(rot.Y),
+			float.DegreesToRadians(rot.Z));
+
 		foreach (var obj in Renderer.World.RenderObjects)
 		{
 			var transform = obj.GlobalTransforms[0];

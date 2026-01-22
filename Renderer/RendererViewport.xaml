@@ -15,7 +15,10 @@
     <UserControl.Resources>
         <local:ChannelHashToString x:Key="ChannelHashToString" />
         <DataTemplate DataType="{x:Type local:VectorSetting}">
-            <StackPanel Margin="2" Orientation="Horizontal">
+            <StackPanel
+                x:Name="Root"
+                Margin="2"
+                Orientation="Horizontal">
                 <TextBlock
                     Width="100"
                     Margin="0"
@@ -23,7 +26,10 @@
                     FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
                     FontSize="14"
                     Text="{Binding Text}" />
-                <local:Vector4Editor HorizontalAlignment="Left" DataContext="{Binding Value}" />
+                <local:Vector4Editor
+                    HorizontalAlignment="Left"
+                    DataContext="{Binding Value}"
+                    DragSpeed="{Binding DataContext.DragSpeed, ElementName=Root}" />
             </StackPanel>
         </DataTemplate>
 
