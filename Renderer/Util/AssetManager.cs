@@ -231,7 +231,6 @@ public class AssetManager : IDisposable
 	public ShaderResourceView CreateTexture(DeviceContext context, Tiger.Schema.Texture tex)
 	{
 		byte[] pixelData = tex.GetRawBytes();
-
 		if (tex.GetDimension() == Tiger.Schema.TextureDimension.D3)
 		{
 			var desc = new Texture3DDescription
@@ -319,7 +318,7 @@ public class AssetManager : IDisposable
 				Dimension = ShaderResourceViewDimension.TextureCube,
 				TextureCube = new ShaderResourceViewDescription.TextureCubeResource
 				{
-					MipLevels = 1, //mipCount
+					MipLevels = mipCount,
 					MostDetailedMip = 0
 				}
 			};
@@ -329,11 +328,13 @@ public class AssetManager : IDisposable
 		}
 		else
 		{
+			int mipCount = tex.TagData.LargeTextureBuffer != null ? tex.TagData.MipCount : 1;
+
 			var desc = new Texture2DDescription
 			{
 				Width = tex.Width,
 				Height = tex.Height,
-				MipLevels = 1,
+				MipLevels = mipCount,
 				ArraySize = 1,
 				Format = (Format)tex.TagData.Format,
 				SampleDescription = new SampleDescription(1, 0),
@@ -343,18 +344,33 @@ public class AssetManager : IDisposable
 				OptionFlags = ResourceOptionFlags.None
 			};
 
-			Tiger.Schema.Texture.ComputePitch((DXGI_FORMAT)desc.Format,
-				desc.Width,
-				desc.Height,
-				out long rowPitch, out long slicePitch,
-				DirectXTexUtility.CPFLAGS.NONE);
-
 			var texture = new SharpDX.Direct3D11.Texture2D(context.Device, desc);
 			texture.DebugName = $"Texture{tex.GetDimension().GetEnumDescription()} {tex.Hash}";
-			Utilities.Pin(pixelData, ptr =>
+
+			int offset = 0;
+			Utilities.Pin(pixelData, basePtr =>
 			{
-				var dataBox = new DataBox(ptr, (int)rowPitch, 0);
-				context.UpdateSubresource(dataBox, texture, 0);
+				for (int mip = 0; mip < mipCount; mip++)
+				{
+					int width = Math.Max(1, tex.Width >> mip);
+					int height = Math.Max(1, tex.Height >> mip);
+
+					Tiger.Schema.Texture.ComputePitch(
+						(DXGI_FORMAT)tex.TagData.Format,
+						width,
+						height,
+						out long rowPitch,
+						out long slicePitch,
+						DirectXTexUtility.CPFLAGS.NONE
+					);
+
+					IntPtr ptr = basePtr + offset;
+					var dataBox = new DataBox(ptr, (int)rowPitch, 0);
+					int subresource = mip;
+
+					context.UpdateSubresource(dataBox, texture, subresource);
+					offset += (int)slicePitch;
+				}
 			});
 
 			pixelData = null;
@@ -437,6 +453,12 @@ public class AssetManager : IDisposable
 	{
 		if (scratch is null)
 			return null;
+
+		// turns out you can get a srv directly from ScratchImage, generating the mips takes up a chunk of time tho
+		//scratch = scratch.GenerateMipMaps(TEX_FILTER_FLAGS.SEPARATE_ALPHA, 3);
+		//var a = scratch.CreateShaderResourceView(context.Device.NativePointer);
+		//var b = new ShaderResourceView(a);
+		//return b;
 
 		var meta = scratch.GetMetadata();
 		var desc = new Texture2DDescription
