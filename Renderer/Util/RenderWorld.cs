@@ -51,9 +51,9 @@ public class RenderWorld : IDisposable
 						Entity entity = FileResourcer.Get().GetFile<Entity>(entry.Entity.Hash, shouldCache: false);
 						if (entity != null && !entity.HasGeometry())
 						{
-							foreach (FileHash? resourceHash in entity.TagData.EntityResources.Select(entity.GetReader(), r => r.Resource))
+							foreach (FileHash? resourceHash in entity.Components)
 							{
-								EntityResource resource = FileResourcer.Get().GetFile<EntityResource>(resourceHash);
+								EntityComponent resource = FileResourcer.Get().GetFile<EntityComponent>(resourceHash);
 								switch (resource.TagData.Unk10.GetValue(resource.GetReader()))
 								{
 									case S79948080:
@@ -303,7 +303,7 @@ public class RendererGlobalChannels
 	private Dictionary<TigerHash, GlobalChannel> channelsById;
 	private Dictionary<string, GlobalChannel> channelsByName;
 
-	public RendererGlobalChannels(EntityResource sequencer)
+	public RendererGlobalChannels(EntityComponent sequencer)
 	{
 		CreateGlobalChannels(sequencer);
 		InitializeLookups();
@@ -316,7 +316,7 @@ public class RendererGlobalChannels
 		channelsByName = Channels.ToDictionary(c => c.Name);
 	}
 
-	public void CreateGlobalChannels(EntityResource resource)
+	public void CreateGlobalChannels(EntityComponent resource)
 	{
 		var globals = ((S79818080)resource.TagData.Unk18.GetValue(resource.GetReader()));
 		DynamicArray<SF1918080> map = globals.Array1;

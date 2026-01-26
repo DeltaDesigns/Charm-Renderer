@@ -173,6 +173,12 @@ public partial class CharmRenderer
 		Context.Draw(lines.Length, 0);
 	}
 
+	public void DrawScreenQuad()
+	{
+		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
+		Context.Draw(4, 0);
+	}
+
 	[DllImport("user32.dll")]
 	private static extern IntPtr GetForegroundWindow();
 

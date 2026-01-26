@@ -59,8 +59,8 @@ public class MatCap : GpuResource
 			MatCapSpecular
 		});
 
-		context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 		context.OutputMerger.SetDepthStencilState(null);
+		context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
 		context.Draw(3, 0);
 	}

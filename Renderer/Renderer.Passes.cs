@@ -42,10 +42,9 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetRenderTargets(null, null, null, GBuffers.RT2.RTV);
 		Context.VertexShader.Set(_clearAOVS);
 		Context.PixelShader.Set(_clearAOPS);
-		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
 		Context.PixelShader.SetShaderResources(0, GBuffers.RT2_Clone.SRV);
 
-		Context.Draw(4, 0);
+		DrawScreenQuad();
 
 		RenderHelpers.EndProfile();
 	}
@@ -93,8 +92,7 @@ public partial class CharmRenderer
 			Context.VertexShader.Set(_fullHemiSkyTempVS);
 			Context.PixelShader.Set(_fullHemiSkyTempPS);
 
-			Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
-			Context.Draw(4, 0);
+			DrawScreenQuad();
 			Annotation.EndEvent();
 		}
 
@@ -183,8 +181,7 @@ public partial class CharmRenderer
 			CMD.States.CreateStates(Context, new(0, 77, 0, 0));
 			Context.VertexShader.Set(_blitVS);
 			Context.PixelShader.Set(null);
-			Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
-			Context.Draw(4, 0);
+			DrawScreenQuad();
 
 			CMD.States.SetStencilRef(Context, 0);
 			CMD.States.CreateStates(Context, new(0, 50, 0, 0));
@@ -312,10 +309,9 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetRenderTargets(null, GBuffers.Luminance.RTV);
 		Context.VertexShader.Set(_luminanceVS);
 		Context.PixelShader.Set(_luminancePS);
-		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
 		Context.PixelShader.SetShaderResources(0, GBuffers.PostProcessResult.SRV);
 
-		Context.Draw(4, 0);
+		DrawScreenQuad();
 
 		Context.GenerateMips(GBuffers.Luminance.SRV);
 
@@ -494,8 +490,7 @@ public partial class CharmRenderer
 		Annotation.BeginEvent($"Global Pipeline: {name}");
 		ExecutePipeline(name);
 
-		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
-		Context.Draw(4, 0);
+		DrawScreenQuad();
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
 	}
@@ -514,8 +509,7 @@ public partial class CharmRenderer
 
 		rt.SetShaderResource(Context, 0, ShaderStage.Pixel);
 
-		Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleStrip;
-		Context.Draw(4, 0);
+		DrawScreenQuad();
 
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
