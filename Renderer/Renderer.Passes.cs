@@ -29,7 +29,7 @@ public partial class CharmRenderer
 		Externs.Deferred.Update(Context, GBuffers);
 		Externs.Decal.Update(Context, GBuffers);
 
-		TfxScopes[Tiger.TfxScope.DECAL].Bind(Context);
+		TfxScopes[Tiger.TfxScope.DECAL].Bind(this);
 
 		// Decal Pass
 		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
@@ -78,8 +78,8 @@ public partial class CharmRenderer
 		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
 
 		Externs.Atmosphere.Update(this);
-		Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup0).SRV;
-		Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
+		Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
+		Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
 		Externs.PostProcess.UpdateStageAtmos(Externs.Atmosphere);
 
@@ -111,10 +111,10 @@ public partial class CharmRenderer
 
 		// I guess this is how it actually works? Far uses first 2 textures, Near uses last 2, even if they are the same
 		if (World.Atmosphere?.Lookup2 is not null)
-			Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup2).SRV;
+			Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup2).SRV;
 
 		if (World.Atmosphere?.Lookup3 is not null)
-			Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, World.Atmosphere?.Lookup3).SRV;
+			Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup3).SRV;
 
 		near.Bind(Context);
 		RenderGlobalPipeline("sky_lookup_generate_near");
@@ -208,7 +208,7 @@ public partial class CharmRenderer
 		Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
 		TempScopes.UpdateTransparentAdvancedScope(Context);
-		TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(Context);
+		TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(this);
 
 		// Decal Additive Pass
 		CMD.States.CreateStates(Context, new(8, 15, 2, 1));
@@ -318,7 +318,7 @@ public partial class CharmRenderer
 		//if (_frameCounter % 2 == 0)
 		{
 			int lastMip = GBuffers.Luminance.Texture.Description.MipLevels - 1;
-			Context.CopySubresourceRegion(
+			GPU.Instance.ImmediateContext.CopySubresourceRegion(
 				GBuffers.Luminance.Texture,
 				Resource.CalculateSubResourceIndex(lastMip, 0, GBuffers.Luminance.Texture.Description.MipLevels),
 				null,
@@ -326,13 +326,13 @@ public partial class CharmRenderer
 				0
 			);
 
-			DataBox box = Context.MapSubresource(GBuffers.LuminanceStaging, 0, MapMode.Read, MapFlags.None);
+			DataBox box = GPU.Instance.ImmediateContext.MapSubresource(GBuffers.LuminanceStaging, 0, MapMode.Read, MapFlags.None);
 			float avgLogLum;
 			unsafe
 			{
 				avgLogLum = *(float*)box.DataPointer;
 			}
-			Context.UnmapSubresource(GBuffers.LuminanceStaging, 0);
+			GPU.Instance.ImmediateContext.UnmapSubresource(GBuffers.LuminanceStaging, 0);
 
 			float avgLum = MathF.Exp(avgLogLum);
 			_targetExposure = ComputeTargetExposure(avgLum);

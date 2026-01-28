@@ -20,7 +20,7 @@ namespace Charm.Renderer;
 
 public partial class RendererViewport : UserControl, INotifyPropertyChanged, Shared.IRenderer
 {
-	public CharmRenderer Renderer => CharmRenderer.Instance;
+	public CharmRenderer Renderer;
 
 	#region Debug Options
 	public ObservableCollection<SettingItem> DebugSettings { get; set; }
@@ -73,6 +73,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		CreateRenderPassOptions();
 		CreateSceneWorldOptions();
 		CreateViewportControls();
+
+		Unloaded += OnUnloaded;
+		SizeChanged += OnSizeChanged;
 	}
 
 	private DispatcherTimer _uiTimer;
@@ -83,20 +86,17 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
 	public void Initialize()
 	{
-		Unloaded -= OnUnloaded;
-		Unloaded += OnUnloaded;
-
+		Renderer?.Start();
 		if (_isInitialized)
 			return;
 
 		if (Renderer == null)
-			CharmRenderer.Instance = new CharmRenderer();
+			Renderer = new CharmRenderer();
 
 		Renderer.Viewport = this;
 		Renderer.Initialize((int)ActualWidth, (int)ActualHeight);
 		Renderer.Start();
-
-		SizeChanged += OnSizeChanged;
+		_isInitialized = true;
 
 		Stopwatch _dayCycleStopwatch = new();
 		if (_uiTimer is null)
@@ -142,7 +142,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 			_uiTimer.Start();
 			_dayCycleStopwatch.Start();
 		}
-		_isInitialized = true;
 	}
 
 	private void CreateRenderPassOptions()
@@ -410,7 +409,6 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		if (_originalParent is null)
 			_originalParent = (Panel)this.Parent;
 
-		Unloaded -= OnUnloaded;
 		if (!_isFullscreen)
 		{
 			var mainParent = FindParentGridByName(this, "MainContainer");
@@ -446,15 +444,20 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
 	private void OnUnloaded(object sender, RoutedEventArgs args)
 	{
+		Renderer?.Stop();
+	}
+
+	public void Destroy(bool fullyDestroy = false)
+	{
 		if (Renderer != null)
 		{
-			Renderer?.Stop();
-			Renderer?.Dispose();
+			Renderer.Destroy(fullyDestroy);
+			_isInitialized = false;
+
+			SizeChanged -= OnSizeChanged;
+			Unloaded -= OnUnloaded;
+			Renderer = null;
 		}
-		SizeChanged -= OnSizeChanged;
-		Unloaded -= OnUnloaded;
-		_isInitialized = false;
-		_currentEntity = null;
 	}
 
 	#region Render/debug options

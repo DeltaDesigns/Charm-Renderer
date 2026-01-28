@@ -7,7 +7,6 @@ using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
-using static Charm.Renderer.CharmRenderer;
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Material = Tiger.Schema.Shaders.Material;
 using Vector4 = System.Numerics.Vector4;
@@ -28,10 +27,10 @@ public class InvestmentData : GpuResource
 	private bool _hasData = false;
 
 	// TODO, tie into AssetManager
-	public ShaderResourceView DiffusePlate { get; set; }
-	public ShaderResourceView GStackPlate { get; set; }
-	public ShaderResourceView NormalPlate { get; set; }
-	public ShaderResourceView DyePlate { get; set; }
+	public TextureAsset DiffusePlate { get; set; }
+	public TextureAsset GStackPlate { get; set; }
+	public TextureAsset NormalPlate { get; set; }
+	public TextureAsset DyePlate { get; set; }
 
 	public InvestmentData(DeviceContext context, Entity itemEnt, InventoryItem item)
 	{
@@ -50,10 +49,10 @@ public class InvestmentData : GpuResource
 		if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S77738080)
 		{
 			S1C6E8080 plates = parentResource.TexturePlates.TagData;
-			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.AlbedoPlate)?.SRV ?? null;
-			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.NormalPlate)?.SRV ?? null;
-			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.GStackPlate)?.SRV ?? null;
-			DyePlate ??= AssetManager.GetInstance().CreateFromPlate(context, plates.DyemapPlate)?.SRV ?? null;
+			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(plates.AlbedoPlate);
+			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(plates.NormalPlate);
+			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(plates.GStackPlate);
+			DyePlate ??= AssetManager.GetInstance().CreateFromPlate(plates.DyemapPlate);
 
 			CreateDefaultDyes(context, item);
 			InvestmentBuffer = new Buffer(context.Device, new BufferDescription
@@ -182,25 +181,25 @@ public class InvestmentData : GpuResource
 		}
 	}
 
-	public async void Bind(DeviceContext context)
+	public async void Bind(CharmRenderer renderer)
 	{
 		if (!_hasData) return;
 
-		context.PixelShader.SetShaderResource(0, DiffusePlate);
-		context.PixelShader.SetShaderResource(1, GStackPlate);
-		context.PixelShader.SetShaderResource(2, NormalPlate);
-		context.PixelShader.SetShaderResource(3, DyePlate);
+		renderer.Context.PixelShader.SetShaderResource(0, DiffusePlate?.SRV);
+		renderer.Context.PixelShader.SetShaderResource(1, GStackPlate?.SRV);
+		renderer.Context.PixelShader.SetShaderResource(2, NormalPlate?.SRV);
+		renderer.Context.PixelShader.SetShaderResource(3, DyePlate?.SRV);
 
 		if (_isChangingDyes || InvestmentDye0 is null)
 			return;
 
-		InvestmentDye0.Bind(context);
-		InvestmentDye1.Bind(context);
-		InvestmentDye2.Bind(context);
+		InvestmentDye0.Bind(renderer.Context);
+		InvestmentDye1.Bind(renderer.Context);
+		InvestmentDye2.Bind(renderer.Context);
 
-		var eval0 = await InvestmentDye0.Dye.GetEvaluated(context);
-		var eval1 = await InvestmentDye1.Dye.GetEvaluated(context);
-		var eval2 = await InvestmentDye2.Dye.GetEvaluated(context);
+		var eval0 = await InvestmentDye0.Dye.GetEvaluated(renderer);
+		var eval1 = await InvestmentDye1.Dye.GetEvaluated(renderer);
+		var eval2 = await InvestmentDye2.Dye.GetEvaluated(renderer);
 
 		try
 		{
@@ -214,19 +213,19 @@ public class InvestmentData : GpuResource
 			_merger.Move(44, 8);
 
 			Vector4[] mergedCB = _merger.ToArray();
-			DataBox dataBox = context.MapSubresource(InvestmentBuffer, 0, MapMode.WriteDiscard, MapFlags.None);
+			DataBox dataBox = renderer.Context.MapSubresource(InvestmentBuffer, 0, MapMode.WriteDiscard, MapFlags.None);
 			try
 			{
 				Utilities.Write(dataBox.DataPointer, mergedCB, 0, mergedCB.Length);
 			}
 			finally
 			{
-				context.UnmapSubresource(InvestmentBuffer, 0);
+				renderer.Context.UnmapSubresource(InvestmentBuffer, 0);
 			}
 		}
 		finally
 		{
-			context.PixelShader.SetConstantBuffer(7, InvestmentBuffer);
+			renderer.Context.PixelShader.SetConstantBuffer(7, InvestmentBuffer);
 		}
 	}
 
@@ -240,14 +239,15 @@ public class InvestmentData : GpuResource
 		InvestmentDye2?.Dispose();
 		InvestmentDye2 = null;
 
-		DiffusePlate?.Dispose();
+		AssetManager.GetInstance().ReleaseTexture(DiffusePlate);
 		DiffusePlate = null;
-		GStackPlate?.Dispose();
+		AssetManager.GetInstance().ReleaseTexture(GStackPlate);
 		GStackPlate = null;
-		NormalPlate?.Dispose();
+		AssetManager.GetInstance().ReleaseTexture(NormalPlate);
 		NormalPlate = null;
-		DyePlate?.Dispose();
+		AssetManager.GetInstance().ReleaseTexture(DyePlate);
 		DyePlate = null;
+
 		_merger = null;
 
 		base.Dispose();
@@ -430,7 +430,7 @@ public class RenderObject : GpuResource
 				MeshTransform = part.MeshTransform,
 				MeshUVTransform = part.UVTransform,
 				MaxColorIndex = part.MaxVertexColorIndex,
-				Material = AssetManager.GetInstance().GetOrCreateMaterial(context, part.Material),
+				Material = AssetManager.GetInstance().GetOrCreateMaterial(part.Material),
 
 				GroupIndex = part.GroupIndex,
 				VariantMaterialIndex = part.VariantShaderIndex,
@@ -501,17 +501,17 @@ public class RenderObject : GpuResource
 				{
 					renderer.TempScopes.UpdateChunkModelScope(ctx, mesh, GlobalTransforms);
 					if (InstanceCount > 1)
-						mesh.DrawInstanced(ctx, InstanceCount);
+						mesh.DrawInstanced(renderer, InstanceCount);
 					else
-						mesh.Draw(ctx);
+						mesh.Draw(renderer);
 				}
 				else
 				{
 					renderer.TempScopes.UpdateRigidModelScope(ctx, mesh, GlobalTransforms, TransformOffset);
 					if (Investment is not null)
-						Investment.Bind(ctx);
+						Investment.Bind(renderer);
 
-					mesh.Draw(ctx);
+					mesh.Draw(renderer);
 				}
 			}
 
@@ -550,9 +550,9 @@ public class RenderObject : GpuResource
 			{
 				renderer.TempScopes.UpdateChunkModelScope(renderer.Context, mesh, GlobalTransforms);
 				if (InstanceCount > 1)
-					mesh.DrawInstanced(renderer.Context, InstanceCount);
+					mesh.DrawInstanced(renderer, InstanceCount);
 				else
-					mesh.Draw(renderer.Context);
+					mesh.Draw(renderer);
 			}
 			else
 			{
@@ -562,7 +562,7 @@ public class RenderObject : GpuResource
 
 				renderer.TempScopes.UpdateRigidModelScope(renderer.Context, mesh, GlobalTransforms, TransformOffset);
 				if (Investment is not null)
-					Investment.Bind(renderer.Context);
+					Investment.Bind(renderer);
 
 				// This is bad and stupid and sucks
 				if (Permutations is not null && mesh.VariantMaterialIndex != -1)
@@ -578,7 +578,7 @@ public class RenderObject : GpuResource
 						mesh.PermutationMaterialIndex = newIndex;
 						var mapEntry = MaterialRangeMap[mesh.VariantMaterialIndex];
 						var mat = MaterialMap[mapEntry.MaterialStartIndex + (mesh.PermutationMaterialIndex % mapEntry.MaterialCount)];
-						mesh.Material = AssetManager.GetInstance().GetOrCreateMaterial(renderer.Context, mat);
+						mesh.Material = AssetManager.GetInstance().GetOrCreateMaterial(mat);
 
 						renderer.EntityObjectChannels?.UpdateChannels(mat);
 					}
@@ -586,7 +586,7 @@ public class RenderObject : GpuResource
 				}
 
 
-				mesh.Draw(renderer.Context);
+				mesh.Draw(renderer);
 			}
 
 		}
@@ -720,31 +720,31 @@ public class MeshPartData : GpuResource
 	public int VariantMaterialIndex;
 	public int PermutationMaterialIndex = -1;
 
-	public void Draw(DeviceContext context)
+	public void Draw(CharmRenderer renderer)
 	{
-		Bind(context);
-		context.DrawIndexed(IndexCount, IndexOffset, 0);
+		Bind(renderer);
+		renderer.Context.DrawIndexed(IndexCount, IndexOffset, 0);
 	}
 
-	public void DrawInstanced(DeviceContext context, int instanceCount)
+	public void DrawInstanced(CharmRenderer renderer, int instanceCount)
 	{
-		Bind(context);
-		context.DrawIndexedInstanced(IndexCount, instanceCount, IndexOffset, 0, 0);
+		Bind(renderer);
+		renderer.Context.DrawIndexedInstanced(IndexCount, instanceCount, IndexOffset, 0, 0);
 	}
 
-	private void Bind(DeviceContext context)
+	private void Bind(CharmRenderer renderer)
 	{
-		context.InputAssembler.InputLayout = InputLayout;
-		context.InputAssembler.PrimitiveTopology = Topology;
+		renderer.Context.InputAssembler.InputLayout = InputLayout;
+		renderer.Context.InputAssembler.PrimitiveTopology = Topology;
 
-		IndexBuffer.Bind(context);
-		VertexBuffer0?.Bind(context, 0);
-		VertexBuffer1?.Bind(context, 1);
-		VertexBuffer2?.Bind(context, 2);
+		IndexBuffer.Bind(renderer.Context);
+		VertexBuffer0?.Bind(renderer.Context, 0);
+		VertexBuffer1?.Bind(renderer.Context, 1);
+		VertexBuffer2?.Bind(renderer.Context, 2);
 		if (Material.Skinned)
-			VertexBuffer3?.Bind(context, -1, 1);
+			VertexBuffer3?.Bind(renderer.Context, -1, 1);
 
-		Material?.Bind(context);
+		Material?.Bind(renderer);
 	}
 
 	public override void Dispose()
@@ -805,37 +805,37 @@ public class MaterialData : GpuResource
 			Compute = new TechniqueStage(context, material.Compute, ShaderStage.Compute, material.Hash);
 	}
 
-	public void Bind(DeviceContext context)
+	public void Bind(CharmRenderer renderer)
 	{
-		Vertex?.Bind(context);
+		Vertex?.Bind(renderer);
 		if (Skinned)
 		{
 			if (UsesGearDye)
 			{
 				if (UsesVertexColor)
-					context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_VC);
+					renderer.Context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_VC);
 				else
-					context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_NoVC);
+					renderer.Context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_NoVC);
 			}
 			else
 			{
 				if (UsesVertexColor)
-					context.VertexShader.Set(AssetManager.GetInstance().EntityOverrideVS_VC);
+					renderer.Context.VertexShader.Set(AssetManager.GetInstance().EntityOverrideVS_VC);
 				else
-					context.VertexShader.Set(AssetManager.GetInstance().EntityOverrideVS_NoVC);
+					renderer.Context.VertexShader.Set(AssetManager.GetInstance().EntityOverrideVS_NoVC);
 			}
 		}
 
-		Pixel?.Bind(context);
-		Compute?.Bind(context);
+		Pixel?.Bind(renderer);
+		Compute?.Bind(renderer);
 
-		var states = GPU.Instance.CMD.CurrentState.Select(States);
-		GPU.Instance.CMD.States.CreateStates(context, states);
+		var states = renderer.CMD.CurrentState.Select(States);
+		renderer.CMD.States.CreateStates(renderer.Context, states);
 	}
 
-	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)
 	{
-		return await Pixel?.GetEvaluated(context);
+		return await Pixel?.GetEvaluated(renderer);
 	}
 
 	public void AddRef()
@@ -851,6 +851,7 @@ public class MaterialData : GpuResource
 
 	public override void Dispose()
 	{
+		RefCount = 0;
 		Vertex?.Dispose();
 		Pixel?.Dispose();
 
@@ -878,15 +879,15 @@ public class TechniqueStage : GpuResource
 		}
 	}
 
-	public void Bind(DeviceContext context)
+	public void Bind(CharmRenderer renderer)
 	{
-		Shader?.Bind(context);
-		Constants?.Bind(context, Stage);
+		Shader?.Bind(renderer.Context);
+		Constants?.Bind(renderer, Stage);
 	}
 
-	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)
 	{
-		return await Constants?.GetEvaluated(context);
+		return await Constants?.GetEvaluated(renderer);
 	}
 
 	public override void Dispose()
@@ -941,28 +942,28 @@ public class Constants : GpuResource
 		}
 		Shader = shader;
 		Slot = shader.BufferSlot;
-		Samplers = AssetManager.GetInstance().CreateSamplers(context, shader);
-		Textures = AssetManager.GetInstance().CreateTextures(context, shader);
+		Samplers = AssetManager.GetInstance().CreateSamplers(shader);
+		Textures = AssetManager.GetInstance().CreateTextures(shader);
 
 		BytecodeConstants = shader.TFX_Bytecode_Constants.Select(x => new System.Numerics.Vector4(x.Vec.X, x.Vec.Y, x.Vec.Z, x.Vec.W)).ToArray();
 		BytecodeInterpreter = new TfxBytecodeInterpreter(TfxBytecodeOp.ParseAll(shader.TFX_Bytecode));
 		BytecodeInterpreter.Name = $"Technique {materialHash} : {stage}";
 	}
 
-	public async Task Bind(DeviceContext context, ShaderStage stage)
+	public async Task Bind(CharmRenderer renderer, ShaderStage stage)
 	{
 		switch (stage)
 		{
 			case ShaderStage.Vertex when Slot != -1:
-				context.VertexShader.SetConstantBuffer(Slot, Buffer);
+				renderer.Context.VertexShader.SetConstantBuffer(Slot, Buffer);
 				break;
 
 			case ShaderStage.Pixel when Slot != -1:
-				context.PixelShader.SetConstantBuffer(Slot, Buffer);
+				renderer.Context.PixelShader.SetConstantBuffer(Slot, Buffer);
 				break;
 
 			case ShaderStage.Compute when Slot != -1:
-				context.ComputeShader.SetConstantBuffer(Slot, Buffer);
+				renderer.Context.ComputeShader.SetConstantBuffer(Slot, Buffer);
 				break;
 		}
 
@@ -971,15 +972,15 @@ public class Constants : GpuResource
 			switch (stage)
 			{
 				case ShaderStage.Vertex:
-					context.VertexShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
+					renderer.Context.VertexShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 
 				case ShaderStage.Pixel:
-					context.PixelShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
+					renderer.Context.PixelShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 
 				case ShaderStage.Compute:
-					context.ComputeShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
+					renderer.Context.ComputeShader.SetShaderResource((int)tex.Key, tex.Value.SRV);
 					break;
 			}
 		}
@@ -987,19 +988,19 @@ public class Constants : GpuResource
 		if (BytecodeInterpreter == null)
 			return;
 
-		var evaluated = await GetEvaluated(context);
+		var evaluated = await GetEvaluated(renderer);
 
 		if (Buffer == null)
 			return;
 
-		DataBox dataBox = context.MapSubresource(Buffer, 0, MapMode.WriteDiscard, MapFlags.None);
+		DataBox dataBox = renderer.Context.MapSubresource(Buffer, 0, MapMode.WriteDiscard, MapFlags.None);
 		try
 		{
 			Utilities.Write(dataBox.DataPointer, evaluated, 0, evaluated.Length);
 		}
 		finally
 		{
-			context.UnmapSubresource(Buffer, 0);
+			renderer.Context.UnmapSubresource(Buffer, 0);
 		}
 	}
 
@@ -1020,16 +1021,16 @@ public class Constants : GpuResource
 		}
 	}
 
-	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)
 	{
 		var evaluated = await BytecodeInterpreter.EvaluateAsync(
-			context,
+			renderer,
 			ConstantValues,
 			BytecodeConstants,
 			Shader,
 			Samplers,
-			Instance.EntityObjectChannels,
-			globalChannels: Instance.World.GlobalChannels);
+			renderer.EntityObjectChannels,
+			globalChannels: renderer.World.GlobalChannels);
 
 		return evaluated;
 	}
@@ -1041,7 +1042,7 @@ public class Constants : GpuResource
 
 		foreach (var tex in Textures) // De-frefs textures, disposing is handled by AssetManager
 		{
-			AssetManager.GetInstance().ReleaseTexture(tex.Key);
+			AssetManager.GetInstance().ReleaseTexture(tex.Value);
 		}
 		Textures.Clear();
 

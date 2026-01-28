@@ -56,7 +56,7 @@ public class TfxBytecodeInterpreter
 	}
 
 	public async Task<Vec4[]> EvaluateAsync(
-		DeviceContext context,
+		CharmRenderer renderer,
 		Vec4[] constants,
 		Vec4[] bytecodeConstants,
 		SMaterialShader? shader,
@@ -66,7 +66,7 @@ public class TfxBytecodeInterpreter
 		RendererGlobalChannels globalChannels = null)
 	{
 		Evaluate(
-			context,
+			renderer,
 			constants,
 			bytecodeConstants,
 			shader,
@@ -81,7 +81,7 @@ public class TfxBytecodeInterpreter
 
 	private const string name = "Bytecode Evaluate";
 	public void Evaluate(
-		DeviceContext context,
+		CharmRenderer renderer,
 		System.Numerics.Vector4[] constants,
 		System.Numerics.Vector4[] bytecodeConstants,
 		SMaterialShader? shader,
@@ -434,17 +434,17 @@ public class TfxBytecodeInterpreter
 							break;
 						}
 
-						var PushExternInputFloat = CharmRenderer.Instance.Externs.Get<float>(((PushExternInputFloatData)_curOp.data).extern_, ((PushExternInputFloatData)_curOp.data).element * 4);
+						var PushExternInputFloat = renderer.Externs.Get<float>(((PushExternInputFloatData)_curOp.data).extern_, ((PushExternInputFloatData)_curOp.data).element * 4);
 						StackPush(new(PushExternInputFloat));
 						break;
 
 					case TfxBytecode.PushExternInputVec4:
-						var PushExternInputVec4 = CharmRenderer.Instance.Externs.Get<Vec4>(((PushExternInputVec4Data)_curOp.data).extern_, ((PushExternInputVec4Data)_curOp.data).element * 16);
+						var PushExternInputVec4 = renderer.Externs.Get<Vec4>(((PushExternInputVec4Data)_curOp.data).extern_, ((PushExternInputVec4Data)_curOp.data).element * 16);
 						StackPush(PushExternInputVec4);
 						break;
 
 					case TfxBytecode.PushExternInputMat4:
-						var PushExternInputMat4 = CharmRenderer.Instance.Externs.Get<Matrix4x4ButGood>(((PushExternInputMat4Data)_curOp.data).extern_, ((PushExternInputMat4Data)_curOp.data).element * 16);
+						var PushExternInputMat4 = renderer.Externs.Get<Matrix4x4ButGood>(((PushExternInputMat4Data)_curOp.data).extern_, ((PushExternInputMat4Data)_curOp.data).element * 16);
 						StackPush(PushExternInputMat4.X);
 						StackPush(PushExternInputMat4.Y);
 						StackPush(PushExternInputMat4.Z);
@@ -533,16 +533,16 @@ public class TfxBytecodeInterpreter
 
 						extern_id = (TfxExtern)(bits >> 24);
 						offset = bits & 0xFFFFFF;
-						var srv = CharmRenderer.Instance.Externs.Get<ShaderResourceView>(extern_id, offset);
+						var srv = renderer.Externs.Get<ShaderResourceView>(extern_id, offset);
 						//Console.WriteLine($"{Name} {slot} ({extern_id} ({(byte)(bits >> 24)}), {offset:X}) : {srv?.DebugName}");
 						switch (shader_stage)
 						{
 							case ShaderStage.Vertex:
-								context.VertexShader.SetShaderResource(slot, srv);
+								renderer.Context.VertexShader.SetShaderResource(slot, srv);
 								break;
 
 							case ShaderStage.Pixel:
-								context.PixelShader.SetShaderResource(slot, srv);
+								renderer.Context.PixelShader.SetShaderResource(slot, srv);
 								break;
 
 							default:
@@ -560,11 +560,11 @@ public class TfxBytecodeInterpreter
 						switch (shader_stage)
 						{
 							case ShaderStage.Vertex:
-								context.VertexShader.SetSampler(slot, samplers[samplerIndex]);
+								renderer.Context.VertexShader.SetSampler(slot, samplers[samplerIndex]);
 								break;
 
 							case ShaderStage.Pixel:
-								context.PixelShader.SetSampler(slot, samplers[samplerIndex]);
+								renderer.Context.PixelShader.SetSampler(slot, samplers[samplerIndex]);
 								break;
 
 							default:
@@ -597,8 +597,9 @@ public class TfxBytecodeInterpreter
 						if (_sp != 0)
 						{
 							var top = StackTop();
-							evaluated[((PopOutputData)_curOp.data).slot] = top;
-							if (print) Log.Info($"----Output: {top} to slot {((PopOutputData)_curOp.data).slot}");
+							var outSlot = ((PopOutputData)_curOp.data).slot;
+							evaluated[outSlot] = top;
+							if (print) Log.Info($"----Output: {top} to slot {outSlot}");
 						}
 						break;
 

@@ -16,11 +16,13 @@ namespace Charm.Renderer;
 
 public sealed class TextureAsset : IDisposable
 {
+	public uint Hash;
 	public ShaderResourceView SRV;
 	public int RefCount;
 
-	public TextureAsset(ShaderResourceView srv)
+	public TextureAsset(uint hash, ShaderResourceView srv)
 	{
+		Hash = hash;
 		SRV = srv;
 	}
 
@@ -37,6 +39,7 @@ public sealed class TextureAsset : IDisposable
 
 	public void Dispose()
 	{
+		RefCount = 0;
 		SRV?.Dispose();
 		SRV = null;
 	}
@@ -138,11 +141,11 @@ public class AssetManager : IDisposable
 		};
 	}
 
-	public MaterialData GetOrCreateMaterial(DeviceContext context, Material material)
+	public MaterialData GetOrCreateMaterial(Material material)
 	{
 		if (!_materialCache.TryGetValue(material.Hash.Hash32, out var mat))
 		{
-			mat = new MaterialData(context, material);
+			mat = new MaterialData(GPU.Instance.ImmediateContext, material);
 			_materialCache[material.Hash.Hash32] = mat;
 		}
 
@@ -162,11 +165,11 @@ public class AssetManager : IDisposable
 		}
 	}
 
-	public TextureAsset GetOrCreateTexture(DeviceContext context, Texture texture)
+	public TextureAsset GetOrCreateTexture(Texture texture)
 	{
 		if (!_cache.TryGetValue(texture.Hash.Hash32, out var tex))
 		{
-			tex = new TextureAsset(CreateTexture(context, texture));
+			tex = new TextureAsset(texture.Hash.Hash32, CreateTexture(GPU.Instance.ImmediateContext, texture));
 			_cache[texture.Hash.Hash32] = tex;
 		}
 
@@ -174,11 +177,11 @@ public class AssetManager : IDisposable
 		return tex;
 	}
 
-	public TextureAsset GetOrCreateGlobalTexture(DeviceContext context, Texture texture)
+	public TextureAsset GetOrCreateGlobalTexture(Texture texture)
 	{
 		if (!_globalCache.TryGetValue(texture.Hash.Hash32, out var tex))
 		{
-			tex = new TextureAsset(CreateTexture(context, texture));
+			tex = new TextureAsset(texture.Hash.Hash32, CreateTexture(GPU.Instance.ImmediateContext, texture));
 			_globalCache[texture.Hash.Hash32] = tex;
 		}
 
@@ -198,7 +201,15 @@ public class AssetManager : IDisposable
 		}
 	}
 
-	public Dictionary<uint, TextureAsset> CreateTextures(DeviceContext context, SMaterialShader stage)
+	public void ReleaseTexture(TextureAsset tex)
+	{
+		if (tex is null)
+			return;
+
+		ReleaseTexture(tex.Hash);
+	}
+
+	public Dictionary<uint, TextureAsset> CreateTextures(SMaterialShader stage)
 	{
 		Dictionary<uint, TextureAsset> textures = new();
 
@@ -207,13 +218,13 @@ public class AssetManager : IDisposable
 			if (tex.Texture is null)
 				continue;
 
-			textures.TryAdd(tex.TextureIndex, GetOrCreateTexture(context, tex.Texture));
+			textures.TryAdd(tex.TextureIndex, GetOrCreateTexture(tex.Texture));
 		}
 
 		return textures;
 	}
 
-	public Dictionary<uint, TextureAsset> CreateTextures(DeviceContext context, List<STextureTag> tags)
+	public Dictionary<uint, TextureAsset> CreateTextures(List<STextureTag> tags)
 	{
 		Dictionary<uint, TextureAsset> textures = new();
 
@@ -222,7 +233,7 @@ public class AssetManager : IDisposable
 			if (tex.Texture is null)
 				continue;
 
-			textures.TryAdd(tex.TextureIndex, GetOrCreateTexture(context, tex.Texture));
+			textures.TryAdd(tex.TextureIndex, GetOrCreateTexture(tex.Texture));
 		}
 
 		return textures;
@@ -378,7 +389,7 @@ public class AssetManager : IDisposable
 		}
 	}
 
-	public List<SamplerState> CreateSamplers(DeviceContext context, SMaterialShader stage)
+	public List<SamplerState> CreateSamplers(SMaterialShader stage)
 	{
 		List<SamplerState> samplers = new();
 		foreach (var sampler in stage.EnumerateSamplers())
@@ -386,13 +397,13 @@ public class AssetManager : IDisposable
 			if (sampler.Hash.GetFileMetadata().Type != 34)
 				continue;
 
-			samplers.Add(CreateSampler(context, sampler.Sampler));
+			samplers.Add(CreateSampler(GPU.Instance.ImmediateContext, sampler.Sampler));
 		}
 
 		return samplers;
 	}
 
-	public List<SamplerState> CreateSamplers(DeviceContext context, List<DirectXSampler> samplersStucts)
+	public List<SamplerState> CreateSamplers(List<DirectXSampler> samplersStucts)
 	{
 		List<SamplerState> samplers = new();
 		foreach (var sampler in samplersStucts)
@@ -400,7 +411,7 @@ public class AssetManager : IDisposable
 			if (sampler.Hash.GetFileMetadata().Type != 34)
 				continue;
 
-			samplers.Add(CreateSampler(context, sampler.Sampler));
+			samplers.Add(CreateSampler(GPU.Instance.ImmediateContext, sampler.Sampler));
 		}
 		return samplers;
 	}
@@ -424,7 +435,7 @@ public class AssetManager : IDisposable
 		});
 	}
 
-	public TextureAsset CreateFromPlate(DeviceContext context, TexturePlate plate)
+	public TextureAsset CreateFromPlate(TexturePlate plate)
 	{
 		if (plate is null)
 			return null;
@@ -438,7 +449,7 @@ public class AssetManager : IDisposable
 
 		if (!_cache.TryGetValue(outHash, out var tex))
 		{
-			tex = new(CreateFromScratchImage(context, plate.MakePlatedTexture()));
+			tex = new(outHash, CreateFromScratchImage(GPU.Instance.ImmediateContext, plate.MakePlatedTexture()));
 			if (tex.SRV is not null)
 				tex.SRV.DebugName = $"Gear Plate {plate.Hash}";
 

@@ -35,7 +35,7 @@ public partial class CharmRenderer
 
 	private void CreateDefaults()
 	{
-		AssetManager = new AssetManager();
+		AssetManager = AssetManager.Instance;
 
 		CreateGrid();
 
@@ -101,11 +101,11 @@ public partial class CharmRenderer
 	public void ExecutePipeline(string pipeline)
 	{
 		if (!_pipelineCache.ContainsKey(pipeline))
-			_pipelineCache[pipeline] = new(Context, Globals.Get().GetPipeline(pipeline));
+			_pipelineCache[pipeline] = new(_GPU.ImmediateContext, Globals.Get().GetPipeline(pipeline));
 
 		var data = _pipelineCache[pipeline];
 
-		data.Bind(Context);
+		data.Bind(this);
 	}
 
 	public void UnbindAllRTVs()

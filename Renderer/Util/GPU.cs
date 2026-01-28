@@ -24,8 +24,7 @@ public class GPU : IDisposable
 	}
 
 	public Device Device;
-	public DeviceContext Context;
-	public CommandList CMD;
+	public DeviceContext ImmediateContext;
 
 	private readonly HashSet<IDisposable> _trackedResources = new();
 
@@ -57,8 +56,7 @@ public class GPU : IDisposable
 		Configuration.EnableReleaseOnFinalizer = true; // I THINK this is helping with vram
 		var device = new SharpDX.Direct3D11.Device(DriverType.Hardware, creationFlags, featureLevels);
 		Device = device.QueryInterface<Device>();
-		Context = Device.ImmediateContext.QueryInterface<DeviceContext>();
-		CMD = new(this);
+		ImmediateContext = Device.ImmediateContext.QueryInterface<DeviceContext>();
 	}
 
 	public void RegisterResource(IDisposable resource)
@@ -108,8 +106,6 @@ public class GPU : IDisposable
 					Log.Debug($"{obj.Object.Target}");
 			}
 		}
-
-		CMD.States.DisposeStates();
 	}
 
 	private void OnAppExit(object sender, ExitEventArgs e)
@@ -122,7 +118,7 @@ public class GPU : IDisposable
 		Dispose();
 
 		Utilities.Dispose(ref Device);
-		Utilities.Dispose(ref Context);
+		Utilities.Dispose(ref ImmediateContext);
 		_instance = null;
 
 		if (Application.Current != null)
@@ -194,7 +190,7 @@ public struct GPUStageState
 	public Buffer[] CBuffers = new Buffer[14];
 }
 
-public class CommandList
+public class CommandList : IDisposable
 {
 	public CommandList(GPU gpu)
 	{
@@ -207,11 +203,16 @@ public class CommandList
 
 	public GPU Parent;
 	public GPUState GpuState;
-	public DeviceContext ImmediateContext => Parent.Context;
+	public DeviceContext ImmediateContext => Parent.ImmediateContext;
 	public DeviceContext DeferredContext;
 
 	public States States;
 	public StateSelection CurrentState => States.CurrentState;
+
+	public void Dispose()
+	{
+		States?.DisposeStates();
+	}
 }
 
 

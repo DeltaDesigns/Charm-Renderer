@@ -7,6 +7,9 @@ using System.Windows.Threading;
 using Tiger;
 using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
+using Arithmic;
+
+
 
 #if DEBUG
 using TracyWrapper;
@@ -24,8 +27,6 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer : IDisposable
 {
-	public static CharmRenderer Instance { get; set; } // TODO? Stop doing this. Things that use this should live seperately?
-
 	private int _width;
 	private int _height;
 
@@ -41,8 +42,8 @@ public partial class CharmRenderer : IDisposable
 	public GPU _GPU { get; set; }
 
 	public Device Device => _GPU?.Device;
-	public DeviceContext Context => _GPU?.Context;
-	public CommandList CMD => _GPU?.CMD;
+	public DeviceContext Context; //=> _GPU?.Context;
+	public CommandList CMD; //=> _GPU?.CMD;
 
 	private volatile bool _isRunning = false;
 	private Thread _renderThread;
@@ -76,22 +77,23 @@ public partial class CharmRenderer : IDisposable
 			else
 				_GPU = GPU.Instance;
 
+			Context = new(Device);
 			Load(width, height);
+
+			CMD = new(_GPU);
+			MatCapRenderer ??= new MatCap(Context);
 		}
-		MatCapRenderer ??= new MatCap(Context);
 	}
 
 	private void Load(int width, int height)
 	{
-		Instance = this;
-
 		_width = width;
 		_height = height;
 
 		CreateRenderingResources(width, height);
 		TempScopes?.Dispose();
 		TempScopes = new();
-		Externs = new();
+		Externs = new(this);
 
 		World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141179)));
 
@@ -115,12 +117,16 @@ public partial class CharmRenderer : IDisposable
 
 	public void Start()
 	{
+		if (_isRunning)
+			return;
+
 		_isRunning = true;
 		_renderThread = new Thread(RenderLoop)
 		{
 			IsBackground = true
 		};
 		_renderThread.Start();
+		Log.Debug($"Renderer {GetHashCode()} started");
 	}
 
 	public void Stop()
@@ -129,6 +135,7 @@ public partial class CharmRenderer : IDisposable
 		{
 			_isRunning = false;
 			_renderThread?.Join();
+			Log.Debug($"Renderer {GetHashCode()} stopped");
 		}
 	}
 
@@ -254,8 +261,8 @@ public partial class CharmRenderer : IDisposable
 		World.GlobalChannels.Set("sky_snapshot_rotation", new(Viewport.AtmosRotation * 360f));
 		World.GlobalChannels.Set("sky_snapshot_intensity", new(Viewport.AtmosIntensity));
 
-		TfxScopes[Tiger.TfxScope.VIEW].Bind(Context);
-		TfxScopes[Tiger.TfxScope.FRAME].Bind(Context);
+		TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
+		TfxScopes[Tiger.TfxScope.FRAME].Bind(this);
 		TempScopes.UpdateFrameScope(this);
 
 		RenderGBuffer();
@@ -362,23 +369,7 @@ public partial class CharmRenderer : IDisposable
 		}
 	}
 
-	public void DisposeControl()
-	{
-		DisposeWPF();
-		MatCapRenderer?.Dispose();
-		MatCapRenderer = null;
-
-#if DEBUG
-		_renderDoc = null;
-#endif
-
-		DisposeAllMesh();
-
-		AssetManager?.Dispose();
-		AssetManager = null;
-	}
-
-	public void DisposeAllMesh()
+	public void DisposeMesh()
 	{
 		World?.DisposeAll();
 		//AssetManager?.DisposeTextures();
@@ -387,6 +378,7 @@ public partial class CharmRenderer : IDisposable
 	public void DisposeRenderingResources()
 	{
 		Utilities.Dispose(ref GBuffers);
+		Utilities.Dispose(ref MatCapRenderer);
 		Utilities.Dispose(ref _rtFinal);
 		Utilities.Dispose(ref _blitVS);
 		Utilities.Dispose(ref _blitPS);
@@ -404,14 +396,28 @@ public partial class CharmRenderer : IDisposable
 		Utilities.Dispose(ref _fullHemiSkyTempVS);
 		Utilities.Dispose(ref _fullHemiSkyTempPS);
 		Utilities.Dispose(ref Annotation);
+
+#if DEBUG
+		_renderDoc = null;
+#endif
 	}
 
+	public void Destroy(bool fullyDestroy = false)
+	{
+		Dispose();
+		if (fullyDestroy)
+		{
+			AssetManager.Dispose();
+			_GPU?.Dispose();
+			_GPU = null;
+		}
+	}
 
 	public void Dispose()
 	{
 		Stop();
-
-		DisposeControl();
+		DisposeWPF();
+		DisposeMesh();
 		DisposeRenderingResources();
 
 		foreach (var pipeline in _pipelineCache.Values)
@@ -420,7 +426,8 @@ public partial class CharmRenderer : IDisposable
 		}
 		_pipelineCache.Clear();
 
-		Externs?.Dispose();
+		// I don't think Externs needs disposed since all its SRVs are assigned from GBuffers which are disposed above
+		//Externs?.Dispose();
 		TempScopes?.Dispose();
 
 		foreach (var scope in TfxScopes.Values)
@@ -433,9 +440,7 @@ public partial class CharmRenderer : IDisposable
 		Keyboard.Dispose();
 		Mouse.Dispose();
 
-		_GPU?.Dispose();
-
-		Instance = null;
+		CMD?.Dispose();
 	}
 
 	public void DisposeWPF()

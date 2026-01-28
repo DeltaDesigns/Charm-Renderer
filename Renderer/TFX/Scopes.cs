@@ -314,9 +314,9 @@ public class TfxScope : GpuResource
 		Vertex = Scope.Vertex.Value.CBufferSlot != -1 ? new TfxScopeStage(Scope.Vertex.Value, ShaderStage.Vertex, Name, context) : null;
 	}
 
-	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)
 	{
-		return await Pixel?.GetEvaluated(context);
+		return await Pixel?.GetEvaluated(renderer);
 	}
 
 	public void BindTextures(DeviceContext context)
@@ -325,10 +325,10 @@ public class TfxScope : GpuResource
 		Vertex?.BindTextures(context);
 	}
 
-	public void Bind(DeviceContext context)
+	public void Bind(CharmRenderer renderer)
 	{
-		Pixel?.Bind(context);
-		Vertex?.Bind(context);
+		Pixel?.Bind(renderer);
+		Vertex?.Bind(renderer);
 	}
 
 	public override void Dispose()
@@ -374,16 +374,16 @@ public class TfxScopeStage : GpuResource
 		}
 
 		ScopeConstants.Slot = ScopeStage.CBufferSlot;
-		ScopeConstants.Textures = AssetManager.GetInstance().CreateTextures(context, ScopeStage.Textures);
-		ScopeConstants.Samplers = AssetManager.GetInstance().CreateSamplers(GPU.Instance.Context, ScopeStage.EnumerateSamplers().ToList());
+		ScopeConstants.Textures = AssetManager.GetInstance().CreateTextures(ScopeStage.Textures);
+		ScopeConstants.Samplers = AssetManager.GetInstance().CreateSamplers(ScopeStage.EnumerateSamplers().ToList());
 		ScopeConstants.BytecodeConstants = ScopeStage.TFX_Bytecode_Constants.Select(x => new System.Numerics.Vector4(x.Vec.X, x.Vec.Y, x.Vec.Z, x.Vec.W)).ToArray();
 		ScopeConstants.BytecodeInterpreter = new TfxBytecodeInterpreter(TfxBytecodeOp.ParseAll(ScopeStage.TFX_Bytecode));
 		ScopeConstants.BytecodeInterpreter.Name = $"Scope {name} : {ShaderStage}";
 	}
 
-	public async Task<Vector4[]> GetEvaluated(DeviceContext context)
+	public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)
 	{
-		return await ScopeConstants?.GetEvaluated(context);
+		return await ScopeConstants?.GetEvaluated(renderer);
 	}
 
 	public void BindTextures(DeviceContext context)
@@ -391,9 +391,9 @@ public class TfxScopeStage : GpuResource
 		ScopeConstants.BindTextures(context, ShaderStage);
 	}
 
-	public void Bind(DeviceContext context)
+	public void Bind(CharmRenderer renderer)
 	{
-		ScopeConstants.Bind(context, ShaderStage);
+		ScopeConstants.Bind(renderer, ShaderStage);
 	}
 
 	public override void Dispose()

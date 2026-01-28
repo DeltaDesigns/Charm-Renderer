@@ -15,9 +15,9 @@ public class Externs : IDisposable
 	private static readonly ConcurrentDictionary<Type, Dictionary<int, Func<object, object>>> _fieldMaps =
 		   new ConcurrentDictionary<Type, Dictionary<int, Func<object, object>>>();
 
-	public Externs()
+	public Externs(CharmRenderer renderer)
 	{
-		Frame = new();
+		Frame = new(renderer);
 		View = new();
 		Transparent = new();
 		Deferred = new();
@@ -61,17 +61,17 @@ public class Externs : IDisposable
 		[ExternField(0x1B0)] public Vector4 Unk1B0 { get; set; } = new(0f, 0f, 0f, 1f);
 		[ExternField(0x1C0)] public Vector4 Unk1C0 { get; set; } = new(1f, 1f, 0f, 1f);
 
-		public ExternFrame()
+		public ExternFrame(CharmRenderer renderer)
 		{
 			var speclobe = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup;
 			var speclobe3d = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup3D;
 			var spectint = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularTintLookup;
 			var iri = Globals.Get().RenderGlobals.TagData.Textures.TagData.IridescenceLookup;
 
-			SpecularLobeLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, speclobe).SRV;
-			SpecularLobe3DLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, speclobe3d).SRV;
-			SpecularTintLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, spectint).SRV;
-			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(GPU.Instance.Context, iri).SRV;
+			SpecularLobeLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(speclobe).SRV;
+			SpecularLobe3DLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(speclobe3d).SRV;
+			SpecularTintLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(spectint).SRV;
+			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(iri).SRV;
 		}
 
 		public void Update(CharmRenderer renderer)
@@ -85,8 +85,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			IridesenceLookup?.Dispose();
-			IridesenceLookup = null;
 		}
 	}
 
@@ -340,10 +338,6 @@ public class Externs : IDisposable
 			AtmosLookup1 = null;
 			AtmosLookup2?.Dispose();
 			AtmosLookup2 = null;
-			UnkA0?.Dispose();
-			UnkA0 = null;
-			UnkC0?.Dispose();
-			UnkC0 = null;
 			AtmosFar?.Dispose();
 			AtmosFar = null;
 			AtmosNear?.Dispose();
@@ -390,12 +384,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			Unk00?.Dispose();
-			Unk00 = null;
-			Unk08?.Dispose();
-			Unk08 = null;
-			Unk10?.Dispose();
-			Unk10 = null;
 		}
 	}
 
@@ -488,12 +476,6 @@ public class Externs : IDisposable
 			Unk30 = null;
 			Unk38?.Dispose();
 			Unk38 = null;
-			Unk40?.Dispose();
-			Unk40 = null;
-			Unk50?.Dispose();
-			Unk50 = null;
-			Unk58?.Dispose();
-			Unk58 = null;
 		}
 	}
 
@@ -566,8 +548,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			Unk08?.Dispose();
-			Unk08 = null;
 		}
 	}
 

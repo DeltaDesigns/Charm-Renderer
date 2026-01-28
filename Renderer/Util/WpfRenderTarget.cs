@@ -84,8 +84,11 @@ public class WpfRenderTarget : IDisposable
 	public void Present(DeviceContext context, System.Windows.Controls.Image imageHost)
 	{
 		RenderHelpers.Profile("WPF Present");
-		context!.CopyResource(SceneColor.Texture, SharedWpfTexture);
-		context!.Flush();
+		var commandList = context.FinishCommandList(false);
+		GPU.Instance.ImmediateContext.ExecuteCommandList(commandList, true);
+
+		GPU.Instance.ImmediateContext!.CopyResource(SceneColor.Texture, SharedWpfTexture);
+		GPU.Instance.ImmediateContext!.Flush();
 
 		Application.Current?.Dispatcher.InvokeAsync(() =>
 		{
