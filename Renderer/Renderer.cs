@@ -152,13 +152,14 @@ public partial class CharmRenderer : IDisposable
 		_pausedEvent.Set();
 	}
 
-	private int _frameCounter = 0;
 	public float Time { get; private set; }
 	public float DeltaTime { get; private set; }
-	public float FPS { get; private set; } = 0;
-
 	private const float MaxDeltaTime = 0.1f;
+
+	private int _frameCounter = 0;
+	public float FPS { get; private set; } = 0;
 	private float TargetFPS = 200f;
+
 	private void RenderLoop()
 	{
 #if DEBUG
@@ -230,44 +231,20 @@ public partial class CharmRenderer : IDisposable
 		KeyboardState = Keyboard.GetCurrentState();
 		MouseState = Mouse.GetCurrentState();
 
-#if DEBUG
-		if (_renderDoc is null)
-			RenderDoc.Load(out _renderDoc);
-
-		if (!_captured & KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
-		{
-			Console.WriteLine("Starting Renderdoc Capture");
-			_renderDoc.API.StartFrameCapture(Device.NativePointer, IntPtr.Zero);
-		}
-#endif
+		HandleRenderDoc(true);
 
 		int newWidth = Math.Max(1, (int)Viewport.ActualWidth);
 		int newHeight = Math.Max(1, (int)Viewport.ActualHeight);
 		Context.Rasterizer.SetViewport(0, 0, newWidth, newHeight, 0.0f, 1f);
 
 		UpdateCamera(World);
-
-		{
-			var near = Camera.Near;
-			var far = Camera.Far;
-			Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
-			Externs.Decal.DepthConstants = Externs.Deferred.DepthConstants;
-			//Externs.Frame.ExposureScale = Viewport.Exposure;
-			Externs.Frame.ExposureIllumRelative = Viewport.ExposureIllum;
-		}
-
-		Externs.Update(this);
-		World.EvaluateGlobalChannels(Externs);
-		World.GlobalChannels.Set("sky_snapshot_rotation", new(Viewport.AtmosRotation * 360f));
-		World.GlobalChannels.Set("sky_snapshot_intensity", new(Viewport.AtmosIntensity));
-
-		TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
-		TfxScopes[Tiger.TfxScope.FRAME].Bind(this);
-		TempScopes.UpdateFrameScope(this);
+		UpdateExterns();
+		UpdateGlobalChannels();
+		UpdateScopes();
 
 		RenderGBuffer();
 		RenderAtmosphere();
-		RenderMatCap();
+		RenderLighting();
 		RenderShading();
 		RenderTransparent();
 		RenderPostProcess();
@@ -300,7 +277,6 @@ public partial class CharmRenderer : IDisposable
 
 		// Blits to final RT/Correct format for WPF cus it hates everything
 		BlitToWPF(blitRT);
-		wpfRT.Present(Context, Viewport.RT0);
 
 		//if (World.OverrideMainBB is not null)
 		//{
@@ -311,17 +287,7 @@ public partial class CharmRenderer : IDisposable
 		//if (MouseState.Buttons[1])
 		//	Camera.Pick(Camera.GetMouseRay(Camera.Viewport, Externs.View), World);
 
-#if DEBUG
-		if (!_captured & KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
-		{
-			_renderDoc.API.EndFrameCapture(Device.NativePointer, IntPtr.Zero);
-			_captured = true;
-			Console.WriteLine("Renderdoc Capture Complete");
-		}
-
-		if (_captured & !KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
-			_captured = false;
-#endif
+		HandleRenderDoc(false);
 	}
 
 	private void UpdateCamera(RenderWorld world)
@@ -336,6 +302,31 @@ public partial class CharmRenderer : IDisposable
 			Camera.Update(world, KeyboardState, MouseState);
 
 		RenderHelpers.EndProfile();
+	}
+
+	private void UpdateExterns()
+	{
+		var near = Camera.Near;
+		var far = Camera.Far;
+		Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
+		Externs.Decal.DepthConstants = Externs.Deferred.DepthConstants;
+		Externs.Frame.ExposureIllumRelative = Viewport.ExposureIllum;
+		Externs.Frame.Unk10 = Viewport.TimeOfDay;
+		Externs.Update(this);
+	}
+
+	private void UpdateGlobalChannels()
+	{
+		World.EvaluateGlobalChannels(Externs);
+		World.GlobalChannels.Set("sky_snapshot_rotation", new(Viewport.AtmosRotation * 360f));
+		World.GlobalChannels.Set("sky_snapshot_intensity", new(Viewport.AtmosIntensity));
+	}
+
+	private void UpdateScopes()
+	{
+		TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
+		TfxScopes[Tiger.TfxScope.FRAME].Bind(this);
+		TempScopes.UpdateFrameScope(this);
 	}
 
 	public void OnSizeChanged()
@@ -367,6 +358,34 @@ public partial class CharmRenderer : IDisposable
 
 			Start();
 		}
+	}
+
+	private void HandleRenderDoc(bool capture)
+	{
+#if DEBUG
+		if (_renderDoc is null)
+			RenderDoc.Load(out _renderDoc);
+
+		if (capture)
+		{
+			if (!_captured & KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
+			{
+				Console.WriteLine("Starting Renderdoc Capture");
+				_renderDoc.API.StartFrameCapture(Device.NativePointer, IntPtr.Zero);
+			}
+			return;
+		}
+
+		if (!_captured & KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
+		{
+			_renderDoc.API.EndFrameCapture(Device.NativePointer, IntPtr.Zero);
+			_captured = true;
+			Console.WriteLine("Renderdoc Capture Complete");
+		}
+
+		if (_captured & !KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
+			_captured = false;
+#endif
 	}
 
 	public void DisposeMesh()
@@ -426,7 +445,7 @@ public partial class CharmRenderer : IDisposable
 		}
 		_pipelineCache.Clear();
 
-		// I don't think Externs needs disposed since all its SRVs are assigned from GBuffers which are disposed above
+		// I don't think Externs needs disposed since all its SRVs are assigned from GBuffers/AssetManager which are disposed above
 		//Externs?.Dispose();
 		TempScopes?.Dispose();
 

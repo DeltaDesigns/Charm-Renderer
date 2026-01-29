@@ -146,7 +146,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-
 		}
 	}
 
@@ -175,18 +174,19 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			AtmosFar?.Dispose();
-			AtmosFar = null;
-			AtmosNear?.Dispose();
-			AtmosNear = null;
-			AtmosFarDS?.Dispose();
-			AtmosFarDS = null;
-			AtmosNearDS?.Dispose();
-			AtmosNearDS = null;
-			AtmosDepthAngleDensity?.Dispose();
-			AtmosDepthAngleDensity = null;
-			ShadingResult?.Dispose();
-			ShadingResult = null;
+			// These only reference GBuffer SRVs, no need to dispose here
+			//AtmosFar?.Dispose();
+			//AtmosFar = null;
+			//AtmosNear?.Dispose();
+			//AtmosNear = null;
+			//AtmosFarDS?.Dispose();
+			//AtmosFarDS = null;
+			//AtmosNearDS?.Dispose();
+			//AtmosNearDS = null;
+			//AtmosDepthAngleDensity?.Dispose();
+			//AtmosDepthAngleDensity = null;
+			//ShadingResult?.Dispose();
+			//ShadingResult = null;
 		}
 	}
 
@@ -220,22 +220,23 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			DeferredDepth?.Dispose();
-			DeferredDepth = null;
-			DeferredRT0?.Dispose();
-			DeferredRT0 = null;
-			DeferredRT1?.Dispose();
-			DeferredRT1 = null;
-			DeferredRT2?.Dispose();
-			DeferredRT2 = null;
-			LightDiffuse?.Dispose();
-			LightDiffuse = null;
-			LightSpecular?.Dispose();
-			LightSpecular = null;
-			LightIBL?.Dispose();
-			LightIBL = null;
-			SkyHemisphereMips?.Dispose();
-			SkyHemisphereMips = null;
+			// All owned by GBuffer, no need to dispose here
+			//DeferredDepth?.Dispose();
+			//DeferredDepth = null;
+			//DeferredRT0?.Dispose();
+			//DeferredRT0 = null;
+			//DeferredRT1?.Dispose();
+			//DeferredRT1 = null;
+			//DeferredRT2?.Dispose();
+			//DeferredRT2 = null;
+			//LightDiffuse?.Dispose();
+			//LightDiffuse = null;
+			//LightSpecular?.Dispose();
+			//LightSpecular = null;
+			//LightIBL?.Dispose();
+			//LightIBL = null;
+			//SkyHemisphereMips?.Dispose();
+			//SkyHemisphereMips = null;
 		}
 	}
 
@@ -332,16 +333,17 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			AtmosLookup0?.Dispose();
-			AtmosLookup0 = null;
-			AtmosLookup1?.Dispose();
-			AtmosLookup1 = null;
-			AtmosLookup2?.Dispose();
-			AtmosLookup2 = null;
-			AtmosFar?.Dispose();
-			AtmosFar = null;
-			AtmosNear?.Dispose();
-			AtmosNear = null;
+			// Lookups are owned by the AssetManager, others by GBuffer. No need to dispose here
+			//AtmosLookup0?.Dispose();
+			//AtmosLookup0 = null;
+			//AtmosLookup1?.Dispose();
+			//AtmosLookup1 = null;
+			//AtmosLookup2?.Dispose();
+			//AtmosLookup2 = null;
+			//AtmosFar?.Dispose();
+			//AtmosFar = null;
+			//AtmosNear?.Dispose();
+			//AtmosNear = null;
 		}
 	}
 
@@ -361,8 +363,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			DeferredRT1?.Dispose();
-			DeferredRT1 = null;
 		}
 	}
 
@@ -419,8 +419,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			Unk00?.Dispose();
-			Unk00 = null;
 		}
 	}
 
@@ -468,14 +466,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			Unk00?.Dispose();
-			Unk00 = null;
-			Unk08?.Dispose();
-			Unk08 = null;
-			Unk30?.Dispose();
-			Unk30 = null;
-			Unk38?.Dispose();
-			Unk38 = null;
 		}
 	}
 
@@ -502,8 +492,6 @@ public class Externs : IDisposable
 
 		public void Dispose()
 		{
-			Unk00?.Dispose();
-			Unk00 = null;
 		}
 	}
 

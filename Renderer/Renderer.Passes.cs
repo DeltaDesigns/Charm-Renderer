@@ -51,14 +51,17 @@ public partial class CharmRenderer
 
 	private void RenderAtmosphere()
 	{
-		//UnbindAllRTVs();
 		if (!Viewport.RenderSky)
 		{
-			//Externs.Atmosphere.AtmosFar = AssetManager.BlackTexture;
-			//Externs.Transparent.AtmosFarLookup = AssetManager.BlackTexture;
-			//Externs.Atmosphere.AtmosNear = AssetManager.BlackTexture;
-			//Externs.Transparent.AtmosNearLookup = AssetManager.BlackTexture;
-			//Externs.Deferred.SkyHemisphereMips = AssetManager.BlackTexture;
+			CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+			Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
+
+			Externs.Atmosphere.AtmosNear = AssetManager.GetInstance().BlackTextureWAlpha;
+			Externs.Atmosphere.AtmosFar = AssetManager.GetInstance().BlackTextureWAlpha;
+
+			Externs.Transparent.AtmosNear = AssetManager.GetInstance().BlackTextureWAlpha;
+			Externs.Transparent.AtmosFar = AssetManager.GetInstance().BlackTextureWAlpha;
+			Externs.Transparent.AtmosDepthAngleDensity = AssetManager.GetInstance().WhiteTexture;
 			return;
 		}
 
@@ -71,7 +74,6 @@ public partial class CharmRenderer
 		var hemisphere = GBuffers.FullHemisphereSkyColor;
 		var depthangle = GBuffers.DepthAngleDensityLookup;
 
-		Externs.Frame.Unk10 = Viewport.TimeOfDay;
 		Externs.Atmosphere.RTDimensions = far.GetResolutionInverse();
 		Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
 		//Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
@@ -131,10 +133,10 @@ public partial class CharmRenderer
 		RenderHelpers.EndProfile();
 	}
 
-	private void RenderMatCap()
+	private void RenderLighting()
 	{
-		RenderHelpers.Profile("Render Matcap");
-		Annotation.BeginEvent("Matcap");
+		RenderHelpers.Profile("Render Lighting");
+		Annotation.BeginEvent("Lighting");
 
 		Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0, 0, 0, 1));
 		Context.ClearRenderTargetView(GBuffers.LightSpecular.RTV, new RawColor4(0, 0, 0, 1));
@@ -510,6 +512,8 @@ public partial class CharmRenderer
 		rt.SetShaderResource(Context, 0, ShaderStage.Pixel);
 
 		DrawScreenQuad();
+
+		wpfRT.Present(Context, Viewport.RT0);
 
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
