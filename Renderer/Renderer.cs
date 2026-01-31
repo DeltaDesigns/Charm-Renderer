@@ -370,7 +370,7 @@ public partial class CharmRenderer : IDisposable
 		{
 			if (!_captured & KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))
 			{
-				Console.WriteLine("Starting Renderdoc Capture");
+				Log.Debug("Starting Renderdoc Capture");
 				_renderDoc.API.StartFrameCapture(Device.NativePointer, IntPtr.Zero);
 			}
 			return;
@@ -380,7 +380,7 @@ public partial class CharmRenderer : IDisposable
 		{
 			_renderDoc.API.EndFrameCapture(Device.NativePointer, IntPtr.Zero);
 			_captured = true;
-			Console.WriteLine("Renderdoc Capture Complete");
+			Log.Debug("Renderdoc Capture Complete");
 		}
 
 		if (_captured & !KeyboardState.IsPressed(SharpDX.DirectInput.Key.F12))

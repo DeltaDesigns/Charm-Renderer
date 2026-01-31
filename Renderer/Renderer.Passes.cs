@@ -400,7 +400,10 @@ public partial class CharmRenderer
 
 		foreach (var renderable in World.RenderObjects)
 		{
-			renderable?.RenderBoundingBox(this);
+			if ((renderable.IsChild && !Viewport.ShowEntChildren) || !renderable.Visible)
+				return;
+
+			RenderBoundingBox(renderable.BoundingBox, new(1f, 1f, 0f, 1f));
 		}
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();

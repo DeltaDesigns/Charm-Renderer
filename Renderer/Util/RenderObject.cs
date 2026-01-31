@@ -667,15 +667,6 @@ public class RenderObject : GpuResource
 		renderer.Context.Draw(lineVertices.Length, 0);
 	}
 
-	public void RenderBoundingBox(CharmRenderer renderer)
-	{
-		if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
-			return;
-
-		//renderer.RenderBoundingBox(BoundingBox, GlobalTransforms[0], TransformOffset, new(1f, 1f, 0f, 1f));
-		renderer.RenderBoundingBox(BoundingBox, new(1f, 1f, 0f, 1f));
-	}
-
 	public override void Dispose()
 	{
 		Investment?.Dispose();

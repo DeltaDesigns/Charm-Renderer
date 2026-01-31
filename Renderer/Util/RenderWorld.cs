@@ -12,7 +12,7 @@ public class RenderWorld : IDisposable
 {
 	public SMapAtmosphere? Atmosphere = null;
 	public RendererGlobalChannels GlobalChannels;
-	public List<Vector4> DayCycleRotations;
+	public List<Vector4> DayCycleRotations = new();
 	public Queue<RenderObject> RenderObjects = new();
 	public BoundingBox? LocalOverrideMainBB = null;
 	public BoundingBox? OverrideMainBB = null;
@@ -107,6 +107,9 @@ public class RenderWorld : IDisposable
 				});
 			}
 		});
+
+		if (GlobalChannels is null)
+			GlobalChannels = RendererGlobalChannels.CreateDefault();
 	}
 
 	public void CreateSkyObjects(CharmRenderer renderer, SMapSkyObjectsResource skyResource)
@@ -303,6 +306,8 @@ public class RendererGlobalChannels
 	private Dictionary<TigerHash, GlobalChannel> channelsById;
 	private Dictionary<string, GlobalChannel> channelsByName;
 
+	public RendererGlobalChannels() { }
+
 	public RendererGlobalChannels(EntityComponent sequencer)
 	{
 		CreateGlobalChannels(sequencer);
@@ -360,6 +365,28 @@ public class RendererGlobalChannels
 				}
 			}
 		}
+	}
+
+	public static RendererGlobalChannels CreateDefault()
+	{
+		RendererGlobalChannels defaultGlobals = new();
+		GlobalChannels.RestoreDefaults();
+		var defaults = Globals.Get().GlobalChannelDefaults;
+		foreach (var defaultChannel in defaults)
+		{
+			defaultGlobals.Channels.Add(new GlobalChannel
+			{
+				Name = GlobalChannels.KnownChannelNames.TryGetValue(defaultChannel.Key.Hash32, out string name) ? name : defaultChannel.Key.ToString(),
+				ID = defaultChannel.Key,
+				Index = defaults.Keys.ToList().IndexOf(defaultChannel.Key),
+				Bytecode = Array.Empty<byte>(), // No bytecode for defaults
+				BytecodeConstants = Array.Empty<System.Numerics.Vector4>(),
+				Value = defaultChannel.Value
+			});
+		}
+
+		defaultGlobals.InitializeLookups();
+		return defaultGlobals;
 	}
 
 	//public void Evaluate()
