@@ -118,21 +118,31 @@ public partial class CharmRenderer
 		LookAtBoundingBox(obj.BoundingBox);
 	}
 
-	public void LookAtBoundingBox(BoundingBox bbox)
+	public void LookAtBoundingBox(BoundingBox bbox, float yaw = 55f, float pitch = 20f, float distanceX = 1.1f)
 	{
 		var center = bbox.Center;
-		var size = bbox.Size;
-		var radius = size.Length() / 2f;
+		var extents = bbox.Size * 0.5f;
+		float radius = extents.Length();
 
-		Camera.Position = new Vector3(center.X, center.Y - radius * 1.75f, center.Z + radius * 0.75f);
-		Camera.LookAt(new Vector3(center.X, center.Y, center.Z));
-		Camera.RotateAround(new Vector3(center.X, center.Y, center.Z), 90f, 0f);
+		float vFov = float.DegreesToRadians(Camera.FOV);
+		float aspect = Camera.AspectRatio;
 
-		Camera.Yaw -= 30f;
-		Camera.Position = new Vector3(Camera.Position.X, Camera.Position.Y - radius, Camera.Position.Z);
+		float hFov = MathF.Atan(MathF.Tan(vFov * 0.5f) * aspect) * 2f;
+
+		float distV = radius / MathF.Sin(vFov * 0.5f);
+		float distH = radius / MathF.Sin(hFov * 0.5f);
+		float distance = MathF.Max(distV, distH);
+
+		distance *= distanceX;
+
+		Vector3 baseDir = Vector3.UnitX;
+
+		Camera.Position = center - baseDir * distance;
+		Camera.LookAt(center);
+		Camera.RotateAround(center, yaw, pitch);
+
 		Camera.UpdateVectors();
 	}
-
 
 	//public void RenderBoundingBox(BoundingBox bbox, Transform transform, Transform offset, Vector4 color)
 	public void RenderBoundingBox(BoundingBox bbox, Vector4 color)

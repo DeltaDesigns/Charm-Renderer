@@ -77,20 +77,23 @@ public partial class CharmRenderer
 		}
 
 		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
-		// so the view is centered better
-		//combinedBB = new HelixToolkit.Maths.BoundingBox()
-		//{
-		//	Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 1, 1),
-		//	Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 1, 1)
-		//};
 		World.LocalOverrideMainBB = combinedBB;
 		World.OverrideMainBB = combinedBB;
-		LookAtBoundingBox(combinedBB);
+
+		bool isWeapon = item.Parent != null ? item.Parent.IsWeapon : item.IsWeapon;
+		bool isSword = (item.Parent != null ? item.Parent.ItemTraits : item.ItemTraits).Any(x => x == DestinyTraitID.item_weapon_sword);
+		bool isShip = item.IsShip || item.IsSparrow;
+		LookAtBoundingBox(
+			combinedBB,
+			isWeapon ? -120f : (isShip ? 130f : 160f),
+			isWeapon ? 15f : (isShip ? 20f : 10f),
+			isWeapon ? (isSword ? 1f : 0.7f) : (isShip ? 0.7f : 1f));
 
 		// load player/ghost skele after so its additional meshes dont get included in the main bounding box
-		Viewport.OverrideWarning.Visibility = Visibility.Visible;
-		ShouldShowObjectChannels();
 		LoadPlayerSkeleton(item);
+
+		ShouldShowObjectChannels();
+		Viewport.OverrideWarning.Visibility = Visibility.Visible;
 	}
 
 	public void LoadInvestmentItems(IEnumerable<InventoryItem> items)
@@ -118,15 +121,9 @@ public partial class CharmRenderer
 		}
 
 		var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
-		// so the view is centered better
-		//combinedBB = new HelixToolkit.Maths.BoundingBox()
-		//{
-		//	Minimum = combinedBB.Minimum * new System.Numerics.Vector3(1, 1, 1),
-		//	Maximum = combinedBB.Maximum * new System.Numerics.Vector3(1, 1, 1)
-		//};
 		World.LocalOverrideMainBB = combinedBB;
 		World.OverrideMainBB = combinedBB;
-		LookAtBoundingBox(combinedBB);
+		LookAtBoundingBox(combinedBB, 160f, 15f, 0.85f);
 
 		if (items.Where(x => x.IsArmor || x.IsArmorOrnament).Any()) // meh
 			LoadPlayerSkeleton(items.First());
@@ -146,6 +143,12 @@ public partial class CharmRenderer
 
 		RenderObject obj = new();
 		obj.Create(Context, World, skele);
+
+		if (item.IsGhost)
+		{
+			EntityObjectChannels.SetObjectChannel(2309869224, new(0f)); // hack_int
+			EntityObjectChannels.SetObjectChannel(1761166716, new(0f)); // scan_int
+		}
 	}
 
 

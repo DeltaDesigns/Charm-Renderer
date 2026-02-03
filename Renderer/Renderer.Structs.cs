@@ -541,6 +541,25 @@ public struct Matrix4x4ButGood
 		};
 	}
 
+	public static Matrix4x4ButGood OrthographicRH(
+		float left,
+		float right,
+		float bottom,
+		float top,
+		float near,
+		float far)
+	{
+		float rcpWidth = 1.0f / (right - left);
+		float rcpHeight = 1.0f / (top - bottom);
+		float r = 1.0f / (near - far);
+		return new Matrix4x4ButGood(
+			new Vector4(rcpWidth + rcpWidth, 0.0f, 0.0f, 0.0f),
+			new Vector4(0.0f, rcpHeight + rcpHeight, 0.0f, 0.0f),
+			new Vector4(0.0f, 0.0f, r, 0.0f),
+			new Vector4(-(left + right) * rcpWidth, -(top + bottom) * rcpHeight, r * near, 1.0f)
+		);
+	}
+
 	public Matrix4x4ButGood Invert()
 	{
 		System.Numerics.Matrix4x4.Invert(this, out System.Numerics.Matrix4x4 result);

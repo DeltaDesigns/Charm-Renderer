@@ -1,4 +1,5 @@
 ﻿using Charm.Shared;
+using HelixToolkit.Maths;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -12,6 +13,8 @@ using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
+
+using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
@@ -40,7 +43,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public bool AutoExposure { get; set; } = false;
 	public float FOV { get; set; } = 60f;
 	public float TimeScale { get; set; } = 1f;
-	public float AtmosRotation { get; set; } = 0.825f;
+	public float AtmosRotation { get; set; } = 0.50f; //0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
 	public RenderPass DisplayPass = RenderPass.final;
 	#endregion
@@ -108,12 +111,15 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				if (Renderer is null)
 					return;
 
-				var camPos = Renderer.Camera.Position;
-				var camRot = Renderer.Camera.Rotation;
+				var cam = Renderer.Camera;
+				var camPos = cam.Position;
+				var camRot = cam.Rotation;
+				var camAngels = new Vector3(cam.Yaw, cam.Pitch, cam.Roll);
 
 				FrameTime.Text = $"CPU Time: {Renderer.DeltaTime:F5} ms";
 				CameraPosition.Text = $"Camera Position: {camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2}";
-				CameraRotation.Text = $"Camera Rotation: {camRot.X:F2}, {camRot.Y:F2}, {camRot.Z:F2}, {camRot.W:F2}";
+				CameraRotation.Text = $"Camera Rotation: {camRot.X:F2}, {camRot.Y:F2}, {camRot.Z:F2}, {camRot.W:F2}\n" +
+									  $"Camera Angels: {camAngels.X:F2}, {camAngels.Y:F2}, {camAngels.Z:F2}";
 				FPSCounter.Text = $"FPS: {Math.Ceiling(Renderer.FPS)}";
 
 				if (AutoExposure)
@@ -329,7 +335,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 		if (Renderer.World.RenderObjects.Count == 0)
 			return;
 
-		var pos = loc.ToVec3();
+		var pos = loc.ToVector3();
 		foreach (var obj in Renderer.World.RenderObjects)
 		{
 			var transform = obj.GlobalTransforms[0];

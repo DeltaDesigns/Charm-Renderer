@@ -11,13 +11,24 @@ namespace Charm.Renderer;
 
 public class FirstPersonCamera
 {
+	public enum CameraType
+	{
+		Perspective,
+		Orthographic
+	}
+	public CameraType ProjectionType = CameraType.Perspective;
+
 	public float Near = 0.05f;
 	public float Far = 50000f;
+	public float FOV = 60f;
+	public float OrthoWidth = 2f;
+	public float AspectRatio => (float)Viewport.Width / (float)Viewport.Height;
 
 	public Viewport Viewport { get; set; }
 	public BoundingFrustum Frustum { get; set; }
 	public float Yaw { get; set; } = -90f;
 	public float Pitch { get; set; } = 0f;
+	public float Roll { get; set; } = 0f;
 	public float MoveSpeed { get; set; } = 0.075f;
 	public float LookSensitivity { get; set; } = 0.25f;
 
@@ -36,8 +47,9 @@ public class FirstPersonCamera
 	private POINT currentMouse;
 	private POINT lastMouse;
 
-	public FirstPersonCamera()
+	public FirstPersonCamera(Viewport viewport)
 	{
+		Viewport = viewport;
 		UpdateVectors();
 	}
 
@@ -69,13 +81,26 @@ public class FirstPersonCamera
 		WorldToCamera = Matrix4x4ButGood.LookAt(Position, Position + Forward, Up);
 	}
 
-	public void UpdateProjectionMatrix(float fov)
+	public void UpdateProjectionMatrix()
 	{
-		CameraToProjective = Matrix4x4ButGood.PerspectiveInfiniteReverseRightHanded(
-			fov * (MathF.PI / 180f), // Field of view in radians
-			(float)Viewport.Width / (float)Viewport.Height, // Aspect ratio
-			Near // Near clipping plane
-		);
+		switch (ProjectionType)
+		{
+			case CameraType.Perspective:
+				CameraToProjective = Matrix4x4ButGood.PerspectiveInfiniteReverseRightHanded(
+					float.DegreesToRadians(FOV),
+					AspectRatio,
+					Near
+				);
+				break;
+
+			case CameraType.Orthographic:
+				Vector2 extents = new Vector2(OrthoWidth, OrthoWidth / AspectRatio) * 0.5f;
+				CameraToProjective = Matrix4x4ButGood.OrthographicRH(
+					-extents.X, extents.X, -extents.Y, extents.Y, Far, Near
+				);
+				break;
+		}
+
 		Frustum = new(CameraToProjective * WorldToCamera);
 	}
 

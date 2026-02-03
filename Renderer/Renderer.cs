@@ -95,9 +95,11 @@ public partial class CharmRenderer : IDisposable
 		TempScopes = new();
 		Externs = new(this);
 
+
 		World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141179)));
 
-		Camera = new(); // Should be last
+		Camera = new(new HelixToolkit.Maths.Viewport(0, 0, width, height)); // Should be last
+		Camera.ResetCameraTransform();
 
 		Application.Current.Dispatcher.BeginInvoke(() =>
 		{
@@ -107,10 +109,7 @@ public partial class CharmRenderer : IDisposable
 				new System.Windows.Point(0, 0),
 				Application.Current.MainWindow
 			);
-
 			Camera.Viewport = new((int)p.X, (int)p.Y, width, height);
-			Camera.ResetCameraTransform();
-
 		}, DispatcherPriority.Send);
 	}
 
@@ -237,7 +236,7 @@ public partial class CharmRenderer : IDisposable
 		int newHeight = Math.Max(1, (int)Viewport.ActualHeight);
 		Context.Rasterizer.SetViewport(0, 0, newWidth, newHeight, 0.0f, 1f);
 
-		UpdateCamera(World);
+		UpdateCamera();
 		UpdateExterns();
 		UpdateGlobalChannels();
 		UpdateScopes();
@@ -290,16 +289,17 @@ public partial class CharmRenderer : IDisposable
 		HandleRenderDoc(false);
 	}
 
-	private void UpdateCamera(RenderWorld world)
+	private void UpdateCamera()
 	{
 		if (Camera is null || !IsAppFocused())
 			return;
 
 		RenderHelpers.Profile("Update Camera");
 
-		Camera.UpdateProjectionMatrix(Viewport.FOV);
+		Camera.FOV = Viewport.FOV;
+		Camera.UpdateProjectionMatrix();
 		if (Viewport.ViewportContainer.IsMouseOver)
-			Camera.Update(world, KeyboardState, MouseState);
+			Camera.Update(World, KeyboardState, MouseState);
 
 		RenderHelpers.EndProfile();
 	}

@@ -37,7 +37,7 @@ public class ObjectChannels
 		List<DynamicMeshPart> parts = new List<DynamicMeshPart>();
 		foreach (var entity in entities)
 		{
-			parts.AddRange(entity.Load(Tiger.Schema.ExportDetailLevel.MostDetailed));
+			parts.AddRange(entity.Load(Tiger.Schema.ExportDetailLevel.MostDetailed, LoadLevel.Minimal));
 		}
 
 		GetObjectChannels(parts);
@@ -49,7 +49,7 @@ public class ObjectChannels
 		}
 	}
 
-	private void SetObjectChannel(uint hash, Vector4 value)
+	public void SetObjectChannel(uint hash, Vector4 value)
 	{
 		if (!Channels.TryGetValue(hash, out var temp))
 			return;
@@ -85,6 +85,7 @@ public class ObjectChannels
 						case 2046642570: // parent.fp_iron_sight
 						case 286711233: // hydra shield
 						case 2786922960: // belmon shield
+						case 0xFB9CD72C: // trials metal color
 							val = Vector4.Zero;
 							break;
 					}
