@@ -61,37 +61,7 @@ public class ObjectChannels
 	{
 		foreach (var part in parts)
 		{
-			var opcodes = TfxBytecodeOp.ParseAll(part.Material.Pixel.TFX_Bytecode);
-			opcodes.AddRange(TfxBytecodeOp.ParseAll(part.Material.Vertex.TFX_Bytecode));
-
-			for (int i = 0; i < opcodes.Count; i++)
-			{
-				var op = opcodes[i];
-				if (op.op == TfxBytecode.PopOutput || i + 1 >= opcodes.Count)
-					continue;
-
-				var nextOp = opcodes[i + 1];
-
-				if (op.op == TfxBytecode.PushObjectChannelVector)
-				{
-					var hash = ((PushObjectChannelVectorData)op.data).hash;
-					bool isFloat = (nextOp.op == TfxBytecode.PermuteAllX)
-						|| (nextOp.op == TfxBytecode.Permute && ((PermuteData)(nextOp.data)).fields == 0b00_00_00_00);
-
-					Vector4 val = Vector4.One;
-					switch (hash)
-					{
-						case 2812804675: // interpolated_world_position
-						case 2046642570: // parent.fp_iron_sight
-						case 286711233: // hydra shield
-						case 2786922960: // belmon shield
-						case 0xFB9CD72C: // trials metal color
-							val = Vector4.Zero;
-							break;
-					}
-					Channels.TryAdd(hash, new(val, isFloat ? EditableVector4.VectorInputType.Float : EditableVector4.VectorInputType.Vec4));
-				}
-			}
+			UpdateChannels(part.Material);
 		}
 	}
 
@@ -120,6 +90,9 @@ public class ObjectChannels
 				{
 					case 2812804675: // interpolated_world_position
 					case 2046642570: // parent.fp_iron_sight
+					case 286711233: // hydra shield
+					case 2786922960: // belmon shield
+					case 0xFB9CD72C: // trials metal color
 						val = Vector4.Zero;
 						break;
 				}

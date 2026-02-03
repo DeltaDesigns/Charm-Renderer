@@ -516,7 +516,7 @@ public partial class CharmRenderer
 
 		DrawScreenQuad();
 
-		wpfRT.Present(Context, Viewport.RT0);
+		wpfRT.Present(Context);
 
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();

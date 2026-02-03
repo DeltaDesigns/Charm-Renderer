@@ -13,7 +13,7 @@ public class WpfRenderTarget : IDisposable
 {
 	public RenderTarget2D SceneColor;
 	public Texture2D SharedWpfTexture;
-	private RendererViewport currentViewport;
+	private RendererViewport CurrentViewport;
 
 	public D3DImage D3DBackBuffer;
 	public int Width { get; }
@@ -27,7 +27,7 @@ public class WpfRenderTarget : IDisposable
 		Width = width;
 		Height = height;
 		SceneColor = sceneColor;
-		currentViewport = viewport;
+		CurrentViewport = viewport;
 
 		var sharedTexDesc = new Texture2DDescription
 		{
@@ -61,10 +61,13 @@ public class WpfRenderTarget : IDisposable
 			sharedTex9 = new SharpDX.Direct3D9.Texture(device9, Width, Height, 1, SharpDX.Direct3D9.Usage.RenderTarget, SharpDX.Direct3D9.Format.A8R8G8B8, SharpDX.Direct3D9.Pool.Default, ref sharedHandle);
 		}
 
-		D3DBackBuffer = new D3DImage();
-		currentViewport.RT0.Source = D3DBackBuffer;
+		CurrentViewport.Dispatcher.Invoke(() =>
+		{
+			D3DBackBuffer = new D3DImage();
+			CurrentViewport.RT0.Source = D3DBackBuffer;
 
-		UpdateBackBuffer();
+			UpdateBackBuffer();
+		});
 	}
 
 	public void UpdateBackBuffer()
@@ -81,22 +84,25 @@ public class WpfRenderTarget : IDisposable
 	/// <summary>
 	/// Call each frame after rendering SceneColor
 	/// </summary>
-	public void Present(DeviceContext context, System.Windows.Controls.Image imageHost)
+	public void Present(DeviceContext context)
 	{
 		RenderHelpers.Profile("WPF Present");
-		var commandList = context.FinishCommandList(false);
-		GPU.Instance.ImmediateContext.ExecuteCommandList(commandList, true);
+		using (var commandList = context.FinishCommandList(false))
+		{
+			GPU.Instance.ImmediateContext.ExecuteCommandList(commandList, true);
+		}
 
 		GPU.Instance.ImmediateContext!.CopyResource(SceneColor.Texture, SharedWpfTexture);
 		GPU.Instance.ImmediateContext!.Flush();
 
-		Application.Current?.Dispatcher.InvokeAsync(() =>
+		// idk if theres a difference between Application.Current vs CurrentViewport or D3DBackBuffer Dispatcher
+		CurrentViewport.Dispatcher.InvokeAsync(() =>
 		{
 			D3DBackBuffer?.Lock();
 			D3DBackBuffer?.AddDirtyRect(new Int32Rect(0, 0, Width, Height));
 			D3DBackBuffer?.Unlock();
-			if (imageHost.Source is null)
-				imageHost.Source = D3DBackBuffer;
+			if (CurrentViewport.RT0.Source is null)
+				CurrentViewport.RT0.Source = D3DBackBuffer;
 
 		}, System.Windows.Threading.DispatcherPriority.Send);
 		RenderHelpers.EndProfile();
@@ -112,7 +118,7 @@ public class WpfRenderTarget : IDisposable
 				IntPtr.Zero);
 			D3DBackBuffer.Unlock();
 			D3DBackBuffer = null;
-			currentViewport.RT0.Source = null;
+			CurrentViewport.RT0.Source = null;
 		}, System.Windows.Threading.DispatcherPriority.Send);
 
 		Utilities.Dispose(ref SceneColor);

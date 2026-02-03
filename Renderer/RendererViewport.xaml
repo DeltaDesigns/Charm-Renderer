@@ -883,7 +883,9 @@
                 x:Name="RT0"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Opacity="1" />
+                RenderOptions.BitmapScalingMode="NearestNeighbor"
+                RenderOptions.CachingHint="Unspecified"
+                RenderOptions.EdgeMode="Unspecified" />
 
             <TextBlock
                 x:Name="FPSCounter"

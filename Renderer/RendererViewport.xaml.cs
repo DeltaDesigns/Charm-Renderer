@@ -114,13 +114,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				var cam = Renderer.Camera;
 				var camPos = cam.Position;
 				var camRot = cam.Rotation;
-				var camAngels = new Vector3(cam.Yaw, cam.Pitch, cam.Roll);
 
 				FrameTime.Text = $"CPU Time: {Renderer.DeltaTime:F5} ms";
 				CameraPosition.Text = $"Camera Position: {camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2}";
 				CameraRotation.Text = $"Camera Rotation: {camRot.X:F2}, {camRot.Y:F2}, {camRot.Z:F2}, {camRot.W:F2}\n" +
-									  $"Camera Angels: {camAngels.X:F2}, {camAngels.Y:F2}, {camAngels.Z:F2}";
-				FPSCounter.Text = $"FPS: {Math.Ceiling(Renderer.FPS)}";
+									  $"Camera Angels: {cam.Yaw:F2}, {cam.Pitch:F2}, {cam.Roll:F2}";
+				FPSCounter.Text = $"FPS: {Math.Floor(Renderer.FPS)}";
 
 				if (AutoExposure)
 				{

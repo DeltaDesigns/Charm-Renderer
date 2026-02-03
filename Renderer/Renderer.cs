@@ -9,8 +9,6 @@ using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
 using Arithmic;
 
-
-
 #if DEBUG
 using TracyWrapper;
 using Evergine.Bindings.RenderDoc;
@@ -125,7 +123,7 @@ public partial class CharmRenderer : IDisposable
 			IsBackground = true
 		};
 		_renderThread.Start();
-		Log.Debug($"Renderer {GetHashCode()} started");
+		//Log.Debug($"Renderer {GetHashCode()} started");
 	}
 
 	public void Stop()
@@ -134,7 +132,7 @@ public partial class CharmRenderer : IDisposable
 		{
 			_isRunning = false;
 			_renderThread?.Join();
-			Log.Debug($"Renderer {GetHashCode()} stopped");
+			//Log.Debug($"Renderer {GetHashCode()} stopped");
 		}
 	}
 

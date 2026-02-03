@@ -118,10 +118,13 @@ public partial class CharmRenderer
 		LookAtBoundingBox(obj.BoundingBox);
 	}
 
-	public void LookAtBoundingBox(BoundingBox bbox, float yaw = 55f, float pitch = 20f, float distanceX = 1.1f)
+	public void LookAtBoundingBox(BoundingBox bbox, float yaw = 145f, float pitch = 20f, float distanceX = 1.1f)
 	{
 		var center = bbox.Center;
 		var extents = bbox.Size * 0.5f;
+		if (extents == Vector3.Zero)
+			extents = Vector3.One;
+
 		float radius = extents.Length();
 
 		float vFov = float.DegreesToRadians(Camera.FOV);
