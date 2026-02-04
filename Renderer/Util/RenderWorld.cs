@@ -127,6 +127,7 @@ public class RenderWorld : IDisposable
 			if (element.Model.TagData.Model is null || element.Unk70 == 5 || element.Complex is not null)
 				continue;
 
+			var bb = element.Bounds.CreateFrom();
 			Tiger.Schema.Matrix4x4 matrix = element.Transform;
 			Vector3 scale = new();
 			Vector4 trans = new();
@@ -135,7 +136,8 @@ public class RenderWorld : IDisposable
 
 			RenderObject renderObject = new();
 			renderObject.Create(renderer.Context, element.Model.TagData.Model, TfxFeatureRenderer.SkyTransparent);
-
+			renderObject.LocalBoundingBox = bb;
+			renderObject.BoundingBox = bb;
 			renderObject.GlobalTransforms[0] = new Transform
 			{
 				Position = trans.ToVec3(),

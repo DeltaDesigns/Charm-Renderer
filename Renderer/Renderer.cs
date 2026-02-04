@@ -247,11 +247,14 @@ public partial class CharmRenderer : IDisposable
 		RenderPostProcess();
 
 		if (Viewport.DisplayPass > RenderPass.final_color_grade)
+		{
+			CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 			RenderGlobalPipeline(Viewport.DisplayPass.ToString());
+		}
 		else
 			RenderLuminance();
 
-		var blitRT = Viewport.DisplayPass == RenderPass.final ? GBuffers.Shading : GBuffers.FXAA;
+		var blitRT = Viewport.DisplayPass == RenderPass.final_color_grade ? GBuffers.FXAA : GBuffers.Shading;
 		if (Viewport.ShowGrid)
 		{
 			Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);
@@ -274,12 +277,6 @@ public partial class CharmRenderer : IDisposable
 
 		// Blits to final RT/Correct format for WPF cus it hates everything
 		BlitToWPF(blitRT);
-
-		//if (World.OverrideMainBB is not null)
-		//{
-		//	var bb = World.OverrideMainBB.Value;
-		//	Console.WriteLine($"In Camera Frustum? {Camera.Frustum.Intersects(ref bb)}");
-		//}
 
 		//if (MouseState.Buttons[1])
 		//	Camera.Pick(Camera.GetMouseRay(Camera.Viewport, Externs.View), World);

@@ -103,8 +103,8 @@ public class WpfRenderTarget : IDisposable
 			D3DBackBuffer?.Unlock();
 			if (CurrentViewport.RT0.Source is null)
 				CurrentViewport.RT0.Source = D3DBackBuffer;
+		}, System.Windows.Threading.DispatcherPriority.Normal);
 
-		}, System.Windows.Threading.DispatcherPriority.Send);
 		RenderHelpers.EndProfile();
 	}
 

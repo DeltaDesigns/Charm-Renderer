@@ -85,8 +85,8 @@ public partial class CharmRenderer
 		bool isShip = item.IsShip || item.IsSparrow;
 		LookAtBoundingBox(
 			combinedBB,
-			isWeapon ? -120f : (isShip ? 130f : 160f),
-			isWeapon ? 15f : (isShip ? 20f : 10f),
+			isWeapon ? -125f : (isShip ? 130f : 160f),
+			isWeapon ? 13f : (isShip ? 20f : 10f),
 			isWeapon ? (isSword ? 1f : 0.7f) : (isShip ? 0.7f : 1f));
 
 		// load player/ghost skele after so its additional meshes dont get included in the main bounding box
@@ -94,6 +94,11 @@ public partial class CharmRenderer
 
 		ShouldShowObjectChannels();
 		Viewport.OverrideWarning.Visibility = Visibility.Visible;
+
+		if (isWeapon)
+		{
+			Viewport.AtmosRotation = 0.1f;
+		}
 	}
 
 	public void LoadInvestmentItems(IEnumerable<InventoryItem> items)

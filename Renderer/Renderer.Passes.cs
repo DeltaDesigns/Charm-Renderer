@@ -238,6 +238,9 @@ public partial class CharmRenderer
 
 	private void RenderPostProcess()
 	{
+		if (Viewport.DisplayPass != RenderPass.final_color_grade)
+			return;
+
 		RenderHelpers.Profile("Render Post Process");
 		Annotation.BeginEvent("Post Process");
 		CMD.States.CreateStates(Context, new(0, 0, 0, 0));
@@ -405,6 +408,7 @@ public partial class CharmRenderer
 
 			RenderBoundingBox(renderable.BoundingBox, new(1f, 1f, 0f, 1f));
 		}
+
 		Annotation.EndEvent();
 		RenderHelpers.EndProfile();
 	}
@@ -454,6 +458,10 @@ public partial class CharmRenderer
 
 		foreach (var renderable in persistentObjects)
 		{
+			var bb = renderable.BoundingBox;
+			if (!Camera.Frustum.Intersects(ref bb))
+				continue;
+
 			renderable?.BindParallel(this, renderStage, 6);
 		}
 		Annotation.EndEvent();
@@ -482,6 +490,10 @@ public partial class CharmRenderer
 		foreach (var renderable in persistentObjects)
 		{
 			if (!features.IsSubscribed(renderable.Feature))
+				continue;
+
+			var bb = renderable.BoundingBox;
+			if (!Camera.Frustum.Intersects(ref bb))
 				continue;
 
 			renderable?.Bind(this, renderStage);

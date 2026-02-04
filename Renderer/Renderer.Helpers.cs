@@ -11,6 +11,8 @@ using SharpDX;
 using SharpDX.Direct3D;
 using BoundingBox = HelixToolkit.Maths.BoundingBox;
 using HelixToolkit.Maths;
+using System.Runtime.CompilerServices;
+
 
 
 
@@ -366,10 +368,10 @@ public static class RenderHelpers
 		return inputs;
 	}
 
-	public static void Profile(string name)
+	public static void Profile(string name, uint color = 0u, [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string function = "", [CallerFilePath] string sourceFile = "")
 	{
 #if DEBUG
-		Profiler.PushProfileZone(name);
+		Profiler.PushProfileZone(name, color, lineNumber, function, sourceFile);
 #endif
 	}
 
