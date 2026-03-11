@@ -108,7 +108,7 @@ public partial class CharmRenderer
 
 		foreach (var item in items.DistinctBy(x => x.ApiHash))
 		{
-			if (item.GetArtArrangementIndex() == -1)
+			if (item.ArtArrangementIndex == -1)
 				continue;
 
 			List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);

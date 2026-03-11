@@ -352,7 +352,7 @@ public static class RenderHelpers
 	public static List<InputElement> GetInputLayout(int layoutIndex)
 	{
 		List<InputElement> inputs = new();
-		var layout = Globals.Get().GetInputLayouts()[layoutIndex];
+		var layout = Globals.Get().InputLayouts[layoutIndex];
 		foreach (var element in layout.Elements)
 		{
 			inputs.Add(new()

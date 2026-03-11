@@ -126,7 +126,7 @@ public class InvestmentData : GpuResource
 				var entry = dyes.ElementAt(safeIndex);
 
 				var dye = new InvestmentDye(context, entry.Key, entry.Value.TagData);
-				Log.Debug($"Created Dye{index} : {dye.ChannelHash}");
+				//Log.Debug($"Created Dye{index} : {dye.ChannelHash}");
 				return dye;
 			}
 
@@ -184,6 +184,7 @@ public class InvestmentData : GpuResource
 	public async void Bind(CharmRenderer renderer)
 	{
 		if (!_hasData) return;
+		RenderHelpers.Profile("Investment Dye Bind");
 
 		renderer.Context.PixelShader.SetShaderResource(0, DiffusePlate?.SRV);
 		renderer.Context.PixelShader.SetShaderResource(1, GStackPlate?.SRV);
@@ -227,6 +228,7 @@ public class InvestmentData : GpuResource
 		{
 			renderer.Context.PixelShader.SetConstantBuffer(7, InvestmentBuffer);
 		}
+		RenderHelpers.EndProfile();
 	}
 
 	public override void Dispose()

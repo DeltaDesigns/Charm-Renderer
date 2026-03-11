@@ -84,7 +84,7 @@ public class RenderWorld : IDisposable
 					switch (entry.DataResource.GetValue(dataTable.MapDataTable.GetReader()))
 					{
 						// just a test, Tower Hangar ran like ass (barely 30fps)
-						//case SMapDataResource staticMapResource:
+						//case SStaticMapDataResource staticMapResource:
 						//	staticMapResource.StaticMapParent?.Load();
 						//	if (staticMapResource.StaticMapParent is null)
 						//		return;
@@ -151,7 +151,7 @@ public class RenderWorld : IDisposable
 		}
 	}
 
-	public void CreateStaticMap(CharmRenderer renderer, SMapDataResource staticResource)
+	public void CreateStaticMap(CharmRenderer renderer, SStaticMapDataResource staticResource)
 	{
 		var staticMap = staticResource.StaticMapParent.TagData.StaticMap.TagData;
 		List<SStaticMeshHash> extractedStatics = staticMap.Statics.DistinctBy(x => x.Static.Hash).ToList();
