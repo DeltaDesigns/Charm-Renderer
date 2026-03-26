@@ -169,8 +169,8 @@ public static class TFXFunctions
 		// Compute the weighting of each gradient delta based upon the X position of evaluation.
 		Vec4 Coffsets_from_x = X - Cthresholds;
 		Vec4 Csegment_interval = new Vec4(Cthresholds.Y, Cthresholds.Z, Cthresholds.W, 1.0f) - Cthresholds;
-		Vec4 Csafe_division = GreaterEqual(Coffsets_from_x, 0.0f) ? new Vec4(1.0f, 1.0f, 1.0f, 1.0f) : new Vec4(0.0f, 0.0f, 0.0f, 0.0f);
-		Vec4 Cdivision = NotEqual(Csegment_interval, 0.0f) ? (Coffsets_from_x / Csegment_interval) : Csafe_division;
+		Vec4 Csafe_division = Step(Coffsets_from_x, System.Numerics.Vector4.Zero);//GreaterEqual(Coffsets_from_x, 0.0f) ? new Vec4(1.0f, 1.0f, 1.0f, 1.0f) : new Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+		Vec4 Cdivision = NotEqualComponent(Csegment_interval, 0f, (Coffsets_from_x / Csegment_interval), Csafe_division);  //NotEqual(Csegment_interval, 0.0f) ? (Coffsets_from_x / Csegment_interval) : Csafe_division;
 		Vec4 Cpercentages = Saturate(Cdivision);
 
 		// Compute the influence that each of the colors will contribute to the final color.
@@ -318,6 +318,17 @@ public static class TFXFunctions
 	public static bool NotEqual(Vec4 vec4, float x)
 	{
 		return (vec4.X != x && vec4.Y != x && vec4.Z != x && vec4.W != x);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vec4 NotEqualComponent(Vec4 vec4, float x, Vec4 a, Vec4 b)
+	{
+		return new Vec4(
+			vec4.X != x ? a.X : b.X,
+			vec4.Y != x ? a.Y : b.Y,
+			vec4.Z != x ? a.Z : b.Z,
+			vec4.W != x ? a.W : b.W
+		);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
