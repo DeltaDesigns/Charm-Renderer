@@ -241,6 +241,12 @@ public class AssetManager : IDisposable
 
 	public ShaderResourceView CreateTexture(DeviceContext context, Tiger.Schema.Texture tex)
 	{
+		if (tex.Hash.CheckRedacted())
+		{
+			Log.Warning($"Texture {tex.Hash} is Redacted. Can not load.");
+			return null;
+		}
+
 		byte[] pixelData = tex.GetRawBytes();
 		if (tex.GetDimension() == Tiger.Schema.TextureDimension.D3)
 		{
