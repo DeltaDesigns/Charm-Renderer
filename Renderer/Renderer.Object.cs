@@ -151,8 +151,8 @@ public partial class CharmRenderer
 
 		if (item.IsGhost)
 		{
-			EntityObjectChannels.SetObjectChannel(2309869224, new(0f)); // hack_int
-			EntityObjectChannels.SetObjectChannel(1761166716, new(0f)); // scan_int
+			EntityObjectChannels.SetObjectChannel(2309869224, 0f); // hack_int
+			EntityObjectChannels.SetObjectChannel(1761166716, 0f); // scan_int
 		}
 	}
 

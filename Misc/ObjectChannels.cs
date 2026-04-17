@@ -1,4 +1,5 @@
-﻿using Tiger.Schema;
+﻿using Tiger;
+using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
 using Tiger.Schema.Shaders;
@@ -45,8 +46,35 @@ public class ObjectChannels
 		if (item.IsGhost)
 		{
 			ResetAllChannels(Vector4.Zero);
-			SetObjectChannel(0x14BDBC8F, new(5f));
+			SetObjectChannel(0x14BDBC8F, 5f);
 		}
+
+		SetObjectChannel(0x8B16FB15, 0f);
+		SetObjectChannel(0x3A16369C, 0f);
+		SetObjectChannel(0x64C24EBB, 0f);
+		SetObjectChannel(0x44859892, 0f);
+		SetObjectChannel(0xADA8EE58, 0f);
+		SetObjectChannel(0x4BD9F2B8, 0f);
+		SetObjectChannel(0x50BC8D0A, 0f);
+		SetObjectChannel(Helpers.Fnv1a32("firing_ramp"), 0f);
+		SetObjectChannel(Helpers.Fnv1a32("weapon_firing"), 0f);
+		SetObjectChannel(Helpers.Fnv1a32("perk_fire"), 0f);
+		SetObjectChannel(Helpers.Fnv1a32("damage_type"),
+			item.GetDamageType() switch
+			{
+				DestinyDamageTypeEnum.Kinetic => 0.0f,
+				DestinyDamageTypeEnum.Solar => 1.0f,
+				DestinyDamageTypeEnum.Arc => 2.0f,
+				DestinyDamageTypeEnum.Void => 3.0f,
+				DestinyDamageTypeEnum.Stasis => 5.0f,
+				DestinyDamageTypeEnum.Strand => 6.0f,
+				_ => 0.0f
+			});
+	}
+
+	public void SetObjectChannel(uint hash, float value)
+	{
+		SetObjectChannel(hash, new Vector4(value));
 	}
 
 	public void SetObjectChannel(uint hash, Vector4 value)

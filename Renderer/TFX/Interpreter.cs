@@ -1,5 +1,6 @@
 ﻿using Arithmic;
 using Charm.Renderer;
+using HelixToolkit.Maths;
 using SharpDX.Direct3D11;
 using System.Runtime.CompilerServices;
 using Tiger;
@@ -184,9 +185,16 @@ public class TfxBytecodeInterpreter
 						break;
 
 					case TfxBytecode.Lerp:
-						var lerp = StackPop(3);
-						StackPush(lerp[1] + lerp[2] * (lerp[0] - lerp[1]));
-						break;
+					case TfxBytecode.LerpSaturated:
+						{
+							var lerp = StackPop(3);
+							var result = lerp[0] + lerp[2] * (lerp[1] - lerp[0]);
+							if (_curOp.op == TfxBytecode.LerpSaturated)
+								result = result.Clamp(Vec4.Zero, Vec4.One);
+
+							StackPush(result);
+							break;
+						}
 
 					case TfxBytecode.MultiplyAdd:
 						var mulAdd = StackPop(3);
@@ -332,20 +340,19 @@ public class TfxBytecodeInterpreter
 						break;
 
 					case TfxBytecode.LerpConstant:
-						var t = StackTop();
-						var a = bytecodeConstants[((LerpConstantData)_curOp.data).constant_start];
-						var b = bytecodeConstants[((LerpConstantData)_curOp.data).constant_start + 1];
-
-						StackPush(a + t * (b - a));
-						break;
-
 					case TfxBytecode.LerpConstantSaturated:
-						t = StackTop();
-						a = bytecodeConstants[((LerpConstantData)_curOp.data).constant_start];
-						b = bytecodeConstants[((LerpConstantData)_curOp.data).constant_start + 1];
+						{
+							var t = StackTop();
+							var a = bytecodeConstants[((LerpConstantData)_curOp.data).constant_start];
+							var b = bytecodeConstants[((LerpConstantData)_curOp.data).constant_start + 1];
 
-						StackPush(TFXFunctions.Saturate(a + t * (b - a)));
-						break;
+							var result = a + t * (b - a);
+							if (_curOp.op == TfxBytecode.LerpSaturated)
+								result = result.Clamp(Vec4.Zero, Vec4.One);
+
+							StackPush(result);
+							break;
+						}
 
 					case TfxBytecode.Spline4Const:
 						var X = StackTop();
