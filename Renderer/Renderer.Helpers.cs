@@ -342,9 +342,15 @@ public static class RenderHelpers
 		return new BoundingBox(min, max);
 	}
 
-	public static BoundingBox TransformBoundingBox(BoundingBox localBox, Vector3 position, System.Numerics.Quaternion rotation)
+	public static BoundingBox TransformBoundingBox(BoundingBox localBox, Vector3 position, System.Numerics.Quaternion rotation, Vector3 scale)
 	{
-		var matrix = HelixToolkit.Maths.Matrix3x3.RotationQuaternion(rotation).ToMatrix() * MatrixHelper.Translation(position);
+		var scaleMatrix = MatrixHelper.Scaling(scale);
+		var rotationMatrix = HelixToolkit.Maths.Matrix3x3
+			.RotationQuaternion(rotation)
+			.ToMatrix();
+		var translationMatrix = MatrixHelper.Translation(position);
+
+		var matrix = scaleMatrix * rotationMatrix * translationMatrix;
 
 		return BoundingBoxHelper.Transform(localBox, matrix);
 	}

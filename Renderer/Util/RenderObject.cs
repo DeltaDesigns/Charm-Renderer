@@ -407,7 +407,8 @@ public class RenderObject : GpuResource
 		BoundingBox = RenderHelpers.TransformBoundingBox(
 				LocalBoundingBox,
 				GlobalTransforms[0].Position + TransformOffset.Position,
-				GlobalTransforms[0].Quaternion.ToQuat() * TransformOffset.Quaternion.ToQuat());
+				GlobalTransforms[0].Quaternion.ToQuat() * TransformOffset.Quaternion.ToQuat(),
+				GlobalTransforms[0].Scale);
 
 		foreach (var part in parts)
 		{

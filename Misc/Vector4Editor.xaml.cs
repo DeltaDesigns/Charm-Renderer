@@ -120,7 +120,7 @@ public partial class Vector4Editor : UserControl
 	private void Reset_Click(object sender, RoutedEventArgs e)
 	{
 		if (DataContext is EditableVector4 vec)
-			vec.Reset(Vector4.Zero);
+			vec.Reset(vec.DefaultVec);
 	}
 }
 
@@ -144,14 +144,16 @@ public class ChannelHashToString : IValueConverter
 
 public class EditableVector4 : INotifyPropertyChanged
 {
+	public Vector4 DefaultVec { get; set; }
 	private float x, y, z, w;
 
-	public EditableVector4(Vector4 vec, VectorInputType type)
+	public EditableVector4(Vector4 value, VectorInputType type, Vector4? defaultVec = null)
 	{
-		X = vec.X;
-		Y = vec.Y;
-		Z = vec.Z;
-		W = vec.W;
+		DefaultVec = defaultVec ?? Vector4.Zero;
+		X = value.X;
+		Y = value.Y;
+		Z = value.Z;
+		W = value.W;
 		VectorType = type;
 	}
 

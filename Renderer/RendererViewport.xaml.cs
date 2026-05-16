@@ -13,7 +13,7 @@ using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
-
+using Transform = Tiger.Schema.Transform;
 using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
@@ -324,68 +324,76 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 				Value = new EditableVector4(Vector4.Zero, EditableVector4.VectorInputType.Vec3),
 				SetValue = v => UpdateRotation(v.Vec4)
 			},
+			new VectorSetting
+			{
+				Text = "Scale",
+				Value = new EditableVector4(Vector4.One, EditableVector4.VectorInputType.Vec3, Vector4.One),
+				SetValue = v => UpdateScale(v.Vec4),
+			},
 		};
 		ObjectTransforms.ItemsSource = transforms;
 	}
 
-	// these suck
 	private void UpdateTranslation(Vector4 loc)
 	{
-		if (Renderer.World.RenderObjects.Count == 0)
-			return;
-
 		var pos = loc.ToVector3();
-		foreach (var obj in Renderer.World.RenderObjects)
-		{
-			var transform = obj.GlobalTransforms[0];
-			obj.GlobalTransforms[0].Position = pos;
 
-			obj.BoundingBox = RenderHelpers.TransformBoundingBox(
-				obj.LocalBoundingBox,
-				transform.Position + obj.TransformOffset.Position,
-				transform.Quaternion.ToQuat() * obj.TransformOffset.Quaternion.ToQuat());
-		}
-
-		var mainBB = Renderer.World.OverrideMainBB;
-		if (mainBB is not null)
+		UpdateTransforms((ref Transform t) =>
 		{
-			var first = Renderer.World.RenderObjects.First().GlobalTransforms[0];
-			Renderer.World.OverrideMainBB = RenderHelpers.TransformBoundingBox(
-					Renderer.World.LocalOverrideMainBB.Value,
-					first.Position,
-					first.Quaternion.ToQuat());
-		}
+			t.Position = pos;
+		});
 	}
 
 	private void UpdateRotation(Vector4 rot)
 	{
-		if (Renderer.World.RenderObjects.Count == 0)
-			return;
-
 		var quat = HelixToolkit.Maths.QuaternionHelper.RotationYawPitchRoll(
 			float.DegreesToRadians(rot.X),
 			float.DegreesToRadians(rot.Y),
 			float.DegreesToRadians(rot.Z));
 
-		foreach (var obj in Renderer.World.RenderObjects)
+		UpdateTransforms((ref Transform t) =>
 		{
-			var transform = obj.GlobalTransforms[0];
-			obj.GlobalTransforms[0].Quaternion = new(quat);
+			t.Quaternion = new(quat);
+		});
+	}
+
+	private void UpdateScale(Vector4 scale)
+	{
+		var s = new Vector3(scale.X, scale.Y, scale.Z);
+
+		UpdateTransforms((ref Transform t) =>
+		{
+			t.Scale = s;
+		});
+	}
+
+	private void UpdateTransforms(ActionRef<Tiger.Schema.Transform> applyChange)
+	{
+		var objects = Renderer.World.RenderObjects;
+		if (objects.Count == 0)
+			return;
+
+		foreach (var obj in objects)
+		{
+			ref var transform = ref obj.GlobalTransforms[0];
+			applyChange(ref transform);
 
 			obj.BoundingBox = RenderHelpers.TransformBoundingBox(
 				obj.LocalBoundingBox,
 				transform.Position + obj.TransformOffset.Position,
-				transform.Quaternion.ToQuat() * obj.TransformOffset.Quaternion.ToQuat());
+				transform.Quaternion.ToQuat() * obj.TransformOffset.Quaternion.ToQuat(),
+				transform.Scale);
 		}
 
-		var mainBB = Renderer.World.OverrideMainBB;
-		if (mainBB is not null)
+		if (Renderer.World.OverrideMainBB is not null)
 		{
-			var first = Renderer.World.RenderObjects.First().GlobalTransforms[0];
+			var first = objects.First().GlobalTransforms[0];
+
 			Renderer.World.OverrideMainBB = RenderHelpers.TransformBoundingBox(
-					Renderer.World.LocalOverrideMainBB.Value,
-					first.Position,
-					first.Quaternion.ToQuat());
+				Renderer.World.LocalOverrideMainBB.Value,
+				first.Position,
+				first.Quaternion.ToQuat(),
+				first.Scale);
 		}
 	}
 

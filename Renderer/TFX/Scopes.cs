@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Matrix4x4 = System.Numerics.Matrix4x4;
-using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
@@ -110,7 +109,7 @@ public class TempScopes : GpuResource
 
 		var t = transforms[0];
 		Matrix4x4ButGood transform =
-			Matrix4x4.CreateScale(!mesh.Material.Skinned ? (t.Scale * offset.Scale) : Vector3.One) *
+			Matrix4x4.CreateScale(!mesh.Material.Skinned ? (t.Scale * offset.Scale) : t.Scale) *
 			Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
 			Matrix4x4.CreateTranslation(t.Position + offset.Position);
 
