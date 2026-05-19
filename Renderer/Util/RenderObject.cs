@@ -49,10 +49,10 @@ public class InvestmentData : GpuResource
 		if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S77738080)
 		{
 			S1C6E8080 plates = parentResource.TexturePlates.TagData;
-			DiffusePlate ??= AssetManager.GetInstance().CreateFromPlate(plates.AlbedoPlate);
-			GStackPlate ??= AssetManager.GetInstance().CreateFromPlate(plates.NormalPlate);
-			NormalPlate ??= AssetManager.GetInstance().CreateFromPlate(plates.GStackPlate);
-			DyePlate ??= AssetManager.GetInstance().CreateFromPlate(plates.DyemapPlate);
+			DiffusePlate ??= AssetManager.Get().CreateFromPlate(plates.AlbedoPlate);
+			GStackPlate ??= AssetManager.Get().CreateFromPlate(plates.NormalPlate);
+			NormalPlate ??= AssetManager.Get().CreateFromPlate(plates.GStackPlate);
+			DyePlate ??= AssetManager.Get().CreateFromPlate(plates.DyemapPlate);
 
 			CreateDefaultDyes(context, item);
 			InvestmentBuffer = new Buffer(context.Device, new BufferDescription
@@ -241,13 +241,13 @@ public class InvestmentData : GpuResource
 		InvestmentDye2?.Dispose();
 		InvestmentDye2 = null;
 
-		AssetManager.GetInstance().ReleaseTexture(DiffusePlate);
+		AssetManager.Get().ReleaseTexture(DiffusePlate);
 		DiffusePlate = null;
-		AssetManager.GetInstance().ReleaseTexture(GStackPlate);
+		AssetManager.Get().ReleaseTexture(GStackPlate);
 		GStackPlate = null;
-		AssetManager.GetInstance().ReleaseTexture(NormalPlate);
+		AssetManager.Get().ReleaseTexture(NormalPlate);
 		NormalPlate = null;
-		AssetManager.GetInstance().ReleaseTexture(DyePlate);
+		AssetManager.Get().ReleaseTexture(DyePlate);
 		DyePlate = null;
 
 		_merger = null;
@@ -433,7 +433,7 @@ public class RenderObject : GpuResource
 				MeshTransform = part.MeshTransform,
 				MeshUVTransform = part.UVTransform,
 				MaxColorIndex = part.MaxVertexColorIndex,
-				Material = AssetManager.GetInstance().GetOrCreateMaterial(part.Material),
+				Material = AssetManager.Get().GetOrCreateMaterial(part.Material),
 
 				GroupIndex = part.GroupIndex,
 				VariantMaterialIndex = part.VariantShaderIndex,
@@ -581,7 +581,7 @@ public class RenderObject : GpuResource
 						mesh.PermutationMaterialIndex = newIndex;
 						var mapEntry = MaterialRangeMap[mesh.VariantMaterialIndex];
 						var mat = MaterialMap[mapEntry.MaterialStartIndex + (mesh.PermutationMaterialIndex % mapEntry.MaterialCount)];
-						mesh.Material = AssetManager.GetInstance().GetOrCreateMaterial(mat);
+						mesh.Material = AssetManager.Get().GetOrCreateMaterial(mat);
 
 						renderer.EntityObjectChannels?.UpdateChannels(mat);
 					}
@@ -750,7 +750,7 @@ public class MeshPartData : GpuResource
 		IndexBuffer?.Dispose();
 		InputLayout?.Dispose();
 
-		AssetManager.GetInstance().ReleaseMaterial(Material.Hash);
+		AssetManager.Get().ReleaseMaterial(Material.Hash);
 		Material = null;
 
 		VertexBuffer0 = null;
@@ -807,16 +807,16 @@ public class MaterialData : GpuResource
 			if (UsesGearDye)
 			{
 				if (UsesVertexColor)
-					renderer.Context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_VC);
+					renderer.Context.VertexShader.Set(AssetManager.Get().InvestmentOverrideVS_VC);
 				else
-					renderer.Context.VertexShader.Set(AssetManager.GetInstance().InvestmentOverrideVS_NoVC);
+					renderer.Context.VertexShader.Set(AssetManager.Get().InvestmentOverrideVS_NoVC);
 			}
 			else
 			{
 				if (UsesVertexColor)
-					renderer.Context.VertexShader.Set(AssetManager.GetInstance().EntityOverrideVS_VC);
+					renderer.Context.VertexShader.Set(AssetManager.Get().EntityOverrideVS_VC);
 				else
-					renderer.Context.VertexShader.Set(AssetManager.GetInstance().EntityOverrideVS_NoVC);
+					renderer.Context.VertexShader.Set(AssetManager.Get().EntityOverrideVS_NoVC);
 			}
 		}
 
@@ -936,8 +936,8 @@ public class Constants : GpuResource
 		}
 		Shader = shader;
 		Slot = shader.BufferSlot;
-		Samplers = AssetManager.GetInstance().CreateSamplers(shader);
-		Textures = AssetManager.GetInstance().CreateTextures(shader);
+		Samplers = AssetManager.Get().CreateSamplers(shader);
+		Textures = AssetManager.Get().CreateTextures(shader);
 
 		BytecodeConstants = shader.TFX_Bytecode_Constants.Select(x => new System.Numerics.Vector4(x.Vec.X, x.Vec.Y, x.Vec.Z, x.Vec.W)).ToArray();
 		BytecodeInterpreter = new TfxBytecodeInterpreter(TfxBytecodeOp.ParseAll(shader.TFX_Bytecode));
@@ -1036,7 +1036,7 @@ public class Constants : GpuResource
 
 		foreach (var tex in Textures) // De-frefs textures, disposing is handled by AssetManager
 		{
-			AssetManager.GetInstance().ReleaseTexture(tex.Value);
+			AssetManager.Get().ReleaseTexture(tex.Value);
 		}
 		Textures.Clear();
 

@@ -79,7 +79,7 @@ public class AssetManager : IDisposable
 		CreateDefaults();
 	}
 
-	public static AssetManager GetInstance()
+	public static AssetManager Get()
 	{
 		if (Instance == null)
 			throw new Exception("AssetManager Instance is not valid!");

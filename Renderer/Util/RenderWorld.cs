@@ -72,7 +72,7 @@ public class RenderWorld : IDisposable
 												if (lut.Unk28 is null || lut.Unk28.TagData.LUT is null)
 													continue;
 
-												renderer.Externs.ScreenArea.Unk08 = AssetManager.GetInstance().GetOrCreateGlobalTexture(lut.Unk28.TagData.LUT).SRV;
+												renderer.Externs.ScreenArea.Unk08 = AssetManager.Get().GetOrCreateGlobalTexture(lut.Unk28.TagData.LUT).SRV;
 											}
 										}
 										break;
@@ -205,12 +205,12 @@ public class RenderWorld : IDisposable
 		}
 		else
 		{
-			renderer.Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup0).SRV;
-			renderer.Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup1 ?? Atmosphere.Value.Lookup0).SRV;
+			renderer.Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup0).SRV;
+			renderer.Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup1 ?? Atmosphere.Value.Lookup0).SRV;
 		}
 
 		if (Atmosphere.Value.Lookup4 != null)
-			renderer.Externs.Atmosphere.AtmosLookup2 = AssetManager.GetInstance().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup4).SRV;
+			renderer.Externs.Atmosphere.AtmosLookup2 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup4).SRV;
 
 		Log.Debug("Assigned Atmopshere Extern Textures.");
 	}

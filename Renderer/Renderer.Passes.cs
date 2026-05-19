@@ -56,12 +56,12 @@ public partial class CharmRenderer
 			CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 			Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
 
-			Externs.Atmosphere.AtmosNear = AssetManager.GetInstance().BlackTextureWAlpha;
-			Externs.Atmosphere.AtmosFar = AssetManager.GetInstance().BlackTextureWAlpha;
+			Externs.Atmosphere.AtmosNear = AssetManager.Get().BlackTextureWAlpha;
+			Externs.Atmosphere.AtmosFar = AssetManager.Get().BlackTextureWAlpha;
 
-			Externs.Transparent.AtmosNear = AssetManager.GetInstance().BlackTextureWAlpha;
-			Externs.Transparent.AtmosFar = AssetManager.GetInstance().BlackTextureWAlpha;
-			Externs.Transparent.AtmosDepthAngleDensity = AssetManager.GetInstance().WhiteTexture;
+			Externs.Transparent.AtmosNear = AssetManager.Get().BlackTextureWAlpha;
+			Externs.Transparent.AtmosFar = AssetManager.Get().BlackTextureWAlpha;
+			Externs.Transparent.AtmosDepthAngleDensity = AssetManager.Get().WhiteTexture;
 			return;
 		}
 
@@ -80,8 +80,8 @@ public partial class CharmRenderer
 		//Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
 
 		Externs.Atmosphere.Update(this);
-		Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
-		Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
+		Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
+		Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
 		Externs.PostProcess.UpdateStageAtmos(Externs.Atmosphere);
 
@@ -113,10 +113,10 @@ public partial class CharmRenderer
 
 		// I guess this is how it actually works? Far uses first 2 textures, Near uses last 2, even if they are the same
 		if (World.Atmosphere?.Lookup2 is not null)
-			Externs.Atmosphere.AtmosLookup0 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup2).SRV;
+			Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup2).SRV;
 
 		if (World.Atmosphere?.Lookup3 is not null)
-			Externs.Atmosphere.AtmosLookup1 = AssetManager.GetInstance().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup3).SRV;
+			Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup3).SRV;
 
 		near.Bind(Context);
 		RenderGlobalPipeline("sky_lookup_generate_near");

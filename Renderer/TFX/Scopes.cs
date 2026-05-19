@@ -373,8 +373,8 @@ public class TfxScopeStage : GpuResource
 		}
 
 		ScopeConstants.Slot = ScopeStage.CBufferSlot;
-		ScopeConstants.Textures = AssetManager.GetInstance().CreateTextures(ScopeStage.Textures);
-		ScopeConstants.Samplers = AssetManager.GetInstance().CreateSamplers(ScopeStage.EnumerateSamplers().ToList());
+		ScopeConstants.Textures = AssetManager.Get().CreateTextures(ScopeStage.Textures);
+		ScopeConstants.Samplers = AssetManager.Get().CreateSamplers(ScopeStage.EnumerateSamplers().ToList());
 		ScopeConstants.BytecodeConstants = ScopeStage.TFX_Bytecode_Constants.Select(x => new System.Numerics.Vector4(x.Vec.X, x.Vec.Y, x.Vec.Z, x.Vec.W)).ToArray();
 		ScopeConstants.BytecodeInterpreter = new TfxBytecodeInterpreter(TfxBytecodeOp.ParseAll(ScopeStage.TFX_Bytecode));
 		ScopeConstants.BytecodeInterpreter.Name = $"Scope {name} : {ShaderStage}";

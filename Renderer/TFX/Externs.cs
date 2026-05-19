@@ -68,10 +68,10 @@ public class Externs : IDisposable
 			var spectint = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularTintLookup;
 			var iri = Globals.Get().RenderGlobals.TagData.Textures.TagData.IridescenceLookup;
 
-			SpecularLobeLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(speclobe).SRV;
-			SpecularLobe3DLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(speclobe3d).SRV;
-			SpecularTintLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(spectint).SRV;
-			IridesenceLookup = AssetManager.GetInstance().GetOrCreateGlobalTexture(iri).SRV;
+			SpecularLobeLookup = AssetManager.Get().GetOrCreateGlobalTexture(speclobe).SRV;
+			SpecularLobe3DLookup = AssetManager.Get().GetOrCreateGlobalTexture(speclobe3d).SRV;
+			SpecularTintLookup = AssetManager.Get().GetOrCreateGlobalTexture(spectint).SRV;
+			IridesenceLookup = AssetManager.Get().GetOrCreateGlobalTexture(iri).SRV;
 		}
 
 		public void Update(CharmRenderer renderer)
@@ -168,8 +168,8 @@ public class Externs : IDisposable
 
 		public ExternTransparent()
 		{
-			Unk48 = AssetManager.GetInstance().BlackTexture;
-			Unk50 = AssetManager.GetInstance().BlackTexture;
+			Unk48 = AssetManager.Get().BlackTexture;
+			Unk50 = AssetManager.Get().BlackTexture;
 		}
 
 		public void Dispose()
@@ -284,8 +284,8 @@ public class Externs : IDisposable
 
 		public ExternAtmosphere()
 		{
-			UnkA0 = AssetManager.GetInstance().WhiteTexture;
-			UnkC0 = AssetManager.GetInstance().WhiteTexture;
+			UnkA0 = AssetManager.Get().WhiteTexture;
+			UnkC0 = AssetManager.Get().WhiteTexture;
 		}
 
 		public void Update(CharmRenderer renderer)
@@ -377,9 +377,9 @@ public class Externs : IDisposable
 
 		public ExternShadowMask()
 		{
-			Unk00 = AssetManager.GetInstance().WhiteTexture;
-			Unk08 = AssetManager.GetInstance().WhiteTexture;
-			Unk10 = AssetManager.GetInstance().WhiteTexture;
+			Unk00 = AssetManager.Get().WhiteTexture;
+			Unk08 = AssetManager.Get().WhiteTexture;
+			Unk10 = AssetManager.Get().WhiteTexture;
 		}
 
 		public void Dispose()
@@ -449,9 +449,9 @@ public class Externs : IDisposable
 
 		public ExternScreenArea()
 		{
-			Unk40 = AssetManager.GetInstance().BlackTextureWAlpha;
-			Unk50 = AssetManager.GetInstance().BlackTextureWAlpha;
-			Unk58 = AssetManager.GetInstance().WhiteTexture;
+			Unk40 = AssetManager.Get().BlackTextureWAlpha;
+			Unk50 = AssetManager.Get().BlackTextureWAlpha;
+			Unk58 = AssetManager.Get().WhiteTexture;
 		}
 
 		public void Update(DeviceContext context, GBuffer gbuffer)
@@ -514,7 +514,7 @@ public class Externs : IDisposable
 
 		public ExternGlobalLighting()
 		{
-			Unk08 = AssetManager.GetInstance().WhiteTexture;
+			Unk08 = AssetManager.Get().WhiteTexture;
 		}
 
 		public void Update(RendererGlobalChannels globals)
