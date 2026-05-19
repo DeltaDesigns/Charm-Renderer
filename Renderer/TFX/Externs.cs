@@ -305,13 +305,17 @@ public class Externs : IDisposable
 			AtmosUnk170 = renderer.World.GlobalChannels.Get(19).X; // fog_height_falloff
 			AtmosUnk180 = renderer.World.GlobalChannels.Get(20); // fog_decay_color
 			AtmosUnk190 = renderer.World.GlobalChannels.Get(21).X; // fog_decay_scale
+			AtmosUnk194 = renderer.World.GlobalChannels.Get(new TigerHash(0x3eeacb23)).X;
+			AtmosUnk198 = renderer.World.GlobalChannels.Get(new TigerHash(0x7e92eb31)).X;
 			AtmosRotation = renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
 			AtmosIntensity = renderer.World.GlobalChannels.Get("sky_snapshot_intensity").X;
 			AtmosUnk1BC = renderer.World.GlobalChannels.Get(36).X;
 			AtmosUnk1C0 = renderer.World.GlobalChannels.Get(35).X;
+			AtmosUnk1C4 = renderer.World.GlobalChannels.Get(new TigerHash(0x949768cf)).X;
 			AtmosUnk1D0 = renderer.World.GlobalChannels.Get("sky_color_override"); // sky_color_override?
 			AtmosUnk1E8 = renderer.World.GlobalChannels.Get(38).X;
 			AtmosSunIntensity = renderer.World.GlobalChannels.Get("sun_glow_intensity").X;
+			AtmosUnk1EC = renderer.World.GlobalChannels.Get(new TigerHash(0xe4a1bf60)).X;
 
 			SunDirRotate(renderer.World.GlobalChannels.Get("sun_track_direction"));
 			AtmosSunDir = renderer.World.GlobalChannels.Get("sun_track_direction");
