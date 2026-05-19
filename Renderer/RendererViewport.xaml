@@ -17,7 +17,7 @@
         <DataTemplate DataType="{x:Type local:VectorSetting}">
             <StackPanel
                 x:Name="Root"
-                Margin="2"
+                Margin="4"
                 Orientation="Horizontal">
                 <TextBlock
                     Width="100"
@@ -334,6 +334,31 @@
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Top"
                             Orientation="Vertical">
+
+                            <ContentControl x:Name="AutoOrbitButton" />
+                            <Border
+                                Background="#75000000"
+                                BorderBrush="#759D9D9D"
+                                BorderThickness="1">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Content.IsChecked, ElementName=AutoOrbitButton}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+
+                                <ItemsControl x:Name="AutoOrbitOptions">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Margin="5" Orientation="Vertical" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </Border>
 
                             <ContentControl x:Name="ShowGridButton" />
                             <ContentControl x:Name="ShowAtmosSettings" />

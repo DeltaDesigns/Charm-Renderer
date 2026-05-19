@@ -290,12 +290,7 @@ public partial class CharmRenderer : IDisposable
 			return;
 
 		RenderHelpers.Profile("Update Camera");
-
-		Camera.FOV = Viewport.FOV;
-		Camera.UpdateProjectionMatrix();
-		if (Viewport.ViewportContainer.IsMouseOver)
-			Camera.Update(World, KeyboardState, MouseState);
-
+		Camera.Update(World, KeyboardState, MouseState, Viewport);
 		RenderHelpers.EndProfile();
 	}
 

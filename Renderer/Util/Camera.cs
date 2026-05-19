@@ -107,15 +107,30 @@ public class FirstPersonCamera
 	private bool IsOrbiting = false;
 	private float OrbitDistance = 5f;
 	private Vector3 OrbitPivot;
-	public void Update(RenderWorld world, KeyboardState keyboard, MouseState mouse)
+	public bool AutoOrbit = false;
+	private float AutoOrbitAngle = 0f;
+	public float AutoOrbitSpeed = 30f;
+	public Vector3 AutoOrbitOffset = Vector3.Zero;
+	public void Update(RenderWorld world, KeyboardState keyboard, MouseState mouse, RendererViewport viewport)
 	{
+		FOV = viewport.FOV;
+		UpdateProjectionMatrix();
 		GetCursorPos(out MousePos);
 
+		AutoOrbit = viewport.AutoOrbit;
+		AutoOrbitSpeed = viewport.AutoOrbitSpeed;
+		AutoOrbitOffset = viewport.AutoOrbitOffset.ToVector3();
+
+		lastMouse = currentMouse;
+		currentMouse = MousePos;
+		float mouseDeltaX = (float)(currentMouse.X - lastMouse.X);
+		float mouseDeltaY = (float)(currentMouse.Y - lastMouse.Y);
+		float scrollDelta = mouse.Z;
 		float zoomSpeed = 0.0075f;
+
 		Vector3 moveDir = Vector3.Zero;
 		if (keyboard.IsPressed(SharpDX.DirectInput.Key.W)) moveDir += Forward;
 		if (keyboard.IsPressed(SharpDX.DirectInput.Key.S)) moveDir -= Forward;
-
 		if (keyboard.IsPressed(SharpDX.DirectInput.Key.D)) moveDir += Right;
 		if (keyboard.IsPressed(SharpDX.DirectInput.Key.A)) moveDir -= Right;
 
@@ -124,27 +139,71 @@ public class FirstPersonCamera
 			zoomSpeed *= 0.1f;
 			moveDir *= 0.1f;
 		}
-
 		if (keyboard.IsPressed(SharpDX.DirectInput.Key.LeftShift))
 		{
 			zoomSpeed *= 5f;
 			moveDir *= 5f;
 		}
 
+		if (AutoOrbit)
+		{
+			var bbox = world.OverrideMainBB != null
+				? world.OverrideMainBB.Value
+				: world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new BoundingBox();
+
+			var center = (bbox.Minimum + bbox.Maximum) / 2f;
+			var extents = (bbox.Maximum - bbox.Minimum) / 2f;
+			var target = center + extents * AutoOrbitOffset;
+
+			if (!IsOrbiting)
+			{
+				IsOrbiting = true;
+				OrbitDistance = Vector3.Distance(Position, target);
+				AutoOrbitAngle = Yaw;
+			}
+
+			if (viewport.ViewportContainer.IsMouseOver)
+			{
+				if (scrollDelta != 0)
+				{
+					OrbitDistance -= scrollDelta * zoomSpeed;
+					OrbitDistance = MathF.Max(0.1f, OrbitDistance);
+				}
+
+				if ((mouse.Buttons[0] || mouse.Buttons[1] || mouse.Buttons[2]))
+				{
+					Pitch += mouseDeltaY * -0.4f;
+				}
+			}
+
+			Pitch = Math.Clamp(Pitch, -89f, 89f);
+			AutoOrbitAngle += AutoOrbitSpeed * viewport.Renderer.Externs.Frame.DeltaTime;
+
+			float yawRad = AutoOrbitAngle * MathF.PI / 180f;
+			float pitchRad = Pitch * MathF.PI / 180f;
+
+			Vector3 orbitDir = new Vector3(
+				MathF.Cos(pitchRad) * MathF.Cos(yawRad),
+				MathF.Cos(pitchRad) * MathF.Sin(yawRad),
+				MathF.Sin(pitchRad)
+			);
+
+			Position = target - orbitDir * OrbitDistance;
+			LookAt(target);
+			return;
+		}
+
+		IsOrbiting = false;
+
+		if (!viewport.ViewportContainer.IsMouseOver)
+			return; // doesnt process input if mouse is over any ui or off screen, but still allows auto orbiting to work
 
 		if (!mouse.Buttons[0])
 			Move(moveDir);
 
-		lastMouse = currentMouse;
-		currentMouse = MousePos;
-		float mouseDeltaX = (float)(currentMouse.X - lastMouse.X);
-		float mouseDeltaY = (float)(currentMouse.Y - lastMouse.Y);
-
-		float scrollDelta = mouse.Z;
 		if (scrollDelta != 0)
 		{
 			float zoomAmount = scrollDelta * zoomSpeed;
-
 			if (IsOrbiting)
 			{
 				OrbitDistance -= zoomAmount;
@@ -156,7 +215,7 @@ public class FirstPersonCamera
 			}
 		}
 
-		// Left click = Non locked orbit
+		// Left click — free-pivot orbit
 		if (mouse.Buttons[0])
 		{
 			if (!IsOrbiting)
@@ -182,26 +241,26 @@ public class FirstPersonCamera
 			Position = OrbitPivot - orbitDir * OrbitDistance;
 			LookAt(OrbitPivot);
 		}
-		// Right Mouse = Free Look
+		// Right click — free look
 		else if (mouse.Buttons[1])
 		{
 			IsOrbiting = false;
 			Look(mouseDeltaX, mouseDeltaY);
 		}
-
-		// Middle Mouse = Orbit
+		// Middle click — BBox orbit
 		else if (mouse.Buttons[2])
 		{
-			var bbox = world.OverrideMainBB != null ? world.OverrideMainBB.Value : world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new BoundingBox();
+			var bbox = world.OverrideMainBB != null
+				? world.OverrideMainBB.Value
+				: world.RenderObjects.FirstOrDefault()?.BoundingBox ?? new BoundingBox();
+
+			var target = (bbox.Minimum + bbox.Maximum) / 2f;
+
 			if (!IsOrbiting)
 			{
 				IsOrbiting = true;
-
-				var center = (bbox.Minimum + bbox.Maximum) / 2f;
-				OrbitDistance = Vector3.Distance(Position, center);
+				OrbitDistance = Vector3.Distance(Position, target);
 			}
-
-			var target = (bbox.Minimum + bbox.Maximum) / 2f;
 
 			Yaw += mouseDeltaX * -0.4f;
 			Pitch += mouseDeltaY * -0.4f;

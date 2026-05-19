@@ -32,6 +32,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	#endregion
 
 	#region Render Options
+	public bool AutoOrbit { get; set; } = false;
+	public ObservableCollection<SettingItem> AutoOrbitSettings { get; set; }
 	public ObservableCollection<SettingItem> AtmosSettings { get; set; }
 	public SliderSetting TimeOfDaySetting { get; set; }
 	public SliderSetting ExposureSetting { get; set; }
@@ -45,6 +47,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 	public float TimeScale { get; set; } = 1f;
 	public float AtmosRotation { get; set; } = 0.50f; //0.825f;
 	public float AtmosIntensity { get; set; } = 0.75f;
+	public float AutoOrbitSpeed { get; set; } = 30f;
+	public Vector4 AutoOrbitOffset { get; set; } = Vector4.Zero;
 	public RenderPass DisplayPass = RenderPass.final;
 	#endregion
 
@@ -187,6 +191,31 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
 	private void CreateViewportControls()
 	{
+		AutoOrbitButton.Content = new ToggleSetting
+		{
+			Text = "Auto Orbit",
+			GetValue = () => AutoOrbit,
+			SetValue = v => AutoOrbit = v
+		};
+		AutoOrbitSettings = new ObservableCollection<SettingItem>
+		{
+			new SliderSetting
+			{
+				Text = "Orbit Speed",
+				Min = 1f,
+				Max = 200f,
+				GetValue = () => AutoOrbitSpeed,
+				SetValue = v => AutoOrbitSpeed = v
+			},
+			new VectorSetting
+			{
+				Text = "Orbit Offset",
+				Value = new EditableVector4(Vector4.Zero, EditableVector4.VectorInputType.Vec3),
+				SetValue = v => AutoOrbitOffset = v.Vec4
+			},
+		};
+		AutoOrbitOptions.ItemsSource = AutoOrbitSettings;
+
 		ShowGridButton.Content = new ToggleSetting
 		{
 			Text = "Show Grid",
