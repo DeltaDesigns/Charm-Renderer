@@ -499,7 +499,8 @@
                                             Panel.ZIndex="1"
                                             Click="PrintGlobalChannels_Click"
                                             Focusable="False"
-                                            Style="{StaticResource D2StyleButton}">
+                                            Style="{StaticResource D2StyleButton}"
+                                            Visibility="Collapsed">
 
                                             <TextBlock
                                                 Margin="2"
@@ -901,6 +902,34 @@
                     FontWeight="Bold"
                     Foreground="White"
                     Text="⛶" />
+
+            </Button>
+
+            <Button
+                Width="40"
+                Height="40"
+                Margin="5"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Panel.ZIndex="1"
+                Focusable="False"
+                Opacity="0.5"
+                Style="{StaticResource D2StyleButton}">
+                <charm:GenericTooltipProperties.TooltipData>
+                    <charm:GenericTooltip
+                        Name="CONTROLS"
+                        Description="- Use WASD to move the cameras position.&#x0a;- Use Left Mouse to orbit around a fixed point in front of the camera.&#x0a;- Use Middle Mouse to orbit around the active object.&#x0a;- Use Right Mouse to freely look around.&#x0a;- Shift increases movement speed, Left Control slows."
+                        Style="Category" />
+                </charm:GenericTooltipProperties.TooltipData>
+
+                <TextBlock
+                    Margin="5"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="25"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="?" />
 
             </Button>
 
