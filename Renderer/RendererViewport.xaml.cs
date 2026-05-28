@@ -48,6 +48,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public float AtmosRotation { get; set; } = 0.50f; //0.825f;
     public float AtmosIntensity { get; set; } = 0.75f;
     public float AutoOrbitSpeed { get; set; } = 30f;
+    public float MovementSpeed { get; set; } = 1f;
     public Vector4 AutoOrbitOffset { get; set; } = Vector4.Zero;
     public RenderPass DisplayPass = RenderPass.final;
     #endregion
@@ -288,6 +289,14 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         };
         DebugSettings = new ObservableCollection<SettingItem>
         {
+            new SliderSetting
+            {
+                Text = "Movement Speed",
+                Min = 0.1f,
+                Max = 5f,
+                GetValue = () => MovementSpeed,
+                SetValue = v => MovementSpeed = v
+            },
             ExposureSetting,
             new SliderSetting
             {

@@ -22,6 +22,7 @@
                 <TextBlock
                     Width="100"
                     Margin="0"
+                    HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
                     FontSize="14"
@@ -51,40 +52,64 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type local:SliderSetting}">
-            <StackPanel Margin="4" Orientation="Horizontal">
+            <Grid Margin="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="25*" />
+                    <ColumnDefinition Width="30" />
+                    <ColumnDefinition Width="175" />
+                    <ColumnDefinition Width="25*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Column="0"
+                    Width="125"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                    FontSize="14"
+                    Text="{Binding Text}"
+                    TextWrapping="WrapWithOverflow" />
 
                 <ToggleButton
-                    Margin="0,0,5,0"
+                    Grid.Column="1"
+                    Width="20"
+                    Height="20"
+                    Margin="0,0,10,0"
+                    HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     IsChecked="{Binding IsLocked}"
                     ToolTip="{Binding LockTooltip}"
                     Visibility="{Binding IsLockable, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                    <ToggleButton.Style>
-                        <Style BasedOn="{StaticResource D2StyleTagListButton}" TargetType="ToggleButton">
-                            <Setter Property="Content" Value="🔓" />
-                            <Setter Property="FontSize" Value="12" />
-                            <Setter Property="FontFamily" Value="Segoe UI Symbol" />
+                    <ToggleButton.Content>
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontFamily="Segoe UI Symbol"
+                            FontSize="18"
+                            Foreground="White">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="🔓" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                            <Setter Property="Text" Value="🔒" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </ToggleButton.Content>
 
-                            <Style.Triggers>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter Property="Content" Value="🔒" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
+                    <ToggleButton.Style>
+                        <Style BasedOn="{StaticResource D2StyleTagListButton}" TargetType="ToggleButton" />
                     </ToggleButton.Style>
                 </ToggleButton>
 
-                <TextBlock
-                    MinWidth="100"
-                    VerticalAlignment="Center"
-                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                    FontSize="14"
-                    Text="{Binding Text}" />
-
                 <Slider
-                    Width="200"
-                    Margin="0,0,5,0"
+                    Grid.Column="2"
+                    Width="175"
+                    Margin="0,0,0,0"
                     VerticalAlignment="Center"
                     Maximum="{Binding Max}"
                     Minimum="{Binding Min}"
@@ -95,13 +120,15 @@
                 </Slider>
 
                 <TextBox
-                    HorizontalAlignment="Center"
+                    Grid.Column="3"
+                    Margin="10,0,0,0"
+                    HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    HorizontalContentAlignment="Center"
+                    HorizontalContentAlignment="Right"
                     VerticalContentAlignment="Center"
                     FontSize="14"
                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" />
-            </StackPanel>
+            </Grid>
         </DataTemplate>
 
         <!--  Consumable  -->
