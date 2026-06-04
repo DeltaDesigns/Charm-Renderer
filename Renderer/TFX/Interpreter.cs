@@ -336,6 +336,59 @@ public class TfxBytecodeInterpreter
                         StackPush(vec);
                         break;
 
+                    // Compare ops? these are guesses
+                    case TfxBytecode.Unk34_EoF:
+                        var cmpLT = StackPop(2);
+                        bool allLess = cmpLT[0].X < cmpLT[1].X
+                            && cmpLT[0].Y < cmpLT[1].Y
+                            && cmpLT[0].Z < cmpLT[1].Z
+                            && cmpLT[0].W < cmpLT[1].W;
+                        StackPush(allLess ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    case TfxBytecode.Unk35_EoF:
+                        var cmpLTE = StackPop(2);
+                        bool allLessEqual = cmpLTE[0].X <= cmpLTE[1].X
+                            && cmpLTE[0].Y <= cmpLTE[1].Y
+                            && cmpLTE[0].Z <= cmpLTE[1].Z
+                            && cmpLTE[0].W <= cmpLTE[1].W;
+                        StackPush(allLessEqual ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    case TfxBytecode.Unk36_EoF:
+                        var cmpGT = StackPop(2);
+                        bool allGreater = cmpGT[0].X < cmpGT[1].X
+                            && cmpGT[0].Y < cmpGT[1].Y
+                            && cmpGT[0].Z < cmpGT[1].Z
+                            && cmpGT[0].W < cmpGT[1].W;
+                        StackPush(allGreater ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    case TfxBytecode.Unk37_EoF:
+                        var cmpGTE = StackPop(2);
+                        bool allGreaterEqual = cmpGTE[0].X <= cmpGTE[1].X
+                            && cmpGTE[0].Y <= cmpGTE[1].Y
+                            && cmpGTE[0].Z <= cmpGTE[1].Z
+                            && cmpGTE[0].W <= cmpGTE[1].W;
+                        StackPush(allGreaterEqual ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    case TfxBytecode.Unk38_EoF:
+                        var cmpEqual = StackPop(2);
+                        StackPush(cmpEqual[0] == cmpEqual[1] ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    case TfxBytecode.Unk39_EoF:
+                        var cmpNotEqual = StackPop(2);
+                        StackPush(cmpNotEqual[0] != cmpNotEqual[1] ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    case TfxBytecode.Unk3A_EoF:
+                        StackPush(StackTop() != Vec4.Zero ? Vec4.One : Vec4.Zero);
+                        break;
+
+                    /// End of compare ops
+
                     case TfxBytecode.LerpConstant:
                     case TfxBytecode.LerpConstantSaturated:
                         {
