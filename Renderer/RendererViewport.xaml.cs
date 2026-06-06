@@ -624,6 +624,10 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             MaterialPermutationsExpander.Visibility = Visibility.Visible;
         }
 
+        // Makes some objects and combatants look like their "default" appearance, but messes with others so idk
+        //if (permutations.Keys.Count != 0)
+        //permutations.OverrideIndex = variantCount - 1;
+
         MaterialPermutationOverride = new SliderSetting()
         {
             Max = variantCount,

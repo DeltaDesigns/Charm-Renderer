@@ -30,6 +30,35 @@ public class ObjectChannels
         var parts = entity.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal);
         parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
         GetObjectChannels(parts);
+
+        SetObjectChannel(Helpers.Fnv1a32("dissolve"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("blink"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("shield_intensity"), 0f);
+        SetObjectChannel(2812804675, Vector4.Zero); // interpolated_world_position
+        SetObjectChannel(2046642570, Vector4.Zero); // parent.fp_iron_sight
+        SetObjectChannel(286711233, Vector4.Zero); // hydra shield
+        SetObjectChannel(2786922960, Vector4.Zero); // belmon shield
+        SetObjectChannel(0xFB9CD72C, Vector4.Zero); // trials metal color
+        SetObjectChannel(0x0B319FE0, Vector4.Zero);
+
+        // Taken/Taken Champion related
+        SetObjectChannel(0x9A07EC23, Vector4.Zero);
+        SetObjectChannel(0xF198ED08, Vector4.Zero);
+        SetObjectChannel(0x8B689EA3, Vector4.Zero);
+        SetObjectChannel(0xF5C6019F, Vector4.Zero);
+        SetObjectChannel(0x594EDD4B, Vector4.Zero);
+        SetObjectChannel(0x7C0D0F3C, Vector4.Zero);
+
+        SetObjectChannel(0x50A9729D, Vector4.Zero); // Subjugator enrage
+        SetObjectChannel(0x196454FE, Vector4.Zero); // Subjugator enrage
+
+        SetObjectChannel(0xAD512BFA, Vector4.Zero);
+        SetObjectChannel(0x7E929993, Vector4.Zero); // Rhulk enrage
+
+        // Mega Witness, just resets them all to actually make it appear properly
+        if (entity.Hash == 0x80E28227
+            || entity.Hash == 0x80E2589D)
+            ResetAllChannels(Vector4.Zero);
     }
 
     public void AddObjectChannels(InventoryItem item)
@@ -114,16 +143,6 @@ public class ObjectChannels
                     || (nextOp.op == TfxBytecode.Permute && ((TfxData1Byte)(nextOp.data)).value == 0b00_00_00_00);
 
                 Vector4 val = Vector4.One;
-                switch (hash)
-                {
-                    case 2812804675: // interpolated_world_position
-                    case 2046642570: // parent.fp_iron_sight
-                    case 286711233: // hydra shield
-                    case 2786922960: // belmon shield
-                    case 0xFB9CD72C: // trials metal color
-                        val = Vector4.Zero;
-                        break;
-                }
                 try
                 {
                     Channels.TryAdd(hash, new(val, isFloat ? EditableVector4.VectorInputType.Float : EditableVector4.VectorInputType.Vec4));

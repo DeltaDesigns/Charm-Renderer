@@ -36,58 +36,62 @@ void VSMain(
   out float4 o2 : TEXCOORD2,
   out float4 o3 : TEXCOORD3,
   out float3 o4 : TEXCOORD4,
+  out float4 o5 : TEXCOORD5,
+  out float3 o6 : TEXCOORD6,
   out float4 out_position : SV_POSITION0)
 {
-  float4 r0,r1,r2,r3;
-  uint4 bitmask, uiDest;
-  float4 fDest;
+	float4 r0,r1,r2,r3;
+	uint4 bitmask, uiDest;
+	float4 fDest;
 
-  r0.x = dot(in_normal.xyz, in_normal.xyz);
-  r0.x = rsqrt(r0.x);
-  r0.xyz = in_normal.xyz * r0.xxx;
-  r1.xyz = mesh_to_world[1].xyz * r0.yyy;
-  r0.xyw = mesh_to_world[0].xyz * r0.xxx + r1.xyz;
-  r0.xyz = mesh_to_world[2].xyz * r0.zzz + r0.xyw;
-  r0.w = dot(r0.xyz, r0.xyz);
-  r0.w = rsqrt(r0.w);
-  r0.xyz = r0.xyz * r0.www;
-  r1.x = saturate(dynamic_sh_ao_values.z * r0.z);
-  o0.w = saturate(dynamic_sh_ao_values.w + r1.x);
-  o0.xyz = r0.xyz;
-  r1.x = dot(in_tangent.xyz, in_tangent.xyz);
-  r1.x = rsqrt(r1.x);
-  r1.xyz = in_tangent.xyz * r1.xxx;
-  r2.xyzw = mesh_to_world[1].xyzz * r1.yyyy;
-  r2.xyzw = mesh_to_world[0].xyzz * r1.xxxx + r2.xyzw;
-  r1.xyzw = mesh_to_world[2].xyzz * r1.zzzz + r2.xyzw;
-  r1.xyzw = r1.xyzw * r0.wwww;
-  o1.xyzw = r1.xyzw;
-  r2.xyz = r1.ywx * r0.zxy;
-  r0.xyz = r0.yzx * r1.wxy + -r2.xyz;
-  o2.xyz = in_tangent.www * r0.xyz;
-  o2.w = 1;
-  o3.xyzw = in_texcoord.xyxy * texcoord0_scale_offset.xyxy + texcoord0_scale_offset.zwzw;
-  r0.x = mesh_to_world[0].x;
-  r0.y = mesh_to_world[1].x;
-  r0.z = mesh_to_world[2].x;
-  r1.xyw = mesh_to_world[3].xyz + -camera_to_world[3].xyz;
-  r0.w = r1.x;
-  r2.xyz = in_position.xyz * position_scale.xyz + position_offset.xyz;
-  r2.w = 1;
-  r0.x = dot(r0.xyzw, r2.xyzw);
-  r3.w = r1.y;
-  r3.x = mesh_to_world[0].y;
-  r3.y = mesh_to_world[1].y;
-  r3.z = mesh_to_world[2].y;
-  r0.y = dot(r3.xyzw, r2.xyzw);
-  r1.x = mesh_to_world[0].z;
-  r1.y = mesh_to_world[1].z;
-  r1.z = mesh_to_world[2].z;
-  r0.z = dot(r1.xyzw, r2.xyzw);
-  o4.xyz = camera_to_world[3].xyz + r0.xyz;
-
-  r1.xyzw = world_to_projective[1].xyzw * r0.yyyy;
-  r1.xyzw = world_to_projective[0].xyzw * r0.xxxx + r1.xyzw;
-  r0.xyzw = world_to_projective[2].xyzw * r0.zzzz + r1.xyzw;
-  out_position.xyzw = camera_to_projective[3].xyzw + r0.xyzw;
+	r0.x = dot(in_normal.xyz, in_normal.xyz);
+	r0.x = rsqrt(r0.x);
+	r0.xyz = in_normal.xyz * r0.xxx;
+	r1.xyz = mesh_to_world[1].xyz * r0.yyy;
+	r0.xyw = mesh_to_world[0].xyz * r0.xxx + r1.xyz;
+	r0.xyz = mesh_to_world[2].xyz * r0.zzz + r0.xyw;
+	r0.w = dot(r0.xyz, r0.xyz);
+	r0.w = rsqrt(r0.w);
+	r0.xyz = r0.xyz * r0.www;
+	r1.x = saturate(dynamic_sh_ao_values.z * r0.z);
+	o0.w = saturate(dynamic_sh_ao_values.w + r1.x);
+	o0.xyz = r0.xyz;
+	r1.x = dot(in_tangent.xyz, in_tangent.xyz);
+	r1.x = rsqrt(r1.x);
+	r1.xyz = in_tangent.xyz * r1.xxx;
+	r2.xyzw = mesh_to_world[1].xyzz * r1.yyyy;
+	r2.xyzw = mesh_to_world[0].xyzz * r1.xxxx + r2.xyzw;
+	r1.xyzw = mesh_to_world[2].xyzz * r1.zzzz + r2.xyzw;
+	r1.xyzw = r1.xyzw * r0.wwww;
+	o1.xyz = r1.xyz;
+	o1.w = in_position.z;
+	r2.xyz = r1.ywx * r0.zxy;
+	r0.xyz = r0.yzx * r1.wxy + -r2.xyz;
+	o2.xyz = in_tangent.www * r0.xyz;
+	o2.w = 1;
+	o3.xyzw = in_texcoord.xyxy * texcoord0_scale_offset.xyxy + texcoord0_scale_offset.zwzw;
+	r0.x = mesh_to_world[0].x;
+	r0.y = mesh_to_world[1].x;
+	r0.z = mesh_to_world[2].x;
+	r1.xyw = mesh_to_world[3].xyz + -camera_to_world[3].xyz;
+	r0.w = r1.x;
+	r2.xyz = in_position.xyz * position_scale.xyz + position_offset.xyz;
+	r2.w = 1;
+	r0.x = dot(r0.xyzw, r2.xyzw);
+	r3.w = r1.y;
+	r3.x = mesh_to_world[0].y;
+	r3.y = mesh_to_world[1].y;
+	r3.z = mesh_to_world[2].y;
+	r0.y = dot(r3.xyzw, r2.xyzw);
+	r1.x = mesh_to_world[0].z;
+	r1.y = mesh_to_world[1].z;
+	r1.z = mesh_to_world[2].z;
+	r0.z = dot(r1.xyzw, r2.xyzw);
+	o4.xyz = camera_to_world[3].xyz + r0.xyz;
+	o5.xyz = in_position.xyz;
+	o6.xyz = in_normal.xyz;
+	r1.xyzw = world_to_projective[1].xyzw * r0.yyyy;
+	r1.xyzw = world_to_projective[0].xyzw * r0.xxxx + r1.xyzw;
+	r0.xyzw = world_to_projective[2].xyzw * r0.zzzz + r1.xyzw;
+	out_position.xyzw = camera_to_projective[3].xyzw + r0.xyzw;
 }

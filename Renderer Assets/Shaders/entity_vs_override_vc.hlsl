@@ -62,7 +62,8 @@ void VSMain(
   r2.xyzw = mesh_to_world[0].xyzz * r1.xxxx + r2.xyzw;
   r1.xyzw = mesh_to_world[2].xyzz * r1.zzzz + r2.xyzw;
   r1.xyzw = r1.xyzw * r0.wwww;
-  o1.xyzw = r1.xyzw;
+  o1.xyz = r1.xyz;
+  o1.w = in_position.z;
   r2.xyz = r1.ywx * r0.zxy;
   r0.xyz = r0.yzx * r1.wxy + -r2.xyz;
   o2.xyz = in_tangent.www * r0.xyz;
