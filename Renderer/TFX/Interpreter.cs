@@ -203,6 +203,11 @@ public class TfxBytecodeInterpreter
                         StackPush(Vec4.Clamp(clamp[1], clamp[2], clamp[0]));
                         break;
 
+                    case TfxBytecode.Unk14:
+                        var smoothStep = StackPop(3);
+                        StackPush(TFXFunctions.EvaluateSmoothStep(smoothStep[2], smoothStep[1], smoothStep[0]));
+                        break;
+
                     case TfxBytecode.Abs:
                         StackPush(Vec4.Abs(StackTop()));
                         break;
@@ -257,8 +262,13 @@ public class TfxBytecodeInterpreter
                             ));
                         break;
 
+                    case TfxBytecode.Unk1b:
+                        StackPush(TFXFunctions.EvaluateNormalize4(StackTop()));
+                        break;
+
                     case TfxBytecode.Unk1c:
-                        StackPush(TFXFunctions.BytecodeOpUnk1C(StackTop()));
+                        StackPush(TFXFunctions.EvaluateNormalize3(StackTop()));
+                        //StackPush(TFXFunctions.BytecodeOpUnk1C(StackTop()));
                         break;
 
                     case TfxBytecode.Negate:
@@ -304,7 +314,7 @@ public class TfxBytecodeInterpreter
                         break;
 
                     case TfxBytecode.Unk26: // idk
-                        StackPush(Vec4.Normalize(StackTop()));
+                        StackPush(TFXFunctions.EvaluateLength4(StackTop()));
                         break;
 
                     case TfxBytecode.Triangle:
@@ -523,9 +533,6 @@ public class TfxBytecodeInterpreter
                         break;
                     case TfxBytecode.Unk2d:
                         _ = StackPop(4);
-                        break;
-                    case TfxBytecode.Unk14:
-                        _ = StackPop(2);
                         break;
 
                     case TfxBytecode.PushGlobalChannelVector:

@@ -31,6 +31,7 @@ public class ObjectChannels
         parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
         GetObjectChannels(parts);
 
+        SetObjectChannel(Helpers.Fnv1a32("damage_reaction"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("dissolve"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("blink"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("shield_intensity"), 0f);
