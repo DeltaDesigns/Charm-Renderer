@@ -166,15 +166,21 @@ public class InvestmentData : GpuResource
 
             if (!translationBlock.CustomDyes.Any() && dyes.Count == 3) // again, should never happen
             {
-                InvestmentDye0.Dye = new(dyes.ElementAt(0).Value.TagData, context);
-                InvestmentDye1.Dye = new(dyes.ElementAt(1).Value.TagData, context);
-                InvestmentDye2.Dye = new(dyes.ElementAt(2).Value.TagData, context);
+                if (InvestmentDye0 is not null)
+                    InvestmentDye0.Dye = new(dyes.ElementAt(0).Value.TagData, context);
+                if (InvestmentDye1 is not null)
+                    InvestmentDye1.Dye = new(dyes.ElementAt(1).Value.TagData, context);
+                if (InvestmentDye2 is not null)
+                    InvestmentDye2.Dye = new(dyes.ElementAt(2).Value.TagData, context);
             }
             else
             {
-                InvestmentDye0.Dye = new(dyes[InvestmentDye0.ChannelHash].TagData, context);
-                InvestmentDye1.Dye = new(dyes[InvestmentDye1.ChannelHash].TagData, context);
-                InvestmentDye2.Dye = new(dyes[InvestmentDye2.ChannelHash].TagData, context);
+                if (InvestmentDye0 is not null)
+                    InvestmentDye0.Dye = new(dyes[InvestmentDye0.ChannelHash].TagData, context);
+                if (InvestmentDye1 is not null)
+                    InvestmentDye1.Dye = new(dyes[InvestmentDye1.ChannelHash].TagData, context);
+                if (InvestmentDye2 is not null)
+                    InvestmentDye2.Dye = new(dyes[InvestmentDye2.ChannelHash].TagData, context);
             }
 
             _isChangingDyes = false;
