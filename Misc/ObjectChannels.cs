@@ -86,6 +86,7 @@ public class ObjectChannels
         SetObjectChannel(0xADA8EE58, 0f);
         SetObjectChannel(0x4BD9F2B8, 0f);
         SetObjectChannel(0x50BC8D0A, 0f);
+        SetObjectChannel(Helpers.Fnv1a32("recoil_fraction"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("firing_ramp"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("weapon_firing"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("perk_fire"), 0f);

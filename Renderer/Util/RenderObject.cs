@@ -88,20 +88,20 @@ public class InvestmentData : GpuResource
             _isChangingDyes = true;
             foreach (S7B738080 dyeEntry in translationBlock.DefaultDyes)
             {
-                Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.DyeIndex);
+                Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.GetDyeIndex());
                 if (dye is null)
                     continue;
 
-                dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex), dye);
+                dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.GetChannelIndex()), dye);
                 //Log.Debug($"DefaultDye {dye.Hash} : {Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex)}");
             }
             foreach (S7B738080 dyeEntry in translationBlock.LockedDyes)
             {
-                Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.DyeIndex);
+                Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.GetDyeIndex());
                 if (dye is null)
                     continue;
 
-                dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex), dye);
+                dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.GetChannelIndex()), dye);
                 //Log.Debug($"LockedDye {dye.Hash} : {Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex)}");
             }
             if (dyes.Count == 0)
@@ -148,11 +148,11 @@ public class InvestmentData : GpuResource
 
             foreach (S7B738080 dyeEntry in dyeEntries)
             {
-                Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.DyeIndex);
+                Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.GetDyeIndex());
                 if (dye is null)
                     continue;
 
-                dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex), dye);
+                dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.GetChannelIndex()), dye);
             }
             if (dyes.Count == 0)
             {

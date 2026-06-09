@@ -13,7 +13,7 @@ public class TfxBytecodeInterpreter
     public TfxData[] Opcodes { get; }
     private Vec4[] _stack;
     private Vec4[] _temp;
-    private Texture[] _pushTexCache = new Texture[16];
+    private Texture[] _pushTexCache = new Texture[32];
     public string Name { get; set; } = "";
     private int _sp; // Stack pointer
     private TfxData _curOp;
@@ -701,7 +701,7 @@ public class TfxBytecodeInterpreter
         }
         catch (Exception e)
         {
-            Log.Error($"{Name}: {e.Message}");
+            Log.Error($"{Name}: Current Op {_curOp.op} (0x{_curOp.rawOp:X2}): {e.Message}");
             throw new Exception($"{Name}: Error evaluating bytecode at opcode {_curOp.op} (0x{_curOp.rawOp:X2}) with data {_curOp.data}.\nOpCodes: {string.Join("\n", Opcodes.Select(x => x.op))}", e);
         }
 
