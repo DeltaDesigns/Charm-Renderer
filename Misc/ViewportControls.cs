@@ -8,148 +8,148 @@ public abstract class SettingItem { }
 
 public class ToggleSetting : SettingItem
 {
-	public string Text { get; set; }
+    public string Text { get; set; }
 
-	public Func<bool> GetValue { get; set; }
-	public Action<bool> SetValue { get; set; }
-	public dynamic Tag { get; set; }
+    public Func<bool> GetValue { get; set; }
+    public Action<bool> SetValue { get; set; }
+    public dynamic Tag { get; set; }
 
-	private bool _isChecked;
-	public bool IsChecked
-	{
-		get => GetValue != null ? GetValue() : _isChecked;
-		set
-		{
-			if (SetValue != null)
-				SetValue(value);
-			else
-				_isChecked = value;
-		}
-	}
+    private bool _isChecked;
+    public bool IsChecked
+    {
+        get => GetValue != null ? GetValue() : _isChecked;
+        set
+        {
+            if (SetValue != null)
+                SetValue(value);
+            else
+                _isChecked = value;
+        }
+    }
 }
 
 public class SliderSetting : SettingItem, INotifyPropertyChanged
 {
-	public string Text { get; set; }
-	public double Min { get; set; } = 0;
-	public double Max { get; set; } = 1;
+    public string Text { get; set; }
+    public double Min { get; set; } = 0;
+    public double Max { get; set; } = 1;
 
-	public Func<float> GetValue { get; set; }
-	public Action<float> SetValue { get; set; }
+    public Func<float> GetValue { get; set; }
+    public Action<float> SetValue { get; set; }
 
-	private float _value;
-	public float Value
-	{
-		get => GetValue != null ? GetValue() : _value;
-		set
-		{
-			if (SetValue != null)
-				SetValue(value);
-			else
-				_value = value;
+    private float _value;
+    public float Value
+    {
+        get => GetValue != null ? GetValue() : _value;
+        set
+        {
+            if (SetValue != null)
+                SetValue(value);
+            else
+                _value = value;
 
-			OnPropertyChanged(nameof(Value));
-		}
-	}
+            OnPropertyChanged(nameof(Value));
+        }
+    }
 
-	public bool IsLockable => SetLockState != null;
+    public bool IsLockable => SetLockState != null;
 
-	private bool _isLocked;
-	public bool IsLocked
-	{
-		get => _isLocked;
-		set
-		{
-			if (_isLocked == value)
-				return;
+    private bool _isLocked;
+    public bool IsLocked
+    {
+        get => _isLocked;
+        set
+        {
+            if (_isLocked == value)
+                return;
 
-			_isLocked = value;
-			SetLockState?.Invoke(value);
-			OnPropertyChanged(nameof(IsLocked));
-		}
-	}
+            _isLocked = value;
+            SetLockState?.Invoke(value);
+            OnPropertyChanged(nameof(IsLocked));
+        }
+    }
 
-	public string LockTooltip { get; set; }
-	public Action<bool> SetLockState { get; set; }
+    public string LockTooltip { get; set; }
+    public Action<bool> SetLockState { get; set; }
 
-	public event PropertyChangedEventHandler PropertyChanged;
-	protected virtual void OnPropertyChanged(string propName)
-	{
-		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
-	}
+    public event PropertyChangedEventHandler PropertyChanged;
+    protected virtual void OnPropertyChanged(string propName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+    }
 
-	public void NotifyValueChanged()
-	{
-		OnPropertyChanged(nameof(Value));
-	}
+    public void NotifyValueChanged()
+    {
+        OnPropertyChanged(nameof(Value));
+    }
 }
 
 public class GroupToggleVM : SettingItem, INotifyPropertyChanged
 {
-	public GroupToggleVM(int groupIndex)
-	{
-		GroupIndex = groupIndex;
-	}
+    public GroupToggleVM(int groupIndex)
+    {
+        GroupIndex = groupIndex;
+    }
 
-	public int GroupIndex { get; }
+    public int GroupIndex { get; }
 
-	private bool _isChecked = true;
-	public bool IsChecked
-	{
-		get => _isChecked;
-		set
-		{
-			if (_isChecked == value)
-				return;
+    private bool _isChecked = true;
+    public bool IsChecked
+    {
+        get => _isChecked;
+        set
+        {
+            if (_isChecked == value)
+                return;
 
-			_isChecked = value;
-			PropertyChanged?.Invoke(this, new(nameof(IsChecked)));
-			VisibilityChanged?.Invoke(GroupIndex, value);
-		}
-	}
+            _isChecked = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsChecked)));
+            VisibilityChanged?.Invoke(GroupIndex, value);
+        }
+    }
 
-	public string Text => $"Group {GroupIndex}";
-	public event Action<int, bool>? VisibilityChanged;
+    public string Text => $"Group {GroupIndex}";
+    public event Action<int, bool>? VisibilityChanged;
 
-	public event PropertyChangedEventHandler PropertyChanged;
-	protected virtual void OnPropertyChanged(string propName)
-	{
-		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
-	}
+    public event PropertyChangedEventHandler PropertyChanged;
+    protected virtual void OnPropertyChanged(string propName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+    }
 }
 
 public class VectorSetting : SettingItem
 {
-	public string Text { get; set; }
+    public string Text { get; set; }
 
-	public Func<EditableVector4> GetValue { get; set; }
-	public Action<EditableVector4> SetValue { get; set; }
+    public Func<EditableVector4> GetValue { get; set; }
+    public Action<EditableVector4> SetValue { get; set; }
 
-	public float DragSpeed { get; set; } = 0.02f;
+    public float DragSpeed { get; set; } = 0.02f;
 
-	private EditableVector4 _value;
-	public EditableVector4 Value
-	{
-		get => GetValue != null ? GetValue() : _value;
-		set
-		{
-			if (ReferenceEquals(_value, value))
-				return;
+    private EditableVector4 _value;
+    public EditableVector4 Value
+    {
+        get => GetValue != null ? GetValue() : _value;
+        set
+        {
+            if (ReferenceEquals(_value, value))
+                return;
 
-			if (_value != null)
-				_value.PropertyChanged -= OnVectorPropertyChanged;
+            if (_value != null)
+                _value.PropertyChanged -= OnVectorPropertyChanged;
 
-			_value = value;
+            _value = value;
 
-			if (_value != null)
-				_value.PropertyChanged += OnVectorPropertyChanged;
+            if (_value != null)
+                _value.PropertyChanged += OnVectorPropertyChanged;
 
-			SetValue?.Invoke(_value);
-		}
-	}
+            SetValue?.Invoke(_value);
+        }
+    }
 
-	private void OnVectorPropertyChanged(object sender, PropertyChangedEventArgs e)
-	{
-		SetValue?.Invoke(_value);
-	}
+    private void OnVectorPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        SetValue?.Invoke(_value);
+    }
 }

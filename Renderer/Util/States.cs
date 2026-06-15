@@ -5,169 +5,169 @@ namespace Charm.Renderer;
 
 public class States
 {
-	public StateSelection CurrentState { get; set; }
+    public StateSelection CurrentState { get; set; }
 
-	private Dictionary<(int, int), RasterizerState> _rasStates = new();
-	private Dictionary<int, DepthStencilState> _depthStencilStates = new();
-	private Dictionary<int, BlendState> _blendStates = new();
+    private Dictionary<(int, int), RasterizerState> _rasStates = new();
+    private Dictionary<int, DepthStencilState> _depthStencilStates = new();
+    private Dictionary<int, BlendState> _blendStates = new();
 
-	public (int, int) CurrentRasState;
-	public int CurrentDepthState;
-	public int CurrentBlendState;
-	public int CurrentStencilRef = 0;
+    public (int, int) CurrentRasState;
+    public int CurrentDepthState;
+    public int CurrentBlendState;
+    public int CurrentStencilRef = 0;
 
-	public void ResetStates()
-	{
-		CurrentRasState = (-1, -1);
-		CurrentDepthState = -1;
-		CurrentBlendState = -1;
-	}
+    public void ResetStates()
+    {
+        CurrentRasState = (-1, -1);
+        CurrentDepthState = -1;
+        CurrentBlendState = -1;
+    }
 
-	public void CreateStates(DeviceContext context, StateSelection state)
-	{
-		if (state.Raw() == CurrentState.Raw())
-			return;
+    public void CreateStates(DeviceContext context, StateSelection state)
+    {
+        if (state.Raw() == CurrentState.Raw())
+            return;
 
-		ResetStates();
-		CurrentState = state;
+        ResetStates();
+        CurrentState = state;
 
-		context.Rasterizer.State = CreateRasterizerState(context, state.RasterizerState(), state.DepthBiasState()) ?? throw new ArgumentNullException();
-		context.OutputMerger.DepthStencilState = CreateDepthStencilState(context, state.DepthStencilState()) ?? throw new ArgumentNullException();
-		context.OutputMerger.BlendState = CreateBlendState(context, state.BlendState()) ?? throw new ArgumentNullException();
-	}
+        context.Rasterizer.State = CreateRasterizerState(context, state.RasterizerState(), state.DepthBiasState()) ?? throw new ArgumentNullException();
+        context.OutputMerger.DepthStencilState = CreateDepthStencilState(context, state.DepthStencilState()) ?? throw new ArgumentNullException();
+        context.OutputMerger.BlendState = CreateBlendState(context, state.BlendState()) ?? throw new ArgumentNullException();
+    }
 
-	public void SetStencilRef(DeviceContext context, int stencilRef)
-	{
-		if (CurrentStencilRef != stencilRef)
-		{
-			CurrentStencilRef = stencilRef;
-			int d = CurrentDepthState;
-			CreateDepthStencilState(context, d);
+    public void SetStencilRef(DeviceContext context, int stencilRef)
+    {
+        if (CurrentStencilRef != stencilRef)
+        {
+            CurrentStencilRef = stencilRef;
+            int d = CurrentDepthState;
+            CreateDepthStencilState(context, d);
 
-			CurrentDepthState = -1;
-			SetDepthStencilState(context, d);
-		}
-	}
+            CurrentDepthState = -1;
+            SetDepthStencilState(context, d);
+        }
+    }
 
-	private void SetDepthStencilState(DeviceContext context, int index)
-	{
-		if (CurrentDepthState != index)
-		{
-			CurrentDepthState = index;
-			context.OutputMerger.SetDepthStencilState(_depthStencilStates[index], CurrentStencilRef);
-		}
-	}
+    private void SetDepthStencilState(DeviceContext context, int index)
+    {
+        if (CurrentDepthState != index)
+        {
+            CurrentDepthState = index;
+            context.OutputMerger.SetDepthStencilState(_depthStencilStates[index], CurrentStencilRef);
+        }
+    }
 
-	private RasterizerState CreateRasterizerState(DeviceContext context, int rast, int depthBias)
-	{
-		if (rast == -1)
-			return null;
+    private RasterizerState CreateRasterizerState(DeviceContext context, int rast, int depthBias)
+    {
+        if (rast == -1)
+            return null;
 
-		CurrentRasState = (rast, depthBias);
-		if (_rasStates.TryGetValue((rast, depthBias), out var value))
-			return value;
+        CurrentRasState = (rast, depthBias);
+        if (_rasStates.TryGetValue((rast, depthBias), out var value))
+            return value;
 
-		RenderStates.BungieRasterizerDesc rasState = RenderStates.RasterizerStates[rast];
+        RenderStates.BungieRasterizerDesc rasState = RenderStates.RasterizerStates[rast];
 
-		var state = new RasterizerStateDescription
-		{
-			CullMode = rasState.CullMode,
-			FillMode = rasState.FillMode,
-			IsDepthClipEnabled = rasState.DepthClipEnable,
-			IsFrontCounterClockwise = rasState.FrontCounterClockwise,
-		};
+        var state = new RasterizerStateDescription
+        {
+            CullMode = rasState.CullMode,
+            FillMode = rasState.FillMode,
+            IsDepthClipEnabled = rasState.DepthClipEnable,
+            IsFrontCounterClockwise = rasState.FrontCounterClockwise,
+        };
 
-		if (depthBias != -1)
-		{
-			RenderStates.BungieDepthBiasDesc depthState = RenderStates.DepthBiasStates[depthBias];
-			state.DepthBias = depthState.DepthBias;
-			state.SlopeScaledDepthBias = depthState.SlopeScaledDepthBias;
-			state.DepthBiasClamp = depthState.DepthBiasClamp;
-			state.IsScissorEnabled = rasState.ScissorEnable;
-		}
+        if (depthBias != -1)
+        {
+            RenderStates.BungieDepthBiasDesc depthState = RenderStates.DepthBiasStates[depthBias];
+            state.DepthBias = depthState.DepthBias;
+            state.SlopeScaledDepthBias = depthState.SlopeScaledDepthBias;
+            state.DepthBiasClamp = depthState.DepthBiasClamp;
+            state.IsScissorEnabled = rasState.ScissorEnable;
+        }
 
-		var rasterizerState = new RasterizerState(context.Device, state);
-		_rasStates.TryAdd((rast, depthBias), rasterizerState);
+        var rasterizerState = new RasterizerState(context.Device, state);
+        _rasStates.TryAdd((rast, depthBias), rasterizerState);
 
-		return rasterizerState;
-	}
+        return rasterizerState;
+    }
 
-	private DepthStencilState CreateDepthStencilState(DeviceContext context, int state)
-	{
-		if (state == -1)
-			return null;
+    private DepthStencilState CreateDepthStencilState(DeviceContext context, int state)
+    {
+        if (state == -1)
+            return null;
 
-		CurrentDepthState = state;
-		if (_depthStencilStates.TryGetValue(state, out var value))
-			return value;
+        CurrentDepthState = state;
+        if (_depthStencilStates.TryGetValue(state, out var value))
+            return value;
 
-		RenderStates.BungieDepthStencilDesc dsState = RenderStates.DepthStencilStates[state];
+        RenderStates.BungieDepthStencilDesc dsState = RenderStates.DepthStencilStates[state];
 
-		var depthStencilState = new DepthStencilState(context.Device, new DepthStencilStateDescription
-		{
-			IsDepthEnabled = dsState.Depth.Enable,
-			DepthWriteMask = (DepthWriteMask)dsState.Depth.WriteMask,
-			DepthComparison = dsState.Depth.Func,
-			IsStencilEnabled = dsState.Stencil.StencilEnable,
-			StencilReadMask = (byte)dsState.Stencil.StencilReadMask,
-			StencilWriteMask = (byte)dsState.Stencil.StencilWriteMask,
-			FrontFace = new DepthStencilOperationDescription
-			{
-				Comparison = dsState.Stencil.FrontFace.Func,
-				DepthFailOperation = dsState.Stencil.FrontFace.DepthFailOp,
-				FailOperation = dsState.Stencil.FrontFace.FailOp,
-				PassOperation = dsState.Stencil.FrontFace.PassOp
-			},
-			BackFace = new DepthStencilOperationDescription
-			{
-				Comparison = dsState.Stencil.BackFace.Func,
-				DepthFailOperation = dsState.Stencil.BackFace.DepthFailOp,
-				FailOperation = dsState.Stencil.BackFace.FailOp,
-				PassOperation = dsState.Stencil.BackFace.PassOp
-			}
-		});
-		_depthStencilStates.TryAdd(state, depthStencilState);
+        var depthStencilState = new DepthStencilState(context.Device, new DepthStencilStateDescription
+        {
+            IsDepthEnabled = dsState.Depth.Enable,
+            DepthWriteMask = (DepthWriteMask)dsState.Depth.WriteMask,
+            DepthComparison = dsState.Depth.Func,
+            IsStencilEnabled = dsState.Stencil.StencilEnable,
+            StencilReadMask = (byte)dsState.Stencil.StencilReadMask,
+            StencilWriteMask = (byte)dsState.Stencil.StencilWriteMask,
+            FrontFace = new DepthStencilOperationDescription
+            {
+                Comparison = dsState.Stencil.FrontFace.Func,
+                DepthFailOperation = dsState.Stencil.FrontFace.DepthFailOp,
+                FailOperation = dsState.Stencil.FrontFace.FailOp,
+                PassOperation = dsState.Stencil.FrontFace.PassOp
+            },
+            BackFace = new DepthStencilOperationDescription
+            {
+                Comparison = dsState.Stencil.BackFace.Func,
+                DepthFailOperation = dsState.Stencil.BackFace.DepthFailOp,
+                FailOperation = dsState.Stencil.BackFace.FailOp,
+                PassOperation = dsState.Stencil.BackFace.PassOp
+            }
+        });
+        _depthStencilStates.TryAdd(state, depthStencilState);
 
-		return depthStencilState;
-	}
+        return depthStencilState;
+    }
 
-	private BlendState CreateBlendState(DeviceContext context, int state)
-	{
-		if (state == -1)
-			return null;
+    private BlendState CreateBlendState(DeviceContext context, int state)
+    {
+        if (state == -1)
+            return null;
 
-		CurrentBlendState = state;
-		if (_blendStates.TryGetValue(state, out var value))
-			return value;
+        CurrentBlendState = state;
+        if (_blendStates.TryGetValue(state, out var value))
+            return value;
 
-		RenderStates.BungieBlendDesc blendState = RenderStates.BlendStates[state];
+        RenderStates.BungieBlendDesc blendState = RenderStates.BlendStates[state];
 
-		BlendStateDescription blendStateDescription = default(BlendStateDescription);
-		blendStateDescription.AlphaToCoverageEnable = blendState.AlphaToCoverageEnable;
-		blendStateDescription.IndependentBlendEnable = blendState.IndependentBlendEnable;
-		blendStateDescription.RenderTarget[0] = blendState.BlendDesc[0];
-		blendStateDescription.RenderTarget[1] = blendState.BlendDesc[1];
-		blendStateDescription.RenderTarget[2] = blendState.BlendDesc[2];
-		blendStateDescription.RenderTarget[3] = blendState.BlendDesc[3];
+        BlendStateDescription blendStateDescription = default(BlendStateDescription);
+        blendStateDescription.AlphaToCoverageEnable = blendState.AlphaToCoverageEnable;
+        blendStateDescription.IndependentBlendEnable = blendState.IndependentBlendEnable;
+        blendStateDescription.RenderTarget[0] = blendState.BlendDesc[0];
+        blendStateDescription.RenderTarget[1] = blendState.BlendDesc[1];
+        blendStateDescription.RenderTarget[2] = blendState.BlendDesc[2];
+        blendStateDescription.RenderTarget[3] = blendState.BlendDesc[3];
 
-		var blend = new BlendState(context.Device, blendStateDescription);
-		_blendStates.TryAdd(state, blend);
+        var blend = new BlendState(context.Device, blendStateDescription);
+        _blendStates.TryAdd(state, blend);
 
-		return blend;
-	}
+        return blend;
+    }
 
-	public void DisposeStates()
-	{
-		foreach (var state in _rasStates.Values)
-			state?.Dispose();
-		_rasStates.Clear();
+    public void DisposeStates()
+    {
+        foreach (var state in _rasStates.Values)
+            state?.Dispose();
+        _rasStates.Clear();
 
-		foreach (var state in _depthStencilStates.Values)
-			state?.Dispose();
-		_depthStencilStates.Clear();
+        foreach (var state in _depthStencilStates.Values)
+            state?.Dispose();
+        _depthStencilStates.Clear();
 
-		foreach (var state in _blendStates.Values)
-			state?.Dispose();
-		_blendStates.Clear();
-	}
+        foreach (var state in _blendStates.Values)
+            state?.Dispose();
+        _blendStates.Clear();
+    }
 }
