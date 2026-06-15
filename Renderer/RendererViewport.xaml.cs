@@ -981,9 +981,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     private enum SceneWorld : uint
     {
         [Description("The Tower")] Tower = 0x81141179,
-        [Description("Dreaming City")] DreamingCity = 0x80BDCF1A,
+        //[Description("Dreaming City")] DreamingCity = 0x80BDCF11, // TODO, global channels seem to have been changed here or something
         [Description("EDZ: Trostland")] EDZTrostland = 0x80BB301E,
-        [Description("The Dreadnaught")] Dreadnaught = 0x813985A0,
+        [Description("The Dreadnaught")] Dreadnaught = 0x8143C58C,
         [Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
         [Description("The Pale Heart")] PaleHeart = 0x80E523F3,
         [Description("The Black Garden")] BlackGarden = 0x80CD96D7,
