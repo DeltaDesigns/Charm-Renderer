@@ -247,6 +247,8 @@ public partial class CharmRenderer : IDisposable
         RenderShading();
         RenderTransparent();
         RenderPostProcess();
+        if (Viewport.FXAA)
+            RenderFXAA();
 
         if (Viewport.DisplayPass > RenderPass.final_color_grade)
         {
@@ -256,7 +258,7 @@ public partial class CharmRenderer : IDisposable
         else
             RenderLuminance();
 
-        var blitRT = Viewport.DisplayPass == RenderPass.final_color_grade ? GBuffers.FXAA : GBuffers.Shading;
+        var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
         if (Viewport.ShowGrid)
         {
             Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);

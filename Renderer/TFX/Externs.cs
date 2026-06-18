@@ -26,7 +26,7 @@ public class Externs : IDisposable
         ShadowMask = new();
         PostProcess = new();
         ScreenArea = new();
-        Fxaa = new();
+        FXAA = new();
         GlobalLighting = new();
     }
 
@@ -39,7 +39,7 @@ public class Externs : IDisposable
     public ExternShadowMask ShadowMask;
     public ExternPostProcess PostProcess;
     public ExternScreenArea ScreenArea;
-    public ExternFxaa Fxaa;
+    public ExternFxaa FXAA;
     public ExternGlobalLighting GlobalLighting;
 
     public class ExternFrame : IDisposable
@@ -407,8 +407,16 @@ public class Externs : IDisposable
         public void Update(DeviceContext context, GBuffer gbuffer)
         {
             RenderHelpers.Profile("Extern PostProcess Update");
-            gbuffer.Shading.CopyTo(context, gbuffer.Shading_Clone);
+            UnkC0 = new(0.92537f, 0.0f, 0.37906f, 0.37906f);
+            RenderHelpers.EndProfile();
+        }
+
+        public void UpdateCopyTexture(DeviceContext context, GBuffer gbuffer)
+        {
+            RenderHelpers.Profile("Extern PostProcess Update (Copy Texture)");
             Unk00 = gbuffer.Shading_Clone.SRV;
+            Unk50 = gbuffer.Shading_Clone.GetResolutionInverse();
+            UnkC0 = Vector4.One;
             RenderHelpers.EndProfile();
         }
 
@@ -486,12 +494,12 @@ public class Externs : IDisposable
 
         public void Update(DeviceContext context, GBuffer gbuffer)
         {
-            RenderHelpers.Profile("Extern Fxaa Update");
+            //RenderHelpers.Profile("Extern Fxaa Update");
             Unk00 = gbuffer.PostProcessResult.SRV;
             Unk50 = 0.75f;
             Unk54 = 0.166f;
             Unk58 = 0.0833f;
-            RenderHelpers.EndProfile();
+            //RenderHelpers.EndProfile();
         }
 
         public void Dispose()
@@ -568,7 +576,7 @@ public class Externs : IDisposable
         ShadowMask.Dispose();
         PostProcess.Dispose();
         ScreenArea.Dispose();
-        Fxaa.Dispose();
+        FXAA.Dispose();
         GlobalLighting.Dispose();
     }
 
@@ -621,7 +629,7 @@ public class Externs : IDisposable
             TfxExtern.ShadowMask => ShadowMask,
             TfxExtern.Postprocess => PostProcess,
             TfxExtern.ScreenArea => ScreenArea,
-            TfxExtern.Fxaa => Fxaa,
+            TfxExtern.Fxaa => FXAA,
             TfxExtern.GlobalLighting => GlobalLighting,
             _ => null
         };

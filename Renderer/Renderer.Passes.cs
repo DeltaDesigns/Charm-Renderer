@@ -240,11 +240,9 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
+    // FXAA uses the alpha channel (luminance) from the post process result
     private void RenderPostProcess()
     {
-        if (Viewport.DisplayPass != RenderPass.final_color_grade)
-            return;
-
         RenderHelpers.Profile("Render Post Process");
         Annotation.BeginEvent("Post Process");
         CMD.States.CreateStates(Context, new(0, 0, 0, 0));
@@ -292,10 +290,23 @@ public partial class CharmRenderer
         Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
         Context.Rasterizer.SetViewport(GBuffers.PostProcessResult.GetViewport());
 
-        RenderGlobalPipeline("screen_area_global_lut3d_hdr");
+        if (Viewport.DisplayPass == RenderPass.final_color_grade)
+            RenderGlobalPipeline("screen_area_global_lut3d_hdr");
+        else
+            RenderGlobalPipeline("screen_area_global_lut3d_no_tonemap");
+
+        Annotation.EndEvent();
+        RenderHelpers.EndProfile();
+    }
+
+    private void RenderFXAA()
+    {
+        RenderHelpers.Profile("Render FXAA");
+        Annotation.BeginEvent("FXAA");
+        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
         GBuffers.FXAA.SetRenderTarget(Context, false);
-        Externs.Fxaa.Update(Context, GBuffers);
+        Externs.FXAA.Update(Context, GBuffers);
         RenderGlobalPipeline("fxaa");
 
         Annotation.EndEvent();

@@ -29,6 +29,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public ObservableCollection<SettingItem> DebugSettings { get; set; }
     public bool ShowGrid { get; set; } = true;
     public bool CapFPS { get; set; } = true;
+    public bool FXAA { get; set; } = true;
     #endregion
 
     #region Render Options
@@ -325,6 +326,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 Text = "Cap FPS",
                 GetValue = () => CapFPS,
                 SetValue = v => CapFPS = v
+            },
+            new ToggleSetting
+            {
+                Text = "Use FXAA",
+                GetValue = () => FXAA,
+                SetValue = v => FXAA = v
             },
         };
         DebugOptions.ItemsSource = DebugSettings;
