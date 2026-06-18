@@ -824,14 +824,14 @@
                                                             Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                             <RadioButton
                                                                 Margin="2"
-                                                                Click="InvesmentShadersOrderBy_Click"
+                                                                Click="InvestmentShadersOrderBy_Click "
                                                                 Content="Name"
                                                                 GroupName="InvestmentShaderSortBy"
                                                                 IsChecked="False"
                                                                 Tag="0" />
                                                             <RadioButton
                                                                 Margin="2"
-                                                                Click="InvesmentShadersOrderBy_Click"
+                                                                Click="InvestmentShadersOrderBy_Click "
                                                                 Content="Index"
                                                                 GroupName="InvestmentShaderSortBy"
                                                                 IsChecked="True"

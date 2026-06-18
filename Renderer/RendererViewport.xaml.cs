@@ -901,7 +901,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         Renderer.Resume();
     }
 
-    private void InvesmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
+    private void InvestmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not RadioButton rb)
             return;

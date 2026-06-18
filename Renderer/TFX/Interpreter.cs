@@ -367,19 +367,19 @@ public class TfxBytecodeInterpreter
 
                     case TfxBytecode.Unk36_EoF:
                         var cmpGT = StackPop(2);
-                        bool allGreater = cmpGT[0].X < cmpGT[1].X
-                            && cmpGT[0].Y < cmpGT[1].Y
-                            && cmpGT[0].Z < cmpGT[1].Z
-                            && cmpGT[0].W < cmpGT[1].W;
+                        bool allGreater = cmpGT[0].X > cmpGT[1].X
+                            && cmpGT[0].Y > cmpGT[1].Y
+                            && cmpGT[0].Z > cmpGT[1].Z
+                            && cmpGT[0].W > cmpGT[1].W;
                         StackPush(allGreater ? Vec4.One : Vec4.Zero);
                         break;
 
                     case TfxBytecode.Unk37_EoF:
                         var cmpGTE = StackPop(2);
-                        bool allGreaterEqual = cmpGTE[0].X <= cmpGTE[1].X
-                            && cmpGTE[0].Y <= cmpGTE[1].Y
-                            && cmpGTE[0].Z <= cmpGTE[1].Z
-                            && cmpGTE[0].W <= cmpGTE[1].W;
+                        bool allGreaterEqual = cmpGTE[0].X >= cmpGTE[1].X
+                            && cmpGTE[0].Y >= cmpGTE[1].Y
+                            && cmpGTE[0].Z >= cmpGTE[1].Z
+                            && cmpGTE[0].W >= cmpGTE[1].W;
                         StackPush(allGreaterEqual ? Vec4.One : Vec4.Zero);
                         break;
 
@@ -407,7 +407,7 @@ public class TfxBytecodeInterpreter
                             var b = bytecodeConstants[((TfxData1Byte)_curOp.data).value + 1];
 
                             var result = a + t * (b - a);
-                            if (_curOp.op == TfxBytecode.LerpSaturated)
+                            if (_curOp.op == TfxBytecode.LerpConstantSaturated)
                                 result = result.Clamp(Vec4.Zero, Vec4.One);
 
                             StackPush(result);

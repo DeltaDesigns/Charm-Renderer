@@ -73,7 +73,7 @@ public class AssetManager : IDisposable
 
     public AssetManager()
     {
-        if (GPU.Instance is null || GPU.Instance.Device is null)
+        if (GPU.Instance.Device is null)
             throw new Exception("GPU Device is not valid!");
 
         CreateDefaults();

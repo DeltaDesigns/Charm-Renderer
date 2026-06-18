@@ -23,7 +23,7 @@ public class InvestmentData : GpuResource
     public InvestmentDye InvestmentDye1 { get; set; }
     public InvestmentDye InvestmentDye2 { get; set; }
     private DyeMerger _merger = new();
-    private bool _isChangingDyes = false;
+    private volatile bool _isChangingDyes = false;
     private bool _hasData = false;
 
     // TODO, tie into AssetManager
@@ -366,7 +366,8 @@ public class RenderObject : GpuResource
             MaterialMap = entity.ModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
             MaterialRangeMap = entity.ModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
 
-            world.RenderObjects.Enqueue(this);
+            lock (world.WorldLock)
+                world.RenderObjects.Enqueue(this);
         }
 
         // this kinda sucks but i want physics models to be separate render objects
@@ -389,7 +390,8 @@ public class RenderObject : GpuResource
             obj.MaterialMap = entity.PhysicsModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
             obj.MaterialRangeMap = entity.PhysicsModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
 
-            world.RenderObjects.Enqueue(obj);
+            lock (world.WorldLock)
+                world.RenderObjects.Enqueue(obj);
         }
     }
 
@@ -401,7 +403,9 @@ public class RenderObject : GpuResource
         LocalBoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
         CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
-        world.RenderObjects.Enqueue(this);
+
+        lock (world.WorldLock)
+            world.RenderObjects.Enqueue(this);
         //CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
     }
 

@@ -1,7 +1,6 @@
 ﻿using SharpDX.Direct3D11;
 using SharpDX.DirectInput;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
@@ -194,6 +193,12 @@ public partial class CharmRenderer
         Context.Draw(4, 0);
     }
 
+    [DllImport("winmm.dll")]
+    private static extern uint timeBeginPeriod(uint uPeriod);
+
+    [DllImport("winmm.dll")]
+    private static extern uint timeEndPeriod(uint uPeriod);
+
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
@@ -208,8 +213,9 @@ public partial class CharmRenderer
             return false;
 
         GetWindowThreadProcessId(foregroundWindow, out uint foregroundPid);
-        return foregroundPid == (uint)Process.GetCurrentProcess().Id;
+        return foregroundPid == _currentPid;
     }
+
 }
 
 public static class RenderHelpers

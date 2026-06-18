@@ -65,7 +65,6 @@ public class RenderWorld : IDisposable
                                         {
                                             if (c.Unk10.GetValue(resource.GetReader()) is SD1918080 && GlobalChannels is null)
                                             {
-                                                Console.WriteLine($"{resource.Hash}");
                                                 GlobalChannels = new(resource);
                                             }
                                             else if (c.Unk10.GetValue(resource.GetReader()) is SCF918080 lut && renderer.Externs.ScreenArea.Unk08 is null)
@@ -146,7 +145,8 @@ public class RenderWorld : IDisposable
                 Scale = scale
             };
 
-            PersistantRenderObjects.Enqueue(renderObject);
+            lock (WorldLock)
+                PersistantRenderObjects.Enqueue(renderObject);
 
             i++;
         }

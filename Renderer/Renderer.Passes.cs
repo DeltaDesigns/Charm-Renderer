@@ -408,7 +408,7 @@ public partial class CharmRenderer
         foreach (var renderable in World.RenderObjects)
         {
             if ((renderable.IsChild && !Viewport.ShowEntChildren) || !renderable.Visible)
-                return;
+                continue;
 
             RenderBoundingBox(renderable.BoundingBox, new(1f, 1f, 0f, 1f));
         }
@@ -417,27 +417,37 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
+    private RenderObject[] _renderObjectsSnapshot = Array.Empty<RenderObject>();
+    private RenderObject[] _renderPersistentObjectsSnapshot = Array.Empty<RenderObject>();
+    private int _renderObjectsCount;
+    private int _renderPersistentObjectsCount;
+
     private void RenderMesh(TfxRenderStage renderStage, string passName)
     {
         Annotation.BeginEvent(passName);
-        RenderObject[] renderObjects;
-        RenderObject[] persistentObjects;
-
         lock (World.WorldLock)
         {
-            renderObjects = World.RenderObjects.ToArray();
-            persistentObjects = World.PersistantRenderObjects.ToArray();
+            _renderObjectsCount = World.RenderObjects.Count;
+            if (_renderObjectsSnapshot.Length < _renderObjectsCount)
+                _renderObjectsSnapshot = new RenderObject[_renderObjectsCount];
+            World.RenderObjects.CopyTo(_renderObjectsSnapshot, 0);
+
+            _renderPersistentObjectsCount = World.PersistantRenderObjects.Count;
+            if (_renderPersistentObjectsSnapshot.Length < _renderPersistentObjectsCount)
+                _renderPersistentObjectsSnapshot = new RenderObject[_renderPersistentObjectsCount];
+            World.PersistantRenderObjects.CopyTo(_renderPersistentObjectsSnapshot, 0);
         }
 
-        foreach (var renderable in renderObjects)
+        foreach (var renderable in _renderObjectsSnapshot.AsSpan(0, _renderObjectsCount))
         {
             renderable?.Bind(this, renderStage);
         }
 
-        foreach (var renderable in persistentObjects)
+        foreach (var renderable in _renderPersistentObjectsSnapshot.AsSpan(0, _renderPersistentObjectsCount))
         {
             renderable?.Bind(this, renderStage);
         }
+
         Annotation.EndEvent();
     }
 

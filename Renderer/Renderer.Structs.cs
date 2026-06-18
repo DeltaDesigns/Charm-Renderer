@@ -158,6 +158,10 @@ public partial class CharmRenderer
             DepthAngleDensityLookup = null;
             LUTVolume?.Dispose();
             LUTVolume = null;
+            LuminanceStaging?.Dispose();
+            LuminanceStaging = null;
+            ColorGradingLUT?.Dispose();
+            ColorGradingLUT = null;
         }
     }
 

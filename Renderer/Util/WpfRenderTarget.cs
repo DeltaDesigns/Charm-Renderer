@@ -98,12 +98,17 @@ public class WpfRenderTarget : IDisposable
         // idk if theres a difference between Application.Current vs CurrentViewport or D3DBackBuffer Dispatcher
         CurrentViewport.Dispatcher.InvokeAsync(() =>
         {
-            D3DBackBuffer?.Lock();
-            D3DBackBuffer?.AddDirtyRect(new Int32Rect(0, 0, Width, Height));
-            D3DBackBuffer?.Unlock();
+            var bb = D3DBackBuffer;
+            if (bb is null || !bb.IsFrontBufferAvailable)
+                return;
+
+            bb.Lock();
+            bb.AddDirtyRect(new Int32Rect(0, 0, Width, Height));
+            bb.Unlock();
             if (CurrentViewport.RT0.Source is null)
-                CurrentViewport.RT0.Source = D3DBackBuffer;
-        }, System.Windows.Threading.DispatcherPriority.Normal);
+                CurrentViewport.RT0.Source = bb;
+
+        }, System.Windows.Threading.DispatcherPriority.Render);
 
         RenderHelpers.EndProfile();
     }

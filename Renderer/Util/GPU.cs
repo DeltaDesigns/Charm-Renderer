@@ -11,17 +11,9 @@ namespace Charm.Renderer;
 
 public class GPU : IDisposable
 {
-    private static GPU _instance;
-    public static GPU Instance
-    {
-        get
-        {
-            if (_instance == null)
-                _instance = new GPU();
-
-            return _instance;
-        }
-    }
+    private static Lazy<GPU> _lazy = CreateLazy();
+    private static Lazy<GPU> CreateLazy() => new(() => new GPU(), LazyThreadSafetyMode.ExecutionAndPublication);
+    public static GPU Instance => _lazy.Value;
 
     public Device Device;
     public DeviceContext ImmediateContext;
@@ -119,7 +111,7 @@ public class GPU : IDisposable
 
         Utilities.Dispose(ref Device);
         Utilities.Dispose(ref ImmediateContext);
-        _instance = null;
+        _lazy = CreateLazy();
 
         if (Application.Current != null)
             Application.Current.Exit -= OnAppExit;

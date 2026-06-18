@@ -48,6 +48,7 @@ public partial class CharmRenderer : IDisposable
     private ManualResetEventSlim _renderGate = new(true);
     private ManualResetEventSlim _pausedEvent = new(false);
     private AutoResetEvent _frameCompleteEvent = new AutoResetEvent(true);
+    private static readonly uint _currentPid = (uint)Process.GetCurrentProcess().Id;
 
     public CharmRenderer()
     {
@@ -62,6 +63,8 @@ public partial class CharmRenderer : IDisposable
             Stop();
             //Dispose();
         };
+
+
     }
 
     public void Initialize(int width, int height)
@@ -70,10 +73,7 @@ public partial class CharmRenderer : IDisposable
 
         if (_GPU == null)
         {
-            if (GPU.Instance is null)
-                _GPU = new();
-            else
-                _GPU = GPU.Instance;
+            _GPU = GPU.Instance;
 
             Context = new(Device);
             Load(width, height);
@@ -117,13 +117,13 @@ public partial class CharmRenderer : IDisposable
         if (_isRunning)
             return;
 
+        timeBeginPeriod(1);
         _isRunning = true;
         _renderThread = new Thread(RenderLoop)
         {
             IsBackground = true
         };
         _renderThread.Start();
-        //Log.Debug($"Renderer {GetHashCode()} started");
     }
 
     public void Stop()
@@ -132,7 +132,7 @@ public partial class CharmRenderer : IDisposable
         {
             _isRunning = false;
             _renderThread?.Join();
-            //Log.Debug($"Renderer {GetHashCode()} stopped");
+            timeEndPeriod(1);
         }
     }
 
@@ -162,10 +162,8 @@ public partial class CharmRenderer : IDisposable
 #if DEBUG
         Profiler.InitThread("Render Thread");
 #endif
-
         var stopwatch = Stopwatch.StartNew();
         double lastTime = stopwatch.Elapsed.TotalSeconds;
-
         double fpsTimer = 0.0;
         int fpsFrames = 0;
 
@@ -175,23 +173,27 @@ public partial class CharmRenderer : IDisposable
             _pausedEvent.Reset();
 
             TargetFPS = IsAppFocused() ? 200f : 30f;
-            double targetFrameTime = Viewport.CapFPS ? (1.0 / TargetFPS) : 0.0;
+            bool shouldCapFPS = Viewport.CapFPS || !IsAppFocused();
+            double targetFrameTime = shouldCapFPS ? (1.0 / TargetFPS) : 0.0;
 
             double now = stopwatch.Elapsed.TotalSeconds;
             double delta = now - lastTime;
-            bool shouldCapFPS = Viewport.CapFPS || !IsAppFocused();
 
             if (shouldCapFPS && delta < targetFrameTime)
             {
-                int sleepMs = (int)((targetFrameTime - delta) * 1000.0);
+                double remaining = targetFrameTime - delta;
+
+                int sleepMs = (int)((remaining - 0.001) * 1000.0);
                 if (sleepMs > 0)
                     Thread.Sleep(sleepMs);
+
+                while (stopwatch.Elapsed.TotalSeconds - lastTime < targetFrameTime)
+                    Thread.SpinWait(1);
 
                 continue;
             }
 
             lastTime = now;
-
             DeltaTime = (float)Math.Min(delta, MaxDeltaTime);
             Time = (float)now;
 

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SharpDX;
 using SharpDX.Direct3D11;
@@ -21,7 +22,6 @@ public class TempScopes : GpuResource
     {
     }
 
-    private ScopeChunkModelTemp _cachedChunkModel = new ScopeChunkModelTemp();
     public void UpdateChunkModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms)
     {
         if (_disposed)
@@ -33,7 +33,7 @@ public class TempScopes : GpuResource
             ChunkModelScopeBuffer = new Buffer(context.Device, new BufferDescription
             {
                 // cb1[80]
-                SizeInBytes = Utilities.SizeOf<Vector4>() * 80, //Utilities.SizeOf<ScopeChunkModelTemp>(),
+                SizeInBytes = Utilities.SizeOf<ScopeChunkModelTemp>(), // Utilities.SizeOf<Vector4>() * 80
                 Usage = ResourceUsage.Dynamic,
                 BindFlags = BindFlags.ConstantBuffer,
                 CpuAccessFlags = CpuAccessFlags.Write,
@@ -43,43 +43,33 @@ public class TempScopes : GpuResource
             ChunkModelScopeBuffer.DebugName = $"ChunkModelScopeBuffer Buffer";
         }
 
-        ref var cb1_data = ref _cachedChunkModel;
-        cb1_data.MeshTransform = mesh.MeshTransform;
-        cb1_data.UVTransform = new Vector4(mesh.MeshUVTransform.X, mesh.MeshUVTransform.Z, mesh.MeshUVTransform.W, mesh.MaxColorIndex);
-        if (cb1_data.Transform is null)
-            cb1_data.Transform = new Matrix4x4[16];
-
-        Debug.Assert(transforms.Length <= 16, $"Too many model transforms. {transforms.Length}, Max 16");
-        for (int i = 0; i < transforms.Length; i++)
-        {
-            var trans = transforms[i];
-            Matrix4x4ButGood transform =
-                Matrix4x4.CreateScale(trans.Scale) *
-                Matrix4x4.CreateFromQuaternion(trans.Quaternion.ToQuat()) *
-                Matrix4x4.CreateTranslation(trans.Position);
-
-            cb1_data.Transform[i] = transform.Transpose().WithW(new(1f, 1f, 1f, 9.4039E-38f)); //transforms[0]; // TODO Handle multiple transforms
-        }
-
-        var box = context.MapSubresource(
-            ChunkModelScopeBuffer,
-            0,
-            MapMode.WriteDiscard,
-            MapFlags.None
-        );
-
+        var box = context.MapSubresource(ChunkModelScopeBuffer, 0, MapMode.WriteDiscard, MapFlags.None);
         try
         {
-            Utilities.Write(box.DataPointer, ref cb1_data.MeshTransform);
-            Utilities.Write(box.DataPointer + 16, ref cb1_data.UVTransform);
-            Utilities.Write(box.DataPointer + 32, cb1_data.Transform, 0, transforms.Length);
+            unsafe
+            {
+                ScopeChunkModelTemp* dst = (ScopeChunkModelTemp*)box.DataPointer;
+                dst->MeshTransform = mesh.MeshTransform;
+                dst->UVTransform = new Vector4(mesh.MeshUVTransform.X, mesh.MeshUVTransform.Z, mesh.MeshUVTransform.W, mesh.MaxColorIndex);
+
+                for (int i = 0; i < transforms.Length; i++)
+                {
+                    var t = transforms[i];
+                    Matrix4x4ButGood transform =
+                        Matrix4x4.CreateScale(t.Scale)
+                        * Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat())
+                        * Matrix4x4.CreateTranslation(t.Position);
+                    transform = transform.Transpose().WithW(new(1f, 1f, 1f, 9.4039E-38f));
+
+                    Unsafe.Write(&dst->Transforms[i * 16], transform);
+                }
+            }
         }
         finally
         {
             context.UnmapSubresource(ChunkModelScopeBuffer, 0);
         }
 
-        context.UpdateSubresource(ref cb1_data, ChunkModelScopeBuffer);
         context.VertexShader.SetConstantBuffer(1, ChunkModelScopeBuffer);
         RenderHelpers.EndProfile();
     }
@@ -406,11 +396,11 @@ public class TfxScopeStage : GpuResource
 
 // Statics
 [StructLayout(LayoutKind.Sequential)]
-public struct ScopeChunkModelTemp
+public unsafe struct ScopeChunkModelTemp
 {
     public Vector4 MeshTransform;
     public Vector4 UVTransform;
-    public Matrix4x4[] Transform;
+    public fixed float Transforms[16 * 16]; // 16 Matrix4x4s inline
 }
 
 // Entities, non skinned
