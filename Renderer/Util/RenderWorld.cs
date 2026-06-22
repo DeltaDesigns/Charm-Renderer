@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Arithmic;
 using HelixToolkit.Maths;
 using Tiger;
@@ -56,18 +56,18 @@ public class RenderWorld : IDisposable
                                 EntityComponent resource = FileResourcer.Get().GetFile<EntityComponent>(resourceHash);
                                 switch (resource.TagData.Unk10.GetValue(resource.GetReader()))
                                 {
-                                    case S79948080:
-                                        var a = ((S79818080)resource.TagData.Unk18.GetValue(resource.GetReader()));
-                                        DynamicArray<SF1918080> b = a.Array1;
+                                    case S80809479:
+                                        var a = ((S80808179)resource.TagData.Unk18.GetValue(resource.GetReader()));
+                                        DynamicArray<S808091F1> b = a.Array1;
                                         b.AddRange(a.Array2);
 
-                                        foreach (SF1918080 c in b)
+                                        foreach (S808091F1 c in b)
                                         {
-                                            if (c.Unk10.GetValue(resource.GetReader()) is SD1918080 && GlobalChannels is null)
+                                            if (c.Unk10.GetValue(resource.GetReader()) is S808091D1 && GlobalChannels is null)
                                             {
                                                 GlobalChannels = new(resource);
                                             }
-                                            else if (c.Unk10.GetValue(resource.GetReader()) is SCF918080 lut && renderer.Externs.ScreenArea.Unk08 is null)
+                                            else if (c.Unk10.GetValue(resource.GetReader()) is S808091CF lut && renderer.Externs.ScreenArea.Unk08 is null)
                                             {
                                                 if (lut.Unk28 is null || lut.Unk28.TagData.LUT is null)
                                                     continue;
@@ -96,7 +96,7 @@ public class RenderWorld : IDisposable
                             CreateAtmosphere(renderer, mapAtmosphere);
                             break;
 
-                        case S716A8080 dayCycle:
+                        case S80806A71 dayCycle:
                             CreateDayCycleRotations(dayCycle);
                             break;
 
@@ -122,7 +122,7 @@ public class RenderWorld : IDisposable
             return;
 
         int i = 0;
-        foreach (SA96A8080 element in skyResource.SkyObjects.TagData.Entries)
+        foreach (S80806AA9 element in skyResource.SkyObjects.TagData.Entries)
         {
             if (element.Model.TagData.Model is null || element.Unk70 == 5 || element.Complex is not null)
                 continue;
@@ -216,7 +216,7 @@ public class RenderWorld : IDisposable
         Log.Debug("Assigned Atmopshere Extern Textures.");
     }
 
-    public void CreateDayCycleRotations(S716A8080 dayCycle)
+    public void CreateDayCycleRotations(S80806A71 dayCycle)
     {
         if (dayCycle.Unk10 is null || dayCycle.Unk10.TagData.Unk18 is null)
             return;
@@ -329,8 +329,8 @@ public class RendererGlobalChannels
 
     public void CreateGlobalChannels(EntityComponent resource)
     {
-        var globals = ((S79818080)resource.TagData.Unk18.GetValue(resource.GetReader()));
-        DynamicArray<SF1918080> map = globals.Array1;
+        var globals = ((S80808179)resource.TagData.Unk18.GetValue(resource.GetReader()));
+        DynamicArray<S808091F1> map = globals.Array1;
         map.AddRange(globals.Array2);
 
         var defaults = Globals.Get().GlobalChannelDefaults;
@@ -347,9 +347,9 @@ public class RendererGlobalChannels
             });
         }
 
-        foreach (SF1918080 entry in map)
+        foreach (S808091F1 entry in map)
         {
-            if (entry.Unk10.GetValue(resource.GetReader()) is SD1918080 global)
+            if (entry.Unk10.GetValue(resource.GetReader()) is S808091D1 global)
             {
                 var id = globals.Array3[global.ChannelIndex].ID;
                 var index = Globals.Get().GlobalChannelDefaults.Keys.ToList().IndexOf(id);

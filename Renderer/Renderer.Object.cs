@@ -142,7 +142,7 @@ public partial class CharmRenderer
         if (!item.IsGhost && !item.IsArmor && !item.IsArmorOrnament)
             return;
 
-        var skeleHash = item.IsGhost ? "0000603046D31C68" : "0000670F342E9595";
+        var skeleHash = item.IsGhost ? 0x681CD34630600000 : 0x95952E340F670000;
         Entity skele = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(skeleHash))); // 64 bit more permanent
         EntityObjectChannels.AddObjectChannels(skele);
 

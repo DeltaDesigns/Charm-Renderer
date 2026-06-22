@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Arithmic;
 using SharpDX;
 using SharpDX.Direct3D;
@@ -45,10 +45,10 @@ public class InvestmentData : GpuResource
         BaseItem = item;
         OwnerEntity = itemEnt;
 
-        var parentResource = (S8F6D8080)itemEnt.ModelParent.TagData.Unk18.GetValue(itemEnt.ModelParent.GetReader());
-        if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S77738080)
+        var parentResource = (S80806D8F)itemEnt.ModelParent.TagData.Unk18.GetValue(itemEnt.ModelParent.GetReader());
+        if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S80807377)
         {
-            S1C6E8080 plates = parentResource.TexturePlates.TagData;
+            S80806E1C plates = parentResource.TexturePlates.TagData;
             DiffusePlate ??= AssetManager.Get().CreateFromPlate(plates.AlbedoPlate);
             GStackPlate ??= AssetManager.Get().CreateFromPlate(plates.NormalPlate);
             NormalPlate ??= AssetManager.Get().CreateFromPlate(plates.GStackPlate);
@@ -83,10 +83,10 @@ public class InvestmentData : GpuResource
     public void CreateDefaultDyes(DeviceContext context, InventoryItem item)
     {
         Dictionary<uint, Dye> dyes = new();
-        if (item.TagData.Unk90.GetValue(item.GetReader()) is S77738080 translationBlock)
+        if (item.TagData.Unk90.GetValue(item.GetReader()) is S80807377 translationBlock)
         {
             _isChangingDyes = true;
-            foreach (S7B738080 dyeEntry in translationBlock.DefaultDyes)
+            foreach (S8080737B dyeEntry in translationBlock.DefaultDyes)
             {
                 Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.GetDyeIndex());
                 if (dye is null)
@@ -95,7 +95,7 @@ public class InvestmentData : GpuResource
                 dyes.Add(Investment.Get().GetChannelHashFromIndex(dyeEntry.GetChannelIndex()), dye);
                 //Log.Debug($"DefaultDye {dye.Hash} : {Investment.Get().GetChannelHashFromIndex(dyeEntry.ChannelIndex)}");
             }
-            foreach (S7B738080 dyeEntry in translationBlock.LockedDyes)
+            foreach (S8080737B dyeEntry in translationBlock.LockedDyes)
             {
                 Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.GetDyeIndex());
                 if (dye is null)
@@ -139,14 +139,14 @@ public class InvestmentData : GpuResource
         if (!_hasData) return;
 
         Dictionary<uint, Dye> dyes = new();
-        if (shader.TagData.Unk90.GetValue(shader.GetReader()) is S77738080 translationBlock)
+        if (shader.TagData.Unk90.GetValue(shader.GetReader()) is S80807377 translationBlock)
         {
             _isChangingDyes = true;
             var dyeEntries = translationBlock.CustomDyes.Any() // Should never happen, only case ive seen is the Shared Experience shader (which isnt even an actual shader)
                 ? translationBlock.CustomDyes
                 : translationBlock.DefaultDyes;
 
-            foreach (S7B738080 dyeEntry in dyeEntries)
+            foreach (S8080737B dyeEntry in dyeEntries)
             {
                 Dye dye = Investment.Get().GetDyeFromIndex(dyeEntry.GetDyeIndex());
                 if (dye is null)
