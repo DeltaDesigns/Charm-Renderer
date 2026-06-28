@@ -769,7 +769,7 @@ public class MeshPartData : GpuResource
         VertexOldWeightsBuffer?.Dispose();
         InputLayout?.Dispose();
 
-        AssetManager.Get().ReleaseMaterial(Material.Hash);
+        AssetManager.Get().ReleaseMaterial(Material.Hash.Hash32);
         Material = null;
 
         IndexBuffer = null;

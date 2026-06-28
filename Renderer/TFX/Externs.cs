@@ -12,12 +12,11 @@ namespace Charm.Renderer;
 
 public class Externs : IDisposable
 {
-    private static readonly ConcurrentDictionary<Type, Dictionary<int, Func<object, object>>> _fieldMaps =
-           new ConcurrentDictionary<Type, Dictionary<int, Func<object, object>>>();
+    private static readonly ConcurrentDictionary<Type, Dictionary<int, Func<object, object>>> _fieldMaps = new();
 
     public Externs(CharmRenderer renderer)
     {
-        Frame = new(renderer);
+        Frame = new();
         View = new();
         Transparent = new();
         Deferred = new();
@@ -61,7 +60,7 @@ public class Externs : IDisposable
         [ExternField(0x1B0)] public Vector4 Unk1B0 { get; set; } = new(0f, 0f, 0f, 1f);
         [ExternField(0x1C0)] public Vector4 Unk1C0 { get; set; } = new(1f, 1f, 0f, 1f);
 
-        public ExternFrame(CharmRenderer renderer)
+        public ExternFrame()
         {
             var speclobe = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup;
             var speclobe3d = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup3D;
@@ -90,7 +89,7 @@ public class Externs : IDisposable
 
     public class ExternView : IDisposable
     {
-        private Matrix4x4ButGood UNormToSNorm = new()
+        private static readonly Matrix4x4ButGood UNormToSNorm = new()
         {
             X = new(2.0f, 0.0f, 0.0f, 0.0f),
             Y = new(0.0f, -2.0f, 0.0f, 0.0f),
@@ -591,6 +590,9 @@ public class Externs : IDisposable
                 if (attr == null)
                     continue;
 
+                if (attr.Strategy != Strategy.CurrentStrategy)
+                    continue;
+
                 var getter = CreateGetterDelegate(prop, t);
                 map[attr.Element] = getter;
             }
@@ -658,8 +660,14 @@ public class Externs : IDisposable
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class ExternFieldAttribute : Attribute
 {
+    public TigerStrategy Strategy { get; set; } = Tiger.Strategy.CurrentStrategy;
     public int Element { get; }
     public ExternFieldAttribute(int element) => Element = element;
+    public ExternFieldAttribute(TigerStrategy strategy, int element)
+    {
+        Element = element;
+        Strategy = strategy;
+    }
 }
 
 public static class TypeExtensions

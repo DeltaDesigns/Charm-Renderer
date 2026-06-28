@@ -1,6 +1,6 @@
 cbuffer cbViewProj : register(b12)
 {
-    row_major float4x4 viewProj : packoffset(c0);;
+    row_major float4x4 viewProj : packoffset(c0);
 };
 
 struct VSOutput

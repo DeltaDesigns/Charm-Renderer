@@ -247,7 +247,7 @@ public class AssetManager : IDisposable
             return null;
         }
 
-        byte[] pixelData = tex.GetRawBytes();
+        byte[] pixelData = tex.GetRawBytes(true);
         if (tex.GetDimension() == Tiger.Schema.TextureDimension.D3)
         {
             var desc = new Texture3DDescription
