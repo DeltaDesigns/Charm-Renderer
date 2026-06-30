@@ -255,10 +255,10 @@ public class TfxBytecodeInterpreter
                     case TfxBytecode.Frac:
                         var frac = StackTop();
                         StackPush(new Vec4(
-                                frac.X - MathF.Truncate(frac.X),
-                                frac.Y - MathF.Truncate(frac.Y),
-                                frac.Z - MathF.Truncate(frac.Z),
-                                frac.W - MathF.Truncate(frac.W)
+                                frac.X - MathF.Floor(frac.X),
+                                frac.Y - MathF.Floor(frac.Y),
+                                frac.Z - MathF.Floor(frac.Z),
+                                frac.W - MathF.Floor(frac.W)
                             ));
                         break;
 
