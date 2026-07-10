@@ -483,6 +483,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         if (!_isFullscreen)
         {
             var mainParent = FindParentGridByName(this, "MainContainer");
+            if (mainParent is null)
+                throw new NullReferenceException($"Renderer viewport requires a \"MainContainer\" named grid to attach to. Yes I know, this is dumb.");
+
             ((Panel)Parent).Children.Remove(this);
             mainParent.Children.Add(this);
 
@@ -988,13 +991,16 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     private enum SceneWorld : uint
     {
         [Description("The Tower")] Tower = 0x81141179,
-        //[Description("Dreaming City")] DreamingCity = 0x80BDCF11, // TODO, global channels seem to have been changed here or something
         [Description("EDZ: Trostland")] EDZTrostland = 0x80BB301E,
         [Description("The Dreadnaught")] Dreadnaught = 0x8143C58C,
         [Description("Mercury Past")] MercuryPast = 0x80B1D0C4,
         [Description("The Pale Heart")] PaleHeart = 0x80E523F3,
         [Description("The Black Garden")] BlackGarden = 0x80CD96D7,
         [Description("Vesper Station")] VesperStation = 0x80EF4378,
+        [Description("Botza Ruins")] BotzaRuins = 0x813E57CA,
+        [Description("Dreaming City")] DreamingCity = 0x813E57D4, // Keep of Voices
+        [Description("Twilight Gap")] Moon = 0x8118D1D7, // Seraphs Shield: Depot
+        [Description("Warlord's Ruin")] WarlordsRuin = 0x8112FC9E,
         Cosmodrome = 0x80C86FD6,
         Mars = 0x80D44F41,
         Eternity = 0x80F2CB14,

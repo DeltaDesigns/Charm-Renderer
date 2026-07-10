@@ -63,7 +63,8 @@ public class RenderWorld : IDisposable
 
                                         foreach (S808091F1 c in b)
                                         {
-                                            if (c.Unk10.GetValue(resource.GetReader()) is S808091D1 && GlobalChannels is null)
+                                            // 3600 check at unk14 just cus S808091D1 isnt *just* for global channels, idk a better way to determine atm
+                                            if (c.Unk10.GetValue(resource.GetReader()) is S808091D1 p && p.Unk14 == 3600f && GlobalChannels is null)
                                             {
                                                 GlobalChannels = new(resource);
                                             }

@@ -62,10 +62,11 @@ public class Externs : IDisposable
 
         public ExternFrame()
         {
-            var speclobe = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup;
-            var speclobe3d = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularLobeLookup3D;
-            var spectint = Globals.Get().RenderGlobals.TagData.Textures.TagData.SpecularTintLookup;
-            var iri = Globals.Get().RenderGlobals.TagData.Textures.TagData.IridescenceLookup;
+            var textures = Globals.Get().RenderGlobals.TagData.Textures.TagData;
+            var speclobe = textures.SpecularLobeLookup;
+            var speclobe3d = textures.SpecularLobeLookup3D;
+            var spectint = textures.SpecularTintLookup;
+            var iri = textures.IridescenceLookup;
 
             SpecularLobeLookup = AssetManager.Get().GetOrCreateGlobalTexture(speclobe).SRV;
             SpecularLobe3DLookup = AssetManager.Get().GetOrCreateGlobalTexture(speclobe3d).SRV;
@@ -272,7 +273,7 @@ public class Externs : IDisposable
         [ExternField(0x1C0)] public float AtmosUnk1C0 { get; set; } = 0f;
         [ExternField(0x1C4)] public float AtmosUnk1C4 { get; set; } = 1f;
         [ExternField(0x1D0)] public Vector4 AtmosUnk1D0 { get; set; } = Vector4.Zero;
-        [ExternField(0x1E0)] public float AtmosUnk1E0 { get; set; } = -0.8365f;
+        [ExternField(0x1E0)] public float AtmosUnk1E0 { get; set; } = -0.85f;
         [ExternField(0x1E4)] public float AtmosSunIntensity { get; set; } = 0.05923f;
         [ExternField(0x1E8)] public float AtmosUnk1E8 { get; set; } = 0f;
         [ExternField(0x1EC)] public float AtmosUnk1EC { get; set; } = 0f;
@@ -293,31 +294,36 @@ public class Externs : IDisposable
 
             var cam = renderer.Camera;
             RTDimensions = cam.GetResolutionInverse();
+            var channels = renderer.World.GlobalChannels;
+            var sunDiskSize = -0.85f;
 
-            AtmosSunColor = renderer.World.GlobalChannels.Get("sun_glow_color");
-            AtmosUnk150 = renderer.World.GlobalChannels.Get(new TigerHash(0x4aa1bef5)).X;
-            AtmosUnk154 = renderer.World.GlobalChannels.Get(new TigerHash(0x9859daf1)).X;
-            AtmosFogIntensity = renderer.World.GlobalChannels.Get(26).X;
-            AtmosUnk164 = renderer.World.GlobalChannels.Get(15).X; // Fog density? Unsure
-            AtmosUnk168 = renderer.World.GlobalChannels.Get(16).X;
-            AtmosUnk16C = renderer.World.GlobalChannels.Get(17).X;
-            AtmosUnk170 = renderer.World.GlobalChannels.Get(19).X; // fog_height_falloff
-            AtmosUnk180 = renderer.World.GlobalChannels.Get(20); // fog_decay_color
-            AtmosUnk190 = renderer.World.GlobalChannels.Get(21).X; // fog_decay_scale
-            AtmosUnk194 = renderer.World.GlobalChannels.Get(new TigerHash(0x3eeacb23)).X;
-            AtmosUnk198 = renderer.World.GlobalChannels.Get(new TigerHash(0x7e92eb31)).X;
-            AtmosRotation = renderer.World.GlobalChannels.Get("sky_snapshot_rotation").X / 360f;
-            AtmosIntensity = renderer.World.GlobalChannels.Get("sky_snapshot_intensity").X;
-            AtmosUnk1BC = renderer.World.GlobalChannels.Get(36).X;
-            AtmosUnk1C0 = renderer.World.GlobalChannels.Get(35).X;
-            AtmosUnk1C4 = renderer.World.GlobalChannels.Get(new TigerHash(0x949768cf)).X;
-            AtmosUnk1D0 = renderer.World.GlobalChannels.Get("sky_color_override"); // sky_color_override?
-            AtmosUnk1E8 = renderer.World.GlobalChannels.Get(38).X;
-            AtmosSunIntensity = renderer.World.GlobalChannels.Get("sun_glow_intensity").X;
-            AtmosUnk1EC = renderer.World.GlobalChannels.Get(new TigerHash(0xe4a1bf60)).X;
+            AtmosSunColor = channels.Get("skybox_sun_color");
+            //AtmosUnk150 = channels.Get("sun_glow_shape").X;
+            AtmosUnk150 = sunDiskSize;
+            AtmosUnk154 = channels.Get("sun_glow_intensity").X;
+            AtmosFogIntensity = channels.Get(26).X;
+            AtmosUnk164 = channels.Get(15).X; // Fog density? Unsure
+            AtmosUnk168 = channels.Get(16).X;
+            AtmosUnk16C = channels.Get(17).X;
+            AtmosUnk170 = channels.Get(19).X; // fog_height_falloff
+            AtmosUnk180 = channels.Get(20); // fog_decay_color
+            AtmosUnk190 = channels.Get(21).X; // fog_decay_scale
+            AtmosUnk194 = channels.Get(new TigerHash(0x3eeacb23)).X;
+            AtmosUnk198 = channels.Get(new TigerHash(0x7e92eb31)).X;
+            AtmosRotation = channels.Get("sky_snapshot_rotation").X / 360f;
+            AtmosIntensity = channels.Get("sky_snapshot_intensity").X;
+            AtmosUnk1BC = channels.Get(new TigerHash(0x79f2e305)).X;
+            AtmosUnk1C0 = channels.Get(new TigerHash(0x62e4542e)).X;
+            AtmosUnk1C4 = channels.Get(new TigerHash(0x949768cf)).X;
+            AtmosUnk1D0 = channels.Get("sky_color_override"); // sky_color_override?
+            //AtmosUnk1E0 = channels.Get(new TigerHash(0x4aa1bef5)).X;
+            AtmosUnk1E0 = sunDiskSize;
+            AtmosUnk1E8 = channels.Get(new TigerHash(0xe685c537)).X;
+            AtmosSunIntensity = channels.Get("sun_glow_intensity").X;
+            AtmosUnk1EC = channels.Get(new TigerHash(0xe4a1bf60)).X;
 
-            SunDirRotate(renderer.World.GlobalChannels.Get("sun_track_direction"));
-            AtmosSunDir = renderer.World.GlobalChannels.Get("sun_track_direction");
+            SunDirRotate(channels.Get("sun_track_direction"));
+            AtmosSunDir = channels.Get("sun_track_direction");
 
             // No use in locking sky rotation to global channels, but also want the sun to rotate with it
             void SunDirRotate(Vector4 sundir)
@@ -531,7 +537,7 @@ public class Externs : IDisposable
         public void Update(RendererGlobalChannels globals)
         {
             RenderHelpers.Profile("Extern GlobalLighting Update");
-            Unk10 = globals.Get("sun_color") * globals.Get("sun_intensity").X * 5;
+            Unk10 = globals.Get("sun_color") * globals.Get("sun_intensity").X * 2.5f;
             Unk30 = globals.Get("sun_track_direction");
             Unk50 = globals.Get("sun_ambient_direction");
             Unk70 = globals.Get("up_ambient_color") * globals.Get("up_ambient_intensity").X;
