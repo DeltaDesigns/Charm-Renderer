@@ -564,14 +564,13 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     }
 
     private Entity _currentEntity; // temp
-    public async void LoadEntity(FileHash hash)
+    public async void LoadEntity(Entity entity)
     {
         if (Renderer is null)
             Initialize();
 
-        var entity = FileResourcer.Get().GetFile<Entity>(hash, shouldCache: false);
+        // entity is passed directly now so its material permutations can be modified on the "real" entity, instead of a new one being made
         _currentEntity = entity;
-
         await Task.Run(() =>
         {
             Dispatcher.Invoke(() =>
@@ -643,14 +642,18 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             Max = variantCount,
             Min = -1,
             Text = "Override Index",
-            GetValue = () => permutations.OverrideIndex,
+            GetValue = () => permutations?.OverrideIndex ?? -1,
             SetValue = v =>
             {
-                permutations.OverrideIndex = (int)Math.Floor(v);
-                MaterialPermutationOverride.NotifyValueChanged();
-                //ReloadEntity();
+                if (permutations is not null)
+                {
+                    permutations.OverrideIndex = (int)Math.Floor(v);
+                    MaterialPermutationOverride.NotifyValueChanged();
+                    PermIndexDebug.Text = $"Permutation Index: {Math.Max(0, permutations.OverrideIndex)}";
+                }
             }
         };
+        PermIndexDebug.Text = "Permutation Index: 0";
         PermIndexOverride.Content = MaterialPermutationOverride;
 
         foreach (var permutation in permutations.Keys)
@@ -716,6 +719,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         ModelPermutation.UpdateConfiguration(permutations, newConfig);
         var permIndex = permutations.CalculatePermutationIndex();
         PermIndexDebug.Text = permIndex.HasValue ? $"Permutation Index: {permIndex}" : "Permutation Index: N/A";
+        if (permIndex.HasValue)
+        {
+            MaterialPermutationOverride.Value = permIndex.Value;
+            MaterialPermutationOverride.NotifyValueChanged();
+        }
 
         //Console.WriteLine($"\nUpdated Configuration:");
         //Console.WriteLine($"Permutation Index: {permIndex}");
