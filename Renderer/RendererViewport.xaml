@@ -692,6 +692,7 @@
                                                 Click="ResetObjectChannels_Click"
                                                 Focusable="False"
                                                 Style="{StaticResource D2StyleButtonNoOverlay}"
+                                                ToolTip="Resets channels to 1, hold Control while clicking to reset to 0"
                                                 Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <TextBlock
                                                     Margin="0"

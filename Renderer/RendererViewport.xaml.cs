@@ -537,7 +537,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     #region Render/debug options
     private void ResetObjectChannels_Click(object sender, RoutedEventArgs e)
     {
-        Renderer?.EntityObjectChannels?.ResetAllChannels();
+        Vector4 vec = ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) ? Vector4.Zero : Vector4.One;
+        Renderer?.EntityObjectChannels?.ResetAllChannels(vec);
     }
 
     private void PrintGlobalChannels_Click(object sender, RoutedEventArgs e)
@@ -586,7 +587,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
     public void CreateMeshGroups(Entity entity)
     {
-        MeshGroupsExpander.Visibility = Visibility.Visible;
+        GroupToggles.Clear();
         var parts = entity.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal);
         parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
 
@@ -595,7 +596,13 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             .Distinct()
             .OrderBy(i => i);
 
-        GroupToggles.Clear();
+        if (groupIndices.Count() <= 1)
+        {
+            MeshGroupsExpander.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        MeshGroupsExpander.Visibility = Visibility.Visible;
         foreach (int idx in groupIndices)
         {
             var vm = new GroupToggleVM(idx);

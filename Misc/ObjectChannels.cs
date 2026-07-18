@@ -31,35 +31,18 @@ public class ObjectChannels
         parts.AddRange(entity.GetEntityChildren()?.SelectMany(x => x.Load(ExportDetailLevel.MostDetailed, LoadLevel.Minimal)).ToList());
         GetObjectChannels(parts);
 
-        SetObjectChannel(Helpers.Fnv1a32("damage_reaction"), 0f);
-        SetObjectChannel(Helpers.Fnv1a32("dissolve"), 0f);
-        SetObjectChannel(Helpers.Fnv1a32("blink"), 0f);
-        SetObjectChannel(Helpers.Fnv1a32("shield_intensity"), 0f);
-        SetObjectChannel(2812804675, Vector4.Zero); // interpolated_world_position
-        SetObjectChannel(2046642570, Vector4.Zero); // parent.fp_iron_sight
-        SetObjectChannel(286711233, Vector4.Zero); // hydra shield
-        SetObjectChannel(2786922960, Vector4.Zero); // belmon shield
-        SetObjectChannel(0xFB9CD72C, Vector4.Zero); // trials metal color
-        SetObjectChannel(0x0B319FE0, Vector4.Zero);
+        SetChannelDefaults();
 
-        // Taken/Taken Champion related
-        SetObjectChannel(0x9A07EC23, Vector4.Zero);
-        SetObjectChannel(0xF198ED08, Vector4.Zero);
-        SetObjectChannel(0x8B689EA3, Vector4.Zero);
-        SetObjectChannel(0xF5C6019F, Vector4.Zero);
-        SetObjectChannel(0x594EDD4B, Vector4.Zero);
-        SetObjectChannel(0x7C0D0F3C, Vector4.Zero);
-
-        SetObjectChannel(0x50A9729D, Vector4.Zero); // Subjugator enrage
-        SetObjectChannel(0x196454FE, Vector4.Zero); // Subjugator enrage
-
-        SetObjectChannel(0xAD512BFA, Vector4.Zero);
-        SetObjectChannel(0x7E929993, Vector4.Zero); // Rhulk enrage
-
-        // Mega Witness, just resets them all to actually make it appear properly
-        if (entity.Hash == 0x80E28227
-            || entity.Hash == 0x80E2589D)
-            ResetAllChannels(Vector4.Zero);
+        // just resets them all to actually make the entity appear properly
+        switch (entity.Hash.Hash32)
+        {
+            case 0x80A817B5: // Koregos
+            case 0x80A80BD8: // Koregos
+            case 0x80E28227: // Mega Witness
+            case 0x80E2589D: // Mega Witness
+                ResetAllChannels(Vector4.Zero);
+                break;
+        }
     }
 
     public void AddObjectChannels(InventoryItem item)
@@ -79,17 +62,6 @@ public class ObjectChannels
             SetObjectChannel(0x14BDBC8F, 5f);
         }
 
-        SetObjectChannel(0x8B16FB15, 0f);
-        SetObjectChannel(0x3A16369C, 0f);
-        SetObjectChannel(0x64C24EBB, 0f);
-        SetObjectChannel(0x44859892, 0f);
-        SetObjectChannel(0xADA8EE58, 0f);
-        SetObjectChannel(0x4BD9F2B8, 0f);
-        SetObjectChannel(0x50BC8D0A, 0f);
-        SetObjectChannel(Helpers.Fnv1a32("recoil_fraction"), 0f);
-        SetObjectChannel(Helpers.Fnv1a32("firing_ramp"), 0f);
-        SetObjectChannel(Helpers.Fnv1a32("weapon_firing"), 0f);
-        SetObjectChannel(Helpers.Fnv1a32("perk_fire"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("damage_type"),
             item.GetDamageType() switch
             {
@@ -101,6 +73,8 @@ public class ObjectChannels
                 DestinyDamageTypeEnum.Strand => 6.0f,
                 _ => 0.0f
             });
+
+        SetChannelDefaults();
     }
 
     public void SetObjectChannel(uint hash, float value)
@@ -152,6 +126,46 @@ public class ObjectChannels
                 catch { }
             }
         }
+    }
+
+    public void SetChannelDefaults()
+    {
+        SetObjectChannel(Helpers.Fnv1a32("damage_reaction"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("dissolve"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("blink"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("shield_intensity"), 0f);
+        SetObjectChannel(2812804675, Vector4.Zero); // interpolated_world_position
+        SetObjectChannel(2046642570, Vector4.Zero); // parent.fp_iron_sight
+        SetObjectChannel(286711233, Vector4.Zero); // hydra shield
+        SetObjectChannel(2786922960, Vector4.Zero); // belmon shield
+        SetObjectChannel(0xFB9CD72C, Vector4.Zero); // trials metal color
+        SetObjectChannel(0x0B319FE0, Vector4.Zero);
+
+        // Taken/Taken Champion related
+        SetObjectChannel(0x9A07EC23, Vector4.Zero);
+        SetObjectChannel(0xF198ED08, Vector4.Zero);
+        SetObjectChannel(0x8B689EA3, Vector4.Zero);
+        SetObjectChannel(0xF5C6019F, Vector4.Zero);
+        SetObjectChannel(0x594EDD4B, Vector4.Zero);
+        SetObjectChannel(0x7C0D0F3C, Vector4.Zero);
+
+        SetObjectChannel(0x50A9729D, Vector4.Zero); // Subjugator enrage
+        SetObjectChannel(0x196454FE, Vector4.Zero); // Subjugator enrage
+
+        SetObjectChannel(0xAD512BFA, Vector4.Zero);
+        SetObjectChannel(0x7E929993, Vector4.Zero); // Rhulk enrage
+
+        SetObjectChannel(0x8B16FB15, 0f);
+        SetObjectChannel(0x3A16369C, 0f);
+        SetObjectChannel(0x64C24EBB, 0f);
+        SetObjectChannel(0x44859892, 0f);
+        SetObjectChannel(0xADA8EE58, 0f);
+        SetObjectChannel(0x4BD9F2B8, 0f);
+        SetObjectChannel(0x50BC8D0A, 0f);
+        SetObjectChannel(Helpers.Fnv1a32("recoil_fraction"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("firing_ramp"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("weapon_firing"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("perk_fire"), 0f);
     }
 
     public void ResetAllChannels()
