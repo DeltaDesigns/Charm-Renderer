@@ -153,3 +153,18 @@ public class VectorSetting : SettingItem
         SetValue?.Invoke(_value);
     }
 }
+
+public class SeparatorItem : SettingItem, INotifyPropertyChanged
+{
+    public SeparatorItem(string text)
+    {
+        Text = text;
+    }
+    public string Text { get; set; }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+    protected virtual void OnPropertyChanged(string propName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+    }
+}

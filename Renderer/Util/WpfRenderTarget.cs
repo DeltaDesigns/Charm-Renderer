@@ -47,10 +47,13 @@ public class WpfRenderTarget : IDisposable
         var windowHandle = new WindowInteropHelper(Window.GetWindow(viewport)).Handle;
         var presentParams = new SharpDX.Direct3D9.PresentParameters
         {
+            BackBufferWidth = width,
+            BackBufferHeight = height,
             Windowed = true,
             SwapEffect = SharpDX.Direct3D9.SwapEffect.Discard,
             DeviceWindowHandle = windowHandle,
             PresentationInterval = SharpDX.Direct3D9.PresentInterval.Immediate,
+            EnableAutoDepthStencil = false,
         };
 
         var direct3DEx = new SharpDX.Direct3D9.Direct3DEx();

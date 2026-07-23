@@ -14,6 +14,26 @@
 
     <UserControl.Resources>
         <local:ChannelHashToString x:Key="ChannelHashToString" />
+        <DataTemplate DataType="{x:Type local:SeparatorItem}">
+            <StackPanel
+                x:Name="Root"
+                Margin="4,10,4,0"
+                Orientation="Vertical">
+                <TextBlock
+                    Width="100"
+                    Margin="0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                    FontSize="14"
+                    Text="{Binding Text}" />
+                <Border
+                    Height="1"
+                    Margin="0,4,0,4"
+                    Background="{DynamicResource ForegroundColour50}" />
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type local:VectorSetting}">
             <StackPanel
                 x:Name="Root"
