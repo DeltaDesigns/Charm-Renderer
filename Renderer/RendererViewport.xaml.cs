@@ -755,6 +755,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         Renderer.Pause();
         Renderer.LoadInvestmentItem(item);
         Renderer.Resume();
+
+        if (item.IsArmor || item.IsArmorOrnament)
+            SetArmorGenderVisibility(DestinyGenderDefinition.Masculine);
     }
 
     public void LoadInvestmentItems(IEnumerable<InventoryItem> items)
@@ -768,7 +771,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         Renderer.Resume();
 
         CreatePerObjectInvestmentShaders(items);
-        SetArmorGenderVisibility(DestinyGenderDefinition.Masculine);
+        if (items.Any(item => item.IsArmor || item.IsArmorOrnament))
+            SetArmorGenderVisibility(DestinyGenderDefinition.Masculine);
     }
 
     public void CreateInvestmentShaders()
@@ -967,6 +971,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
     private void SetArmorGenderVisibility(DestinyGenderDefinition gender)
     {
+        ArmorGenderToggles.Visibility = Visibility.Visible;
         foreach (var obj in Renderer.World.RenderObjects)
         {
             if (obj.Investment is null || obj.Entity is null || obj.Entity.Gender == DestinyGenderDefinition.None)

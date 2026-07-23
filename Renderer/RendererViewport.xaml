@@ -19,6 +19,7 @@
                 x:Name="Root"
                 Margin="4,10,4,0"
                 Orientation="Vertical">
+
                 <TextBlock
                     Width="100"
                     Margin="0"
@@ -803,22 +804,24 @@
                                             FontSize="16"
                                             Text="Investment Options" />
                                     </Expander.Header>
+
                                     <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
                                         <StackPanel Margin="0,5,0,5">
 
                                             <StackPanel
-                                                Margin="15,0,0,0"
+                                                x:Name="ArmorGenderToggles"
+                                                Margin="0,3,0,3"
                                                 Orientation="Vertical"
-                                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                Visibility="Collapsed">
                                                 <RadioButton
-                                                    Margin="2"
+                                                    Margin="15,2,0,2"
                                                     Click="ArmorGenderToggle_Click"
                                                     Content="Masculine"
                                                     GroupName="ArmorGender"
                                                     IsChecked="True"
                                                     Tag="0" />
                                                 <RadioButton
-                                                    Margin="2"
+                                                    Margin="15,2,0,2"
                                                     Click="ArmorGenderToggle_Click"
                                                     Content="Feminine"
                                                     GroupName="ArmorGender"
@@ -827,7 +830,7 @@
 
                                             <Expander
                                                 x:Name="ItemShadersExpander"
-                                                Margin="0,5,0,5"
+                                                Margin="0,3,0,3"
                                                 HorizontalAlignment="Stretch"
                                                 Background="Transparent"
                                                 Visibility="Collapsed">
@@ -844,14 +847,14 @@
                                                             Orientation="Vertical"
                                                             Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                             <RadioButton
-                                                                Margin="2"
+                                                                Margin="0"
                                                                 Click="InvestmentShadersOrderBy_Click "
                                                                 Content="Name"
                                                                 GroupName="InvestmentShaderSortBy"
                                                                 IsChecked="False"
                                                                 Tag="0" />
                                                             <RadioButton
-                                                                Margin="2"
+                                                                Margin="0"
                                                                 Click="InvestmentShadersOrderBy_Click "
                                                                 Content="Index"
                                                                 GroupName="InvestmentShaderSortBy"
