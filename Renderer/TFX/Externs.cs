@@ -24,6 +24,7 @@ public class Externs : IDisposable
         Decal = new();
         ShadowMask = new();
         PostProcess = new();
+        PostprocessInitialDownsample = new();
         ScreenArea = new();
         FXAA = new();
         GlobalLighting = new();
@@ -37,6 +38,7 @@ public class Externs : IDisposable
     public ExternDecal Decal;
     public ExternShadowMask ShadowMask;
     public ExternPostProcess PostProcess;
+    public ExternPostprocessInitialDownsample PostprocessInitialDownsample;
     public ExternScreenArea ScreenArea;
     public ExternFxaa FXAA;
     public ExternGlobalLighting GlobalLighting;
@@ -332,8 +334,10 @@ public class Externs : IDisposable
                 var tilt = Quaternion.CreateFromAxisAngle(System.Numerics.Vector3.UnitZ, -rotX);
 
                 var dir = System.Numerics.Vector4.Transform(sundir, tilt);
-                renderer.World.GlobalChannels.Set("sun_track_direction", dir);
-                renderer.World.GlobalChannels.Set(100, dir);
+                channels.Set("sun_track_direction", dir);
+
+                dir = System.Numerics.Vector4.Transform(channels.Get("sun_atmosphere_direction"), tilt);
+                channels.Set("sun_atmosphere_direction", dir);
             }
 
             RenderHelpers.EndProfile();
@@ -432,6 +436,38 @@ public class Externs : IDisposable
             UnkC0 = right.ToVector4(right.Z);
             UnkD0 = up.ToVector4(up.Z);
             UnkE0 = atmos.AtmosSunDir;
+        }
+
+        public void UpdateAutoExposure(GBuffer gbuffer)
+        {
+            Unk00 = gbuffer.Bloom.Bloom24th.SRV;
+            Unk50 = gbuffer.Bloom.AutoExposureColumns.GetResolutionInverse();
+            UnkD0 = new(0.01f, 0.9f, 1f, 1f);
+            UnkC0 = new(0.12f); //Vector4.One;
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class ExternPostprocessInitialDownsample : IDisposable
+    {
+        [ExternField(0x0)] public ShaderResourceView Distorion { get; set; }
+        [ExternField(0x8)] public ShaderResourceView Unk08 { get; set; }
+        [ExternField(0x10)] public Vector4 Unk10 { get; set; }
+        [ExternField(0x20)] public Vector4 UnkC0 { get; set; } = new(0.13281f, 0.23611f, 0.0f, 0.0f);
+        [ExternField(0x30)] public Vector4 UnkD0 { get; set; } = Vector4.UnitW;
+        [ExternField(0x40)] public float Unk40 { get; set; }
+
+        public ExternPostprocessInitialDownsample()
+        {
+            Distorion = AssetManager.Get().BlackTextureWAlpha;
+        }
+
+        public void Update()
+        {
+            //UnkC0 = new(0.13281f, 0.23611f, 0.0f, 0.0f);
         }
 
         public void Dispose()

@@ -548,7 +548,7 @@
                                             Click="PrintGlobalChannels_Click"
                                             Focusable="False"
                                             Style="{StaticResource D2StyleButton}"
-                                            Visibility="Collapsed">
+                                            Visibility="Visible">
 
                                             <TextBlock
                                                 Margin="2"

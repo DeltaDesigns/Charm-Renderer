@@ -43,7 +43,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public float TimeOfDay { get; set; } = 0.675f;
     public float Exposure { get; set; } = 0.8f;
     public float ExposureIllum { get; set; } = 1f;
-    public bool AutoExposure { get; set; } = false;
+    public bool AutoExposure { get; set; } = true;
     public float FOV { get; set; } = 60f;
     public float TimeScale { get; set; } = 1f;
     public float AtmosRotation { get; set; } = 0.50f; //0.825f;
@@ -275,15 +275,15 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             GetValue = () => Exposure,
             SetValue = v => Exposure = v,
 
-            LockTooltip = "Toggles autoexposure (Not the best)",
-            IsLocked = true,
+            LockTooltip = "Toggles Autoexposure",
+            IsLocked = false,
             SetLockState = locked =>
             {
-                if (!locked && DisplayPass != RenderPass.final_color_grade)
-                {
-                    DisplayPass = RenderPass.final_color_grade;
-                    RenderPassCombobox.SelectedIndex = 1;
-                }
+                //if (!locked && DisplayPass != RenderPass.final_color_grade)
+                //{
+                //    DisplayPass = RenderPass.final_color_grade;
+                //    RenderPassCombobox.SelectedIndex = 1;
+                //}
 
                 AutoExposure = !locked;
             }
@@ -457,11 +457,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         if (tag is not null && tag is RenderPass pass)
         {
             DisplayPass = pass;
-            if (DisplayPass != RenderPass.final_color_grade)
-            {
-                AutoExposure = false;
-                ExposureSetting.IsLocked = true;
-            }
+            //if (DisplayPass != RenderPass.final_color_grade)
+            //{
+            //    AutoExposure = false;
+            //    ExposureSetting.IsLocked = true;
+            //}
         }
         else
             DisplayPass = RenderPass.final;

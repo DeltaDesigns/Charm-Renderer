@@ -236,6 +236,7 @@ public partial class CharmRenderer : IDisposable
         int newHeight = Math.Max(1, (int)Viewport.ActualHeight);
         Context.Rasterizer.SetViewport(0, 0, newWidth, newHeight, 0.0f, 1f);
 
+        UpdateAutoexposure(DeltaTime);
         UpdateCamera();
         UpdateExterns();
         UpdateGlobalChannels();
@@ -255,8 +256,8 @@ public partial class CharmRenderer : IDisposable
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
             RenderGlobalPipeline(Viewport.DisplayPass.ToString());
         }
-        else
-            RenderLuminance();
+        //else
+        //    RenderLuminance();
 
         var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
         if (Viewport.ShowGrid)

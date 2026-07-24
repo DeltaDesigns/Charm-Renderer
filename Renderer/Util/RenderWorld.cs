@@ -13,6 +13,7 @@ public class RenderWorld : IDisposable
     public SMapAtmosphere? Atmosphere = null;
     public RendererGlobalChannels GlobalChannels;
     public List<Vector4> DayCycleRotations = new();
+    public List<Vector4> AtmosphereDirections = new();
     public Queue<RenderObject> RenderObjects = new();
     public BoundingBox? LocalOverrideMainBB = null;
     public BoundingBox? OverrideMainBB = null;
@@ -33,6 +34,9 @@ public class RenderWorld : IDisposable
         GlobalChannels = null;
         DayCycleRotations.Clear();
         CreateWorld(renderer, FileResourcer.Get().GetFile<Tag<SBubbleParent>>(new(hash)));
+        renderer.Viewport.AtmosIntensity = GlobalChannels?.Get("sky_snapshot_intensity").X ?? 1f;
+        renderer.Viewport.AtmosRotation = GlobalChannels?.Get("sky_snapshot_rotation").X / 360f ?? 1f;
+
     }
 
     public void CreateWorld(CharmRenderer renderer, Tag<SBubbleParent> bubble)
@@ -67,6 +71,7 @@ public class RenderWorld : IDisposable
                                             if (c.Unk10.GetValue(resource.GetReader()) is S808091D1 p && p.Unk14 == 3600f && GlobalChannels is null)
                                             {
                                                 GlobalChannels = new(resource);
+                                                Log.Debug($"Global Channels {resource.Hash}");
                                             }
                                             else if (c.Unk10.GetValue(resource.GetReader()) is S808091CF lut && renderer.Externs.ScreenArea.Unk08 is null)
                                             {
@@ -219,14 +224,31 @@ public class RenderWorld : IDisposable
 
     public void CreateDayCycleRotations(S80806A71 dayCycle)
     {
-        if (dayCycle.Unk10 is null || dayCycle.Unk10.TagData.Unk18 is null)
+        if (dayCycle.Unk10 is null)
             return;
 
-        DayCycleRotations = new();
-        var entry = dayCycle.Unk10.TagData.Unk18;
-        foreach (var rot in entry.TagData.Unk30.Enumerate(entry.GetReader()))
+        if (dayCycle.Unk10.TagData.Unk18 != null)
         {
-            DayCycleRotations.Add(rot.Vec);
+            DayCycleRotations = new();
+            var entry = dayCycle.Unk10.TagData.Unk18;
+            foreach (var rot in entry.TagData.Unk30.Enumerate(entry.GetReader()))
+            {
+                DayCycleRotations.Add(rot.Vec);
+            }
+        }
+
+        if (dayCycle.Unk10.TagData.Unk10 != null)
+        {
+            AtmosphereDirections = new();
+            var entry = dayCycle.Unk10.TagData.Unk10;
+            foreach (var rot in entry.TagData.Unk30.Enumerate(entry.GetReader()))
+            {
+                AtmosphereDirections.Add(rot.Vec);
+            }
+        }
+        else
+        {
+            AtmosphereDirections = Enumerable.Repeat(new Vector4(-0.577f, -0.577f, -0.577f, 0f), 3600).ToList();
         }
     }
 
@@ -242,19 +264,24 @@ public class RenderWorld : IDisposable
         {
             float tod = (externs.Atmosphere.AtmosTimeOfDay * 3600f);
             float tod_half = Math.Max(0, tod / 2f);
+            float t = tod_half - MathF.Floor(tod_half);
 
             int fromIndex = Math.Clamp((int)MathF.Floor(tod_half), 0, DayCycleRotations.Count - 1);
             int toIndex = Math.Clamp((int)MathF.Ceiling(tod_half), 0, DayCycleRotations.Count - 1);
 
             Vector4 from = DayCycleRotations[fromIndex];
             Vector4 to = DayCycleRotations[toIndex];
-            float t = tod_half - MathF.Floor(tod_half);
-            Vector4 lerpedRotation = System.Numerics.Vector4.Lerp(from, to, t);
+            Vector4 lerpedTrack = System.Numerics.Vector4.Lerp(from, to, t);
+            GlobalChannels.Set("sun_track_direction", lerpedTrack);
 
-            // sun_track_direction
-            GlobalChannels.Set(102, lerpedRotation);
-            GlobalChannels.Set(100, lerpedRotation); // unsure
+            from = AtmosphereDirections[fromIndex];
+            to = AtmosphereDirections[toIndex];
+            Vector4 lerpedAtmosDir = System.Numerics.Vector4.Lerp(from, to, t);
+            GlobalChannels.Set("sun_atmosphere_direction", lerpedAtmosDir); // unsure
         }
+
+        float DistanceToNight = MathF.Abs(externs.Atmosphere.AtmosTimeOfDay / 1800f - 1f);
+        GlobalChannels.MiscValues[0] = new((1f - DistanceToNight) * 0.725f);
 
         await GlobalChannels.Evaluate();
         GlobalChannels.Set(7, Vector4.One);
@@ -365,13 +392,25 @@ public class RendererGlobalChannels
                         Bytecode = global.UnkBytecode.Select(x => x.Value).ToArray(),
                         BytecodeConstants = global.Values.Select(x => x.Vec.ToSys()).ToArray(),
                         InterpretedBytecode = new(TfxBytecodeOp.ParseAll(global.UnkBytecode, BytecodeType.Sequencer), BytecodeType.Sequencer),
-                        Value = global.Values.FirstOrDefault().Vec
+                        Value = global.Values.FirstOrDefault().Vec,
                     };
+                    channel.IsDynamic = channel.Bytecode.Length > 4;
                     channel.InterpretedBytecode.Name = $"Global Channel {name} ({index})";
                     Channels[index] = channel;
+
+                    //if (channel.Name == "sky_snapshot_rotation")
+                    //{
+                    //    foreach (var op in channel.InterpretedBytecode.Opcodes)
+                    //    {
+                    //        var opString = $"0x{op.rawOp:X2} {op.op} : {TfxBytecodeOp.TfxToString(op, global.Values, null)}";
+                    //        Console.WriteLine(opString);
+                    //    }
+                    //}
                 }
             }
         }
+
+        Evaluate();
     }
 
     public static RendererGlobalChannels CreateDefault()
@@ -438,6 +477,7 @@ public class RendererGlobalChannels
         public System.Numerics.Vector4[] BytecodeConstants;
         public TfxBytecodeInterpreter InterpretedBytecode;
         public System.Numerics.Vector4 Value;
+        public bool IsDynamic = false;
 
         public GlobalChannel()
         {

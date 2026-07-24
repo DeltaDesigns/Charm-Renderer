@@ -16,6 +16,8 @@ public partial class CharmRenderer
 {
     public class GBuffer : IDisposable
     {
+        public BloomBuffers Bloom { get; private set; }
+
         public RenderTarget2D RT0 { get; private set; }
         public RenderTarget2D RT1 { get; private set; }
         public RenderTarget2D RT1_Clone { get; private set; }
@@ -100,6 +102,8 @@ public partial class CharmRenderer
                 CpuAccessFlags = CpuAccessFlags.Read,
                 SampleDescription = new SampleDescription(1, 0)
             });
+
+            Bloom = new BloomBuffers(device, width, height);
         }
 
         public void SetRenderTargets(DeviceContext ctx)
@@ -162,6 +166,58 @@ public partial class CharmRenderer
             LuminanceStaging = null;
             ColorGradingLUT?.Dispose();
             ColorGradingLUT = null;
+            Bloom?.Dispose();
+            Bloom = null;
+        }
+    }
+
+    public class BloomBuffers : IDisposable
+    {
+        public RenderTarget2D Bloom3rd { get; private set; }
+        public RenderTarget2D Bloom6th { get; private set; }
+        public RenderTarget2D Bloom12th { get; private set; }
+        public RenderTarget2D Bloom24th { get; private set; }
+
+        public RenderTarget2D AutoExposureColumns { get; private set; }
+        public Texture2D AutoExposureColumnsStaging { get; private set; }
+
+        public BloomBuffers(Device device, int width, int height)
+        {
+            Bloom3rd = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
+            Bloom6th = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
+            Bloom12th = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
+            Bloom24th = new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
+
+            AutoExposureColumns = new RenderTarget2D(device, width / 48, 1, Format.R32G32B32A32_Float, debugName: "AutoExposureColumns");
+            AutoExposureColumnsStaging = new Texture2D(device, new Texture2DDescription
+            {
+                Width = AutoExposureColumns.Width,
+                Height = AutoExposureColumns.Height,
+                MipLevels = 1,
+                ArraySize = 1,
+                Format = AutoExposureColumns.Texture.Description.Format,
+                Usage = ResourceUsage.Staging,
+                BindFlags = BindFlags.None,
+                CpuAccessFlags = CpuAccessFlags.Read,
+                SampleDescription = new SampleDescription(1, 0)
+            });
+            AutoExposureColumnsStaging.DebugName = "AutoExposureColumns Staging";
+        }
+
+        public void Dispose()
+        {
+            Bloom3rd?.Dispose();
+            Bloom3rd = null;
+            Bloom6th?.Dispose();
+            Bloom6th = null;
+            Bloom12th?.Dispose();
+            Bloom12th = null;
+            Bloom24th?.Dispose();
+            Bloom24th = null;
+            AutoExposureColumns?.Dispose();
+            AutoExposureColumns = null;
+            AutoExposureColumnsStaging?.Dispose();
+            AutoExposureColumnsStaging = null;
         }
     }
 

@@ -245,8 +245,10 @@ public partial class CharmRenderer
     {
         RenderHelpers.Profile("Render Post Process");
         Annotation.BeginEvent("Post Process");
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
+        RenderBloom();
+
+        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
         //Externs.PostProcess.Update(Context, GBuffers);
         Externs.ScreenArea.Update(Context, GBuffers);
         GBuffers.ColorGradingLUT.Bind(Context);
@@ -313,10 +315,13 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
+    // Old Exposure
     private float _currentExposure = 1.0f;
     private float _targetExposure = 1.0f;
     private void RenderLuminance()
     {
+        return;
+
         if (!Viewport.AutoExposure || !Viewport.RenderSky)
         {
             Externs.Frame.ExposureScale = Viewport.Exposure;
