@@ -36,7 +36,6 @@ public class RenderWorld : IDisposable
         CreateWorld(renderer, FileResourcer.Get().GetFile<Tag<SBubbleParent>>(new(hash)));
         renderer.Viewport.AtmosIntensity = GlobalChannels?.Get("sky_snapshot_intensity").X ?? 1f;
         renderer.Viewport.AtmosRotation = GlobalChannels?.Get("sky_snapshot_rotation").X / 360f ?? 1f;
-
     }
 
     public void CreateWorld(CharmRenderer renderer, Tag<SBubbleParent> bubble)

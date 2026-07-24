@@ -25,7 +25,7 @@ public class Externs : IDisposable
         ShadowMask = new();
         PostProcess = new();
         PostprocessInitialDownsample = new();
-        ScreenArea = new();
+        ScreenArea = new(renderer);
         FXAA = new();
         GlobalLighting = new();
     }
@@ -403,11 +403,14 @@ public class Externs : IDisposable
     public class ExternPostProcess : IDisposable
     {
         [ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
+        [ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
+        [ExternField(0x10)] public ShaderResourceView Unk10 { get; set; }
         [ExternField(0x50)] public Vector4 Unk50 { get; set; }
         [ExternField(0x60)] public Vector4 Unk60 { get; set; }
         [ExternField(0xC0)] public Vector4 UnkC0 { get; set; } = new(0.92537f, 0.0f, 0.37906f, 0.37906f);
         [ExternField(0xD0)] public Vector4 UnkD0 { get; set; } = new(-0.22681f, 0.80123f, 0.5537f, 0.5537f);
         [ExternField(0xE0)] public Vector4 UnkE0 { get; set; } = new(-0.30372f, -0.59835f, 0.74144f, 0.74144f);
+        [ExternField(0xF0)] public Vector4 UnkF0 { get; set; }
 
         public ExternPostProcess()
         {
@@ -417,15 +420,6 @@ public class Externs : IDisposable
         {
             RenderHelpers.Profile("Extern PostProcess Update");
             UnkC0 = new(0.92537f, 0.0f, 0.37906f, 0.37906f);
-            RenderHelpers.EndProfile();
-        }
-
-        public void UpdateCopyTexture(DeviceContext context, GBuffer gbuffer)
-        {
-            RenderHelpers.Profile("Extern PostProcess Update (Copy Texture)");
-            Unk00 = gbuffer.Shading_Clone.SRV;
-            Unk50 = gbuffer.Shading_Clone.GetResolutionInverse();
-            UnkC0 = Vector4.One;
             RenderHelpers.EndProfile();
         }
 
@@ -442,8 +436,7 @@ public class Externs : IDisposable
         {
             Unk00 = gbuffer.Bloom.Bloom24th.SRV;
             Unk50 = gbuffer.Bloom.AutoExposureColumns.GetResolutionInverse();
-            UnkD0 = new(0.01f, 0.9f, 1f, 1f);
-            UnkC0 = new(0.12f); //Vector4.One;
+            UnkC0 = new(0.01f, 0.9f, 0.2125f, 1f); //new(0.01f, 0.9f, 1f, 1f);
         }
 
         public void Dispose()
@@ -479,11 +472,12 @@ public class Externs : IDisposable
     {
         [ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
         [ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
-        [ExternField(0x30)] public ShaderResourceView Unk30 { get; set; }
-        [ExternField(0x38)] public ShaderResourceView Unk38 { get; set; }
-        [ExternField(0x40)] public ShaderResourceView Unk40 { get; set; }
-        [ExternField(0x50)] public ShaderResourceView Unk50 { get; set; }
-        [ExternField(0x58)] public ShaderResourceView Unk58 { get; set; }
+        [ExternField(0x30)] public ShaderResourceView Unk30 { get; set; } // HP Overlay
+        [ExternField(0x38)] public ShaderResourceView Unk38 { get; set; } // LUT
+        [ExternField(0x40)] public ShaderResourceView Unk40 { get; set; } // Bloom result
+        [ExternField(0x48)] public ShaderResourceView Unk48 { get; set; } // Distortion
+        [ExternField(0x50)] public ShaderResourceView Unk50 { get; set; } // Unk
+        [ExternField(0x58)] public ShaderResourceView Unk58 { get; set; } // Vignette
         [ExternField(0x6C)] public float Unk6C { get; set; } = 0.5f;
         [ExternField(0x7C)] public float Unk7C { get; set; } = 0.9968f;
         [ExternField(0x90)] public Vector4 LUTDimensions { get; set; } = new(32f, 1024f, 0, 0); // height x width
@@ -500,11 +494,12 @@ public class Externs : IDisposable
         [ExternField(0x170)] public Vector4 Unk170 { get; set; } = Vector4.One;
         [ExternField(0x18C)] public float Unk18C { get; set; } = 0.5f;
 
-        public ExternScreenArea()
+        public ExternScreenArea(CharmRenderer renderer)
         {
             Unk40 = AssetManager.Get().BlackTextureWAlpha;
             Unk50 = AssetManager.Get().BlackTextureWAlpha;
-            Unk58 = AssetManager.Get().WhiteTexture;
+            //Unk58 = AssetManager.Get().WhiteTexture;
+            Unk58 = HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(renderer.Device, "renderer assets/textures/vignette.dds", true);
         }
 
         public void Update(DeviceContext context, GBuffer gbuffer)
@@ -519,6 +514,8 @@ public class Externs : IDisposable
 
         public void Dispose()
         {
+            Unk58?.Dispose();
+            Unk58 = null;
         }
     }
 

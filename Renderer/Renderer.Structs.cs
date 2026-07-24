@@ -70,8 +70,8 @@ public partial class CharmRenderer
             LightSpecular = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light Specular");
             LightIBL = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light IBL");
 
-            Shading = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Staging");
-            Shading_Clone = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Staging Clone");
+            Shading = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Shading");
+            Shading_Clone = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Shading Clone");
 
             PostProcessResult = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result");
             FXAA = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "FXAA Result");
@@ -89,19 +89,7 @@ public partial class CharmRenderer
             LUTVolume = new UAVTarget3D(device, 32, 32, 32, Format.R11G11B10_Float, "LUT Volume");
 
             Luminance = new RenderTarget2D(device, width, height, Format.R32_Float, debugName: "Luminance");
-
-            LuminanceStaging = new Texture2D(device, new Texture2DDescription
-            {
-                Width = 1,
-                Height = 1,
-                MipLevels = 1,
-                ArraySize = 1,
-                Format = Luminance.Texture.Description.Format,
-                Usage = ResourceUsage.Staging,
-                BindFlags = BindFlags.None,
-                CpuAccessFlags = CpuAccessFlags.Read,
-                SampleDescription = new SampleDescription(1, 0)
-            });
+            LuminanceStaging = RenderHelpers.CreateStagingTexture(device, 1, 1, Luminance.Texture.Description.Format, "Luminance Staging");
 
             Bloom = new BloomBuffers(device, width, height);
         }
@@ -174,9 +162,25 @@ public partial class CharmRenderer
     public class BloomBuffers : IDisposable
     {
         public RenderTarget2D Bloom3rd { get; private set; }
+        public RenderTarget2D Bloom3rdTemp { get; private set; }
+        public RenderTarget2D Bloom3rdComb { get; private set; }
+
         public RenderTarget2D Bloom6th { get; private set; }
+        public RenderTarget2D Bloom6thTemp { get; private set; }
+        public RenderTarget2D Bloom6thComb { get; private set; }
+
         public RenderTarget2D Bloom12th { get; private set; }
+        public RenderTarget2D Bloom12thTemp { get; private set; }
+        public RenderTarget2D Bloom12thComb { get; private set; }
+
+        public RenderTarget2D Bloom12thHalfW { get; private set; }
+        public RenderTarget2D Bloom12thQuarterW { get; private set; }
+        public RenderTarget2D Bloom12thQuarterWTemp { get; private set; }
+
         public RenderTarget2D Bloom24th { get; private set; }
+        public RenderTarget2D Bloom24thTemp { get; private set; }
+
+        public RenderTarget2D BloomFinal { get; private set; }
 
         public RenderTarget2D AutoExposureColumns { get; private set; }
         public Texture2D AutoExposureColumnsStaging { get; private set; }
@@ -184,36 +188,73 @@ public partial class CharmRenderer
         public BloomBuffers(Device device, int width, int height)
         {
             Bloom3rd = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
-            Bloom6th = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
-            Bloom12th = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
-            Bloom24th = new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
+            Bloom3rdTemp = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd Temp");
+            Bloom3rdComb = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd Combined");
+
+            Bloom6th = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th");
+            Bloom6thTemp = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th Temp");
+            Bloom6thComb = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th Comb Combined");
+
+            Bloom12th = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th");
+            Bloom12thTemp = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Temp");
+            Bloom12thComb = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Combined");
+
+            Bloom12thHalfW = new RenderTarget2D(device, width / (12 * 2), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Half");
+            Bloom12thQuarterW = new RenderTarget2D(device, width / (12 * 4), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Quarter");
+            Bloom12thQuarterWTemp = new RenderTarget2D(device, width / (12 * 4), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Quarter Temp");
+
+            Bloom24th = new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 24th");
+            Bloom24thTemp = new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 24th Temp");
+
+            BloomFinal = new RenderTarget2D(device, width / 2, height / 2, Format.R16G16B16A16_Float, debugName: "Bloom Final");
 
             AutoExposureColumns = new RenderTarget2D(device, width / 48, 1, Format.R32G32B32A32_Float, debugName: "AutoExposureColumns");
-            AutoExposureColumnsStaging = new Texture2D(device, new Texture2DDescription
-            {
-                Width = AutoExposureColumns.Width,
-                Height = AutoExposureColumns.Height,
-                MipLevels = 1,
-                ArraySize = 1,
-                Format = AutoExposureColumns.Texture.Description.Format,
-                Usage = ResourceUsage.Staging,
-                BindFlags = BindFlags.None,
-                CpuAccessFlags = CpuAccessFlags.Read,
-                SampleDescription = new SampleDescription(1, 0)
-            });
-            AutoExposureColumnsStaging.DebugName = "AutoExposureColumns Staging";
+            AutoExposureColumnsStaging = RenderHelpers.CreateStagingTexture(device,
+                AutoExposureColumns.Width,
+                AutoExposureColumns.Height,
+                AutoExposureColumns.Texture.Description.Format,
+                "AutoExposureColumns Staging");
         }
 
         public void Dispose()
         {
             Bloom3rd?.Dispose();
             Bloom3rd = null;
+            Bloom3rdComb?.Dispose();
+            Bloom3rdComb = null;
+            Bloom3rdTemp?.Dispose();
+            Bloom3rdTemp = null;
+
             Bloom6th?.Dispose();
             Bloom6th = null;
+            Bloom6thComb?.Dispose();
+            Bloom6thComb = null;
+            Bloom6thTemp?.Dispose();
+            Bloom6thTemp = null;
+
             Bloom12th?.Dispose();
             Bloom12th = null;
+            Bloom12thComb?.Dispose();
+            Bloom12thComb = null;
+            Bloom12thTemp?.Dispose();
+            Bloom12thTemp = null;
+
+            Bloom12thHalfW?.Dispose();
+            Bloom12thHalfW = null;
+
+            Bloom12thQuarterW?.Dispose();
+            Bloom12thQuarterW = null;
+            Bloom12thQuarterWTemp?.Dispose();
+            Bloom12thQuarterWTemp = null;
+
             Bloom24th?.Dispose();
             Bloom24th = null;
+            Bloom24thTemp?.Dispose();
+            Bloom24thTemp = null;
+
+            BloomFinal?.Dispose();
+            BloomFinal = null;
+
             AutoExposureColumns?.Dispose();
             AutoExposureColumns = null;
             AutoExposureColumnsStaging?.Dispose();

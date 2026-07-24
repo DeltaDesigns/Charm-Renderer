@@ -11,6 +11,8 @@ using SharpDX.Direct3D;
 using BoundingBox = HelixToolkit.Maths.BoundingBox;
 using HelixToolkit.Maths;
 using System.Runtime.CompilerServices;
+using SharpDX.DXGI;
+
 
 
 
@@ -167,7 +169,7 @@ public partial class CharmRenderer
             );
         }
 
-        DataBox dataBox = Context.MapSubresource(_bboxVB, 0, MapMode.WriteDiscard, MapFlags.None);
+        DataBox dataBox = Context.MapSubresource(_bboxVB, 0, MapMode.WriteDiscard, SharpDX.Direct3D11.MapFlags.None);
         try
         {
             Utilities.Write(dataBox.DataPointer, lines, 0, lines.Length);
@@ -215,7 +217,6 @@ public partial class CharmRenderer
         GetWindowThreadProcessId(foregroundWindow, out uint foregroundPid);
         return foregroundPid == _currentPid;
     }
-
 }
 
 public static class RenderHelpers
@@ -378,6 +379,26 @@ public static class RenderHelpers
             });
         }
         return inputs;
+    }
+
+    public static Texture2D CreateStagingTexture(SharpDX.Direct3D11.Device device, int width, int height, Format format, string debugName = "")
+    {
+        var tex = new Texture2D(device, new Texture2DDescription
+        {
+            Width = width,
+            Height = height,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = format,
+            Usage = ResourceUsage.Staging,
+            BindFlags = BindFlags.None,
+            CpuAccessFlags = CpuAccessFlags.Read,
+            SampleDescription = new SampleDescription(1, 0)
+        });
+        if (debugName != string.Empty)
+            tex.DebugName = debugName;
+
+        return tex;
     }
 
     public static void Profile(string name, uint color = 0u, [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string function = "", [CallerFilePath] string sourceFile = "")

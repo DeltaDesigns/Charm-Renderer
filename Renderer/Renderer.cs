@@ -94,7 +94,7 @@ public partial class CharmRenderer : IDisposable
         Externs = new(this);
 
 
-        World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141179)));
+        World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
 
         Camera = new(new HelixToolkit.Maths.Viewport(0, 0, width, height)); // Should be last
         Camera.ResetCameraTransform();
@@ -253,6 +253,11 @@ public partial class CharmRenderer : IDisposable
 
         if (Viewport.DisplayPass > RenderPass.final_color_grade)
         {
+            //if (Viewport.DisplayPass == RenderPass.autoexposure_display)
+            //{
+            //    Externs.PostProcess.Unk50 = GBuffers.PostProcessResult.GetResolutionInverse();
+            //    Externs.PostProcess.UnkC0 = new(-3, 3, 2f, Externs.Frame.ExposureScale);
+            //}
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
             RenderGlobalPipeline(Viewport.DisplayPass.ToString());
         }

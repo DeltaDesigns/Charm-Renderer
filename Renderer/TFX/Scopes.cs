@@ -17,6 +17,7 @@ public class TempScopes : GpuResource
     public Buffer FrameScopeBuffer;
     public Buffer TransAdvScopeBuffer;
     public Buffer ColorGradingScopeBuffer;
+    public Buffer PostProcessScopeBuffer;
 
     public TempScopes()
     {
@@ -265,6 +266,34 @@ public class TempScopes : GpuResource
         RenderHelpers.EndProfile();
     }
 
+    private ScopePostProcess _cachedPostProcess = new ScopePostProcess();
+    public void UpdatePostProcessScope(DeviceContext context, ScopePostProcess scope)
+    {
+        if (_disposed)
+            return;
+
+        RenderHelpers.Profile("UpdatePostProcessScope");
+        if (PostProcessScopeBuffer is null)
+        {
+            PostProcessScopeBuffer = new Buffer(context.Device, new BufferDescription
+            {
+                SizeInBytes = Utilities.SizeOf<ScopePostProcess>(),
+                Usage = ResourceUsage.Default,
+                BindFlags = BindFlags.ConstantBuffer,
+                CpuAccessFlags = CpuAccessFlags.None,
+                OptionFlags = ResourceOptionFlags.None,
+                StructureByteStride = 0
+            });
+            PostProcessScopeBuffer.DebugName = $"PostProcessScope Buffer";
+        }
+
+        //ref var cb11_data = ref _cachedPostProcess;
+        context.UpdateSubresource(ref scope, PostProcessScopeBuffer);
+
+        //context.VertexShader.SetConstantBuffer(11, PostProcessScopeBuffer);
+        context.PixelShader.SetConstantBuffer(11, PostProcessScopeBuffer);
+        RenderHelpers.EndProfile();
+    }
 
     private bool _disposed;
     public override void Dispose()
@@ -278,6 +307,7 @@ public class TempScopes : GpuResource
         FrameScopeBuffer?.Dispose();
         TransAdvScopeBuffer?.Dispose();
         ColorGradingScopeBuffer?.Dispose();
+        PostProcessScopeBuffer?.Dispose();
 
         base.Dispose();
     }
@@ -493,4 +523,22 @@ public struct ScopeColorGrading
     public Vector4 Row2 = new(0.69138f, 0.75f, 0.65642f, 0.00f);
     public Vector4 Row3 = new(0.46957f, 0.02f, 0.08f, 0.90f);
     public Vector4 Row4 = new(0.80f, 1.00f, 1.00f, 0.00f);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct ScopePostProcess
+{
+    public ScopePostProcess()
+    {
+
+    }
+
+    public Vector4 OutRes;
+    public Vector4 InRes;
+    public Vector4 Unk02;
+    public Vector4 Unk03;
+    public Vector4 Unk04;
+    public Vector4 Unk05;
+    public Vector4 Unk06;
+    public Vector4 Unk07;
 }

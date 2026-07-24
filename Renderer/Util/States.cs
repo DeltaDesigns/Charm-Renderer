@@ -87,6 +87,7 @@ public class States
         }
 
         var rasterizerState = new RasterizerState(context.Device, state);
+        rasterizerState.DebugName = $"RasterizerState_{rast}_{depthBias}";
         _rasStates.TryAdd((rast, depthBias), rasterizerState);
 
         return rasterizerState;
@@ -126,6 +127,7 @@ public class States
                 PassOperation = dsState.Stencil.BackFace.PassOp
             }
         });
+        depthStencilState.DebugName = $"DepthStencilState_{state}";
         _depthStencilStates.TryAdd(state, depthStencilState);
 
         return depthStencilState;
@@ -151,6 +153,7 @@ public class States
         blendStateDescription.RenderTarget[3] = blendState.BlendDesc[3];
 
         var blend = new BlendState(context.Device, blendStateDescription);
+        blend.DebugName = $"BlendState_{state}";
         _blendStates.TryAdd(state, blend);
 
         return blend;

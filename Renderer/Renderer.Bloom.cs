@@ -1,5 +1,6 @@
 ﻿using SharpDX;
 using SharpDX.Direct3D11;
+using SharpDX.Mathematics.Interop;
 using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
@@ -10,6 +11,13 @@ public partial class CharmRenderer
 {
     public void RenderBloom()
     {
+        var buffers = GBuffers.Bloom;
+        if (!Viewport.AutoExposure && !Viewport.Bloom)
+        {
+            buffers.BloomFinal.Clear(Context, new RawColor4(0, 0, 0, 1));
+            return;
+        }
+
         RenderHelpers.Profile("Render Bloom");
         Annotation.BeginEvent("Bloom");
 
@@ -23,34 +31,218 @@ public partial class CharmRenderer
             rtOut.Bind(Context);
         }
 
+        void BindScope(RenderTarget2D rtIn, RenderTarget2D rtOut, ReadOnlySpan<Vector4> vals)
+        {
+            Context.PixelShader.SetShaderResource(0, rtIn.SRV);
+            TempScopes.UpdatePostProcessScope(Context,
+                new ScopePostProcess
+                {
+                    OutRes = rtOut.GetResolutionInverse(),
+                    InRes = rtIn.GetResolutionInverse(),
+                    Unk02 = Vector4.Zero,
+                    Unk03 = vals[0],
+                    Unk04 = vals[1],
+                    Unk05 = vals[2],
+                    Unk06 = vals[3],
+                    Unk07 = vals[4],
+                });
+        }
+
+        void Blur(RenderTarget2D rtIn,
+            RenderTarget2D temp,
+            BlurVariant variant,
+            bool stripAlpha,
+            Vector4 horzUnk03,
+            Vector4 horzUnk04,
+            Vector4 horzUnk05,
+            Vector4 vertUnk03,
+            Vector4 vertUnk04,
+            Vector4 vertUnk05)
+        {
+            Bind(rtIn, temp, Vector4.Zero);
+            BindScope(rtIn, temp, [horzUnk03, horzUnk04, horzUnk05, Vector4.One, Vector4.Zero]);
+
+            switch (variant)
+            {
+                case BlurVariant.Gaussian10:
+                    RenderGlobalPipeline("gaussian_10_horz");
+                    break;
+                case BlurVariant.Weighted6:
+                    RenderGlobalPipeline("weighted_6_horz");
+                    break;
+            }
+
+            Bind(temp, rtIn, Vector4.Zero);
+            BindScope(temp, rtIn, [ vertUnk03, vertUnk04, vertUnk05,
+                stripAlpha ? new Vector4(1,1,1,0) : Vector4.One,
+                stripAlpha ? Vector4.UnitW : Vector4.Zero ]);
+
+            switch (variant)
+            {
+                case BlurVariant.Gaussian10:
+                    RenderGlobalPipeline("gaussian_10_vert");
+                    break;
+                case BlurVariant.Weighted6:
+                    RenderGlobalPipeline("weighted_6_vert");
+                    break;
+            }
+        }
+
         CMD.States.SetStencilRef(Context, 0);
         CMD.States.CreateStates(Context, new(0, 0, 0, 0));
-        Externs.PostprocessInitialDownsample.Update();
 
-        Bind(GBuffers.Shading, GBuffers.Bloom.Bloom3rd, new(0.00f, 0.0005f, 0.016f, 0.016f));
+        Bind(GBuffers.Shading, buffers.Bloom3rd, new(0.00f, 0.0005f, 0.016f, 0.016f));
         RenderGlobalPipeline("bloom_initial_downsample_block_2x2");
 
-        Bind(GBuffers.Bloom.Bloom3rd, GBuffers.Bloom.Bloom6th, Vector4.UnitW);
+        Bind(buffers.Bloom3rd, buffers.Bloom6th, Vector4.UnitW);
         RenderGlobalPipeline("downsample_block_2x2_with_nan_kill");
 
-        Bind(GBuffers.Bloom.Bloom6th, GBuffers.Bloom.Bloom12th, Vector4.Zero);
+        Bind(buffers.Bloom6th, buffers.Bloom12th, Vector4.Zero);
         RenderGlobalPipeline("downsample_block_2x2");
 
-        Bind(GBuffers.Bloom.Bloom12th, GBuffers.Bloom.Bloom24th, Vector4.Zero);
+        Bind(buffers.Bloom12th, buffers.Bloom24th, Vector4.Zero);
         RenderGlobalPipeline("downsample_block_2x2");
 
         // Auto Exposure Sampling
         {
             RenderHelpers.Profile("Auto Exposure Sampling");
             Externs.PostProcess.UpdateAutoExposure(GBuffers);
-            GBuffers.Bloom.AutoExposureColumns.Bind(Context);
+            buffers.AutoExposureColumns.Bind(Context);
 
             CMD.States.SetStencilRef(Context, 0);
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
             RenderGlobalPipeline("autoexposure_sample_columns");
-            Context.CopyResource(GBuffers.Bloom.AutoExposureColumns.Texture, GBuffers.Bloom.AutoExposureColumnsStaging);
+            Context.CopyResource(buffers.AutoExposureColumns.Texture, buffers.AutoExposureColumnsStaging);
             RenderHelpers.EndProfile();
+        }
+
+        // Bloom
+        if (Viewport.Bloom)
+        {
+            {
+                Bind(buffers.Bloom12th, buffers.Bloom12thHalfW, Vector4.Zero);
+                BindScope(buffers.Bloom12th, buffers.Bloom12thHalfW, new Vector4[]
+                {
+                    new(0.12667f, 0.37333f, 0.00f, 0.00f),
+                    new(0.01793f, 0.00547f, 0.00f, 0.00f),
+                    Vector4.Zero,
+                    new(2f, 2f, 2f, 1f),
+                    Vector4.Zero,
+                });
+                RenderGlobalPipeline("downsample_gaussian_8x1");
+            }
+
+            {
+                Bind(buffers.Bloom12thHalfW, buffers.Bloom12thQuarterW, Vector4.Zero);
+                BindScope(buffers.Bloom12thHalfW, buffers.Bloom12thQuarterW, new Vector4[]
+                {
+                    new(0.12667f, 0.37333f, 0.00f, 0.00f),
+                    new(0.03586f, 0.01094f, 0.00f, 0.00f),
+                    Vector4.Zero,
+                    new(2f, 2f, 2f, 1f),
+                    Vector4.Zero,
+                });
+                RenderGlobalPipeline("downsample_gaussian_8x1");
+            }
+
+
+            {
+                Bind(buffers.Bloom12thQuarterW, buffers.Bloom12thQuarterWTemp, Vector4.Zero);
+                BindScope(buffers.Bloom12thQuarterW, buffers.Bloom12thQuarterWTemp, new Vector4[]
+                {
+                    new(0.04734f, 0.0858f, 0.14793f, 0.21893f),
+                    new(0.17344f, 0.12284f, 0.00f, 0.00f),
+                    new(0.07344f, 0.02284f, 0.00f, 0.00f),
+                    new(2f, 2f, 2f, 1f),
+                    Vector4.Zero,
+                });
+                RenderGlobalPipeline("downsample_gaussian_16x1");
+            }
+
+            {
+                Bind(buffers.Bloom12thQuarterWTemp, buffers.Bloom12thQuarterW, Vector4.Zero);
+                BindScope(buffers.Bloom12thQuarterWTemp, buffers.Bloom12thQuarterW, new Vector4[]
+                {
+                    new(0.04667f, 0.08f, 0.14f, 0.23333f),
+                    new(0, 0, 0, 0),
+                    new(0, 0, 0, 0),
+                    new(2f, 2f, 2f, 1f),
+                    Vector4.Zero,
+                });
+                RenderGlobalPipeline("downsample_gaussian_16x1");
+            }
+
+            Blur(buffers.Bloom24th, buffers.Bloom24thTemp, BlurVariant.Gaussian10, true,
+                new Vector4(0.05882f, 0.17647f, 0.52941f, 0.00f),
+                new Vector4(-0.05625f, -0.02917f, -0.00625f, 0.01111f),
+                new Vector4(0.01667f, 0.04375f, 0.00f, 0.01111f),
+                new Vector4(0.05882f, 0.17647f, 0.52941f, 0.00f),
+                new Vector4(-0.10f, -0.05185f, -0.01111f, 0.00625f),
+                new Vector4(0.02963f, 0.07778f, 0.00f, 0.00625f));
+
+            {
+                Bind(buffers.Bloom24th, buffers.Bloom12thComb, Vector4.Zero);
+                Externs.PostProcess.Unk08 = buffers.Bloom12th.SRV;
+                Externs.PostProcess.UnkC0 = new(0.75f, 1.30f, 2.50f, 1.00f);
+                Externs.PostProcess.UnkD0 = new(0.64f, 1.07f, 2.14f, 1.00f);
+                Externs.PostProcess.UnkE0 = new(1.00f, 1.00f, 0.00f, 0.00f);
+                Externs.PostProcess.UnkF0 = new(1.00f, 1.00f, 0.00f, 0.00f);
+                RenderGlobalPipeline("weighted_add");
+
+                Blur(buffers.Bloom12thComb, buffers.Bloom12thTemp, BlurVariant.Gaussian10, false,
+                    new Vector4(0.05882f, 0.17647f, 0.52941f, 0.00f),
+                    new Vector4(-0.02813f, -0.01458f, -0.00313f, 0.00556f),
+                    new Vector4(0.00833f, 0.02187f, 0.00f, 0.00556f),
+                    new Vector4(0.05882f, 0.17647f, 0.52941f, 0.00f),
+                    new Vector4(-0.05f, -0.02593f, -0.00556f, 0.00313f),
+                    new Vector4(0.01481f, 0.03889f, 0.00f, 0.00313f));
+            }
+
+            {
+                Bind(buffers.Bloom12thComb, buffers.Bloom6thComb, Vector4.Zero);
+                Externs.PostProcess.Unk08 = buffers.Bloom6th.SRV;
+                Externs.PostProcess.UnkC0 = new(1.00f, 1.00f, 1.00f, 1.00f);
+                Externs.PostProcess.UnkD0 = new(1.80f, 2.025f, 2.40f, 1.00f);
+                Externs.PostProcess.UnkE0 = new(1.00f, 1.00f, 0.00f, 0.00f);
+                Externs.PostProcess.UnkF0 = new(1.00f, 1.00f, 0.00f, 0.00f);
+                RenderGlobalPipeline("weighted_add");
+
+                Blur(buffers.Bloom6thComb, buffers.Bloom6thTemp, BlurVariant.Gaussian10, false,
+                    new Vector4(0.05882f, 0.17647f, 0.52941f, 0.00f),
+                    new Vector4(-0.01406f, -0.00729f, -0.00156f, 0.00278f),
+                    new Vector4(0.00417f, 0.01094f, 0.00f, 0.00278f),
+                    new Vector4(0.05882f, 0.17647f, 0.52941f, 0.00f),
+                    new Vector4(-0.025f, -0.01296f, -0.00278f, 0.00156f),
+                    new Vector4(0.00741f, 0.01944f, 0.00f, 0.00156f));
+            }
+
+
+            {
+                Bind(buffers.Bloom6thComb, buffers.Bloom3rdComb, Vector4.Zero);
+                Externs.PostProcess.Unk08 = buffers.Bloom3rd.SRV;
+                Externs.PostProcess.Unk10 = buffers.Bloom12thQuarterW.SRV;
+                Externs.PostProcess.UnkC0 = new(1.00f, 1.00f, 1.00f, 1.00f);
+                Externs.PostProcess.UnkD0 = new(2.75f, 2.75f, 2.75f, 0.00f);
+                Externs.PostProcess.UnkE0 = new(0.01f, 0.01f, 0.02f, 0.00f);
+                RenderGlobalPipeline("combined_bloom_line_blur");
+
+                Blur(buffers.Bloom3rdComb, buffers.Bloom3rdTemp, BlurVariant.Weighted6, false,
+                    new Vector4(0.25f, 0.50f, 0.00f, 0.00f),
+                    new Vector4(0.00f, -0.00359f, -0.00078f, 0.00139f),
+                    new Vector4(0.00203f, 0.00f, 0.00f, 0.00139f),
+                    new Vector4(0.25f, 0.50f, 0.00f, 0.00f),
+                    new Vector4(0.00f, -0.00639f, -0.00139f, 0.00078f),
+                    new Vector4(0.00361f, 0.00f, 0.00f, 0.00078f));
+            }
+
+            Bind(buffers.Bloom3rdTemp, buffers.BloomFinal, Vector4.One);
+            RenderGlobalPipeline("copy_texture_bilinear");
+            Externs.ScreenArea.Unk40 = buffers.BloomFinal.SRV;
+        }
+        else
+        {
+            buffers.BloomFinal.Clear(Context, new RawColor4(0, 0, 0, 1));
         }
 
         Annotation.EndEvent();
@@ -250,5 +442,11 @@ public class AutoExposureSystem
     {
         return a + (b - a) * t;
     }
+}
+
+public enum BlurVariant
+{
+    Gaussian10,
+    Weighted6,
 }
 

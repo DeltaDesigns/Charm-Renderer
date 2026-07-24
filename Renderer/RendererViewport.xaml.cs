@@ -33,21 +33,24 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     #endregion
 
     #region Render Options
-    public bool AutoOrbit { get; set; } = false;
     public ObservableCollection<SettingItem> AutoOrbitSettings { get; set; }
     public ObservableCollection<SettingItem> AtmosSettings { get; set; }
+    public ObservableCollection<SettingItem> RenderSettings { get; set; }
     public SliderSetting TimeOfDaySetting { get; set; }
     public SliderSetting ExposureSetting { get; set; }
+
+    public bool AutoOrbit { get; set; } = false;
     public bool RenderSky { get; set; } = true;
     public bool RenderSkyObjs { get; set; } = true;
     public float TimeOfDay { get; set; } = 0.675f;
+    public bool AutoExposure { get; set; } = true;
     public float Exposure { get; set; } = 0.8f;
     public float ExposureIllum { get; set; } = 1f;
-    public bool AutoExposure { get; set; } = true;
+    public bool Bloom { get; set; } = true;
     public float FOV { get; set; } = 60f;
     public float TimeScale { get; set; } = 1f;
     public float AtmosRotation { get; set; } = 0.50f; //0.825f;
-    public float AtmosIntensity { get; set; } = 0.75f;
+    public float AtmosIntensity { get; set; } = 0.8f;
     public float AutoOrbitSpeed { get; set; } = 30f;
     public float MovementSpeed { get; set; } = 1f;
     public Vector4 AutoOrbitOffset { get; set; } = Vector4.Zero;
@@ -288,15 +291,20 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 AutoExposure = !locked;
             }
         };
-        DebugSettings = new ObservableCollection<SettingItem>
+
+        RenderSettings = new ObservableCollection<SettingItem>
         {
-            new SliderSetting
+            new ToggleSetting
             {
-                Text = "Movement Speed",
-                Min = 0.1f,
-                Max = 5f,
-                GetValue = () => MovementSpeed,
-                SetValue = v => MovementSpeed = v
+                Text = "Anti-aliasing",
+                GetValue = () => FXAA,
+                SetValue = v => FXAA = v
+            },
+            new ToggleSetting
+            {
+                Text = "Bloom",
+                GetValue = () => Bloom,
+                SetValue = v => Bloom = v
             },
             ExposureSetting,
             new SliderSetting
@@ -320,19 +328,26 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 Max = 110f,
                 GetValue = () => FOV,
                 SetValue = v => FOV = v
+            }
+        };
+        RenderOptions.ItemsSource = RenderSettings;
+
+        DebugSettings = new ObservableCollection<SettingItem>
+        {
+            new SliderSetting
+            {
+                Text = "Movement Speed",
+                Min = 0.1f,
+                Max = 5f,
+                GetValue = () => MovementSpeed,
+                SetValue = v => MovementSpeed = v
             },
             new ToggleSetting
             {
                 Text = "Cap FPS",
                 GetValue = () => CapFPS,
                 SetValue = v => CapFPS = v
-            },
-            new ToggleSetting
-            {
-                Text = "Use FXAA",
-                GetValue = () => FXAA,
-                SetValue = v => FXAA = v
-            },
+            }
         };
         DebugOptions.ItemsSource = DebugSettings;
 
@@ -1010,7 +1025,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     // TODO get from actual maps, hardcode bad
     private enum SceneWorld : uint
     {
-        [Description("The Tower")] Tower = 0x81141179,
+        [Description("The Tower")] Tower = 0x81141169,
         [Description("EDZ: Trostland")] EDZTrostland = 0x80BB301E,
         [Description("The Dreadnaught")] Dreadnaught = 0x8143C58C,
         [Description("Mercury Past")] MercuryPast = 0x80B1D0C4,

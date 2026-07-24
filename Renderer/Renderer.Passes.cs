@@ -678,4 +678,6 @@ public enum RenderPass
     [Description("GBuffer Overdraw")] debug_gbuffer_overdraw,
     [Description("Smoothness Heatmap")] debug_valid_smoothness_heatmap,
     [Description("Metalness Heatmap")] debug_valid_layered_metalness,
+
+    //[Description("test")] autoexposure_display,
 }
