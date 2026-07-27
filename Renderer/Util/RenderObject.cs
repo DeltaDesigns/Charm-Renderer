@@ -787,6 +787,7 @@ public class MeshPartData : GpuResource
 public class MaterialData : GpuResource
 {
     public FileHash Hash;
+    public ShaderBindMode BindMode { get; set; }
     public StateSelection States;
     public List<Tiger.TfxScope> UsedScopes;
 
@@ -804,6 +805,7 @@ public class MaterialData : GpuResource
     public MaterialData(DeviceContext context, Material material)
     {
         Hash = material.Hash;
+        BindMode = material.BindMode;
         States = material.RenderStates;
         UsedScopes = material.EnumerateScopes().ToList();
         Skinned = UsedScopes.Contains(Tiger.TfxScope.SKINNING);
@@ -821,7 +823,41 @@ public class MaterialData : GpuResource
 
     public void Bind(CharmRenderer renderer)
     {
-        Vertex?.Bind(renderer);
+        var states = renderer.CMD.CurrentState.Select(States);
+        renderer.CMD.States.CreateStates(renderer.Context, states);
+
+        switch (BindMode)
+        {
+            case ShaderBindMode.VertexPixel:
+                Compute?.Unbind(renderer);
+
+                Vertex?.Bind(renderer);
+                SetVSOverride(renderer);
+                Pixel?.Bind(renderer);
+                break;
+
+            case ShaderBindMode.VertexOnly:
+                Pixel?.Unbind(renderer);
+                Compute?.Unbind(renderer);
+
+                Vertex?.Bind(renderer);
+                SetVSOverride(renderer);
+                break;
+
+            case ShaderBindMode.Compute:
+                Vertex?.Unbind(renderer);
+                Pixel?.Unbind(renderer);
+
+                Compute?.Bind(renderer);
+                break;
+
+            default:
+                throw new NotImplementedException($"BindMode {BindMode} not implemented.");
+        }
+    }
+
+    private void SetVSOverride(CharmRenderer renderer)
+    {
         if (Skinned)
         {
             if (UsesGearDye)
@@ -839,12 +875,6 @@ public class MaterialData : GpuResource
                     renderer.Context.VertexShader.Set(AssetManager.Get().EntityOverrideVS_NoVC);
             }
         }
-
-        Pixel?.Bind(renderer);
-        Compute?.Bind(renderer);
-
-        var states = renderer.CMD.CurrentState.Select(States);
-        renderer.CMD.States.CreateStates(renderer.Context, states);
     }
 
     public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)
@@ -897,6 +927,11 @@ public class TechniqueStage : GpuResource
     {
         Shader?.Bind(renderer.Context);
         Constants?.Bind(renderer, Stage);
+    }
+
+    public void Unbind(CharmRenderer renderer)
+    {
+        Shader?.Unbind(renderer.Context);
     }
 
     public async Task<Vector4[]> GetEvaluated(CharmRenderer renderer)

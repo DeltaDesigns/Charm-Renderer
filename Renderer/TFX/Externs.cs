@@ -170,7 +170,7 @@ public class Externs : IDisposable
 
         public ExternTransparent()
         {
-            Unk48 = AssetManager.Get().BlackTexture;
+            Unk48 = AssetManager.Get().BlackTextureWAlpha;
             Unk50 = AssetManager.Get().BlackTexture;
         }
 
@@ -478,6 +478,7 @@ public class Externs : IDisposable
         [ExternField(0x48)] public ShaderResourceView Unk48 { get; set; } // Distortion
         [ExternField(0x50)] public ShaderResourceView Unk50 { get; set; } // Unk
         [ExternField(0x58)] public ShaderResourceView Unk58 { get; set; } // Vignette
+        [ExternField(0x60)] public UnorderedAccessView Unk60 { get; set; }
         [ExternField(0x6C)] public float Unk6C { get; set; } = 0.5f;
         [ExternField(0x7C)] public float Unk7C { get; set; } = 0.9968f;
         [ExternField(0x90)] public Vector4 LUTDimensions { get; set; } = new(32f, 1024f, 0, 0); // height x width
@@ -504,12 +505,6 @@ public class Externs : IDisposable
 
         public void Update(DeviceContext context, GBuffer gbuffer)
         {
-            RenderHelpers.Profile("Extern ScreenArea Update");
-            Unk00 = gbuffer.Shading_Clone.SRV;
-            //UnkD0 = new(0.5f, 0f, 0f, 0f);
-            //Unk150 = new(0.3f, 0.5f, 0f, 0.02f);
-            //Unk160 = new(0.3f, 0.5f, 0f, 0.5f);
-            RenderHelpers.EndProfile();
         }
 
         public void Dispose()

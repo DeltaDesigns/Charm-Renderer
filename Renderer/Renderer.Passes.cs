@@ -249,9 +249,8 @@ public partial class CharmRenderer
         RenderBloom();
 
         CMD.States.CreateStates(Context, new(0, 0, 0, 0));
-        //Externs.PostProcess.Update(Context, GBuffers);
-        Externs.ScreenArea.Update(Context, GBuffers);
         GBuffers.ColorGradingLUT.Bind(Context);
+
         if (Externs.ScreenArea.Unk08 is not null)
         {
             TempScopes.UpdateColorGradingScope(Context, true);
@@ -263,16 +262,16 @@ public partial class CharmRenderer
             RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
         }
 
-        { // TODO, let interpreter handle resource binding
+        { // TODO, compute dispatching in MaterialData binding
             Annotation.BeginEvent($"Global Pipeline: color_grading_convert_to_volume_texture_hdr");
             UnbindAllRTVs();
 
-            ExecutePipeline("color_grading_convert_to_volume_texture_hdr");
-            Context.VertexShader.Set(null);
-            Context.PixelShader.Set(null);
+            {
+                Externs.ScreenArea.Unk00 = GBuffers.ColorGradingLUT.SRV;
+                Externs.ScreenArea.Unk60 = GBuffers.LUTVolume.UAV;
+            }
 
-            Context.ComputeShader.SetShaderResource(0, GBuffers.ColorGradingLUT.SRV);
-            Context.ComputeShader.SetUnorderedAccessView(0, GBuffers.LUTVolume.UAV);
+            ExecutePipeline("color_grading_convert_to_volume_texture_hdr");
 
             int groupsX = (GBuffers.LUTVolume.Width + 7) / 8;
             int groupsY = (GBuffers.LUTVolume.Height + 7) / 8;
@@ -287,10 +286,13 @@ public partial class CharmRenderer
         }
 
         CMD.States.CreateStates(Context, new(0, 0, 0, 0));
-        Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
-
         Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
         Context.Rasterizer.SetViewport(GBuffers.PostProcessResult.GetViewport());
+
+        {
+            Externs.ScreenArea.Unk00 = GBuffers.Shading_Clone.SRV;
+            Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
+        }
 
         if (Viewport.DisplayPass == RenderPass.final_color_grade)
             RenderGlobalPipeline("screen_area_global_lut3d_hdr");

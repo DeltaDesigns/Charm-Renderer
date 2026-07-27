@@ -6,6 +6,7 @@ using SharpDX.Direct3D11;
 using Tiger;
 using Tiger.Schema;
 using static TfxBytecodeOp;
+using ShaderStage = Charm.Renderer.ShaderStage;
 using Vec4 = System.Numerics.Vector4;
 
 public class TfxBytecodeInterpreter
@@ -587,13 +588,31 @@ public class TfxBytecodeInterpreter
                         break;
 
                     case TfxBytecode.PushExternInputUav: // TODO
+                        data = (TfxData2Byte)_curOp.data;
+                        extern_id = data.value;
+                        offset = data.value2 * 8;
+                        bits = ((int)extern_id) << 24 | (offset & 0xFFFFFF);
+
+                        StackPush(new Vec4(BitConverter.Int32BitsToSingle(bits), 0, 0, 0));
+                        break;
+
                     case TfxBytecode.SetShaderUav:
+                        index = ((TfxData1Byte)_curOp.data).value;
+                        var shader_stage = ShaderStageExtensions.FromIndex((byte)(index >> 5));
+                        var slot = index & 0x1F;
+                        bits = BitConverter.SingleToInt32Bits(StackTop().X);
+
+                        extern_id = (byte)(bits >> 24);
+                        offset = bits & 0xFFFFFF;
+                        var uav = renderer.Externs.Get<UnorderedAccessView>((TfxExtern)extern_id, offset);
+
+                        renderer.Context.ComputeShader.SetUnorderedAccessView(slot, uav);
                         break;
 
                     case TfxBytecode.SetShaderTexture:
                         index = ((TfxData1Byte)_curOp.data).value;
-                        var shader_stage = ShaderStageExtensions.FromIndex((byte)(index >> 5));
-                        var slot = index & 0x1F;
+                        shader_stage = ShaderStageExtensions.FromIndex((byte)(index >> 5));
+                        slot = index & 0x1F;
                         bits = BitConverter.SingleToInt32Bits(StackTop().X);
 
                         extern_id = (byte)(bits >> 24);
@@ -608,6 +627,10 @@ public class TfxBytecodeInterpreter
 
                             case ShaderStage.Pixel:
                                 renderer.Context.PixelShader.SetShaderResource(slot, srv);
+                                break;
+
+                            case ShaderStage.Compute:
+                                renderer.Context.ComputeShader.SetShaderResource(slot, srv);
                                 break;
 
                             default:

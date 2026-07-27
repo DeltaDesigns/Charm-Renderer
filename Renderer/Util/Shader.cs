@@ -7,6 +7,7 @@ namespace Charm.Renderer;
 public interface IShader : IDisposable
 {
     void Bind(DeviceContext context);
+    void Unbind(DeviceContext context);
 }
 
 public struct VertexShaderWrapper : IShader
@@ -25,6 +26,11 @@ public struct VertexShaderWrapper : IShader
     public void Bind(DeviceContext context)
     {
         context.VertexShader.Set(Shader);
+    }
+
+    public void Unbind(DeviceContext context)
+    {
+        context.VertexShader.Set(null);
     }
 
     public void Dispose()
@@ -53,6 +59,11 @@ public struct PixelShaderWrapper : IShader
         context.PixelShader.Set(Shader);
     }
 
+    public void Unbind(DeviceContext context)
+    {
+        context.PixelShader.Set(null);
+    }
+
     public void Dispose()
     {
         Shader?.Dispose();
@@ -77,6 +88,11 @@ public struct ComputeShaderWrapper : IShader
     public void Bind(DeviceContext context)
     {
         context.ComputeShader.Set(Shader);
+    }
+
+    public void Unbind(DeviceContext context)
+    {
+        context.ComputeShader.Set(null);
     }
 
     public void Dispose()

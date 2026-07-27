@@ -227,10 +227,10 @@ public static class TFXFunctions
         Vec4 v15 = new Vec4();
         {
             Vec4 fallback = new Vec4(
-                (v9.X <= 0) ? 1 : 0,
-                (v9.Y <= 0) ? 1 : 0,
-                (v9.Z <= 0) ? 1 : 0,
-                (v9.W <= 0) ? 1 : 0
+                (v9.X >= 0) ? 1 : 0,
+                (v9.Y >= 0) ? 1 : 0,
+                (v9.Z >= 0) ? 1 : 0,
+                (v9.W >= 0) ? 1 : 0
             );
 
             v15.X = (Math.Abs(v12.X) > EPS) ? (v9.X / v12.X) : fallback.X;
@@ -244,10 +244,10 @@ public static class TFXFunctions
         Vec4 v16 = new Vec4();
         {
             Vec4 fallback = new Vec4(
-                (v10.X <= 0) ? 1 : 0,
-                (v10.Y <= 0) ? 1 : 0,
-                (v10.Z <= 0) ? 1 : 0,
-                (v10.W <= 0) ? 1 : 0
+                (v10.X >= 0) ? 1 : 0,
+                (v10.Y >= 0) ? 1 : 0,
+                (v10.Z >= 0) ? 1 : 0,
+                (v10.W >= 0) ? 1 : 0
             );
 
             v16.X = (Math.Abs(v11.X) > EPS) ? (v10.X / v11.X) : fallback.X;
