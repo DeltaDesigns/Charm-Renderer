@@ -499,7 +499,7 @@ public class TfxBytecodeInterpreter
                         if (Type == BytecodeType.Sequencer)
                         {
                             if (globalChannels is not null)
-                                StackPush(globalChannels.MiscValues[((TfxData2Byte)_curOp.data).value2]);
+                                StackPush(globalChannels.MiscValues[((TfxData2Byte)_curOp.data).value]);
                             break;
                         }
 

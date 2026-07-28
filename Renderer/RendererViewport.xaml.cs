@@ -42,9 +42,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public bool AutoOrbit { get; set; } = false;
     public bool RenderSky { get; set; } = true;
     public bool RenderSkyObjs { get; set; } = true;
-    public float TimeOfDay { get; set; } = 0.675f;
+    public float TimeOfDay { get; set; } = 0.635f;
     public bool AutoExposure { get; set; } = true;
-    public float Exposure { get; set; } = 0.8f;
+    public float Exposure { get; set; } = 0.5f;
     public float ExposureIllum { get; set; } = 1f;
     public bool Bloom { get; set; } = true;
     public float FOV { get; set; } = 60f;

@@ -80,6 +80,7 @@ public partial class CharmRenderer
         World.LocalOverrideMainBB = combinedBB;
         World.OverrideMainBB = combinedBB;
 
+        bool isArmor = item.Parent != null ? item.Parent.IsArmor : item.IsArmor;
         bool isWeapon = item.Parent != null ? item.Parent.IsWeapon : item.IsWeapon;
         bool isSword = (item.Parent != null ? item.Parent.ItemTraits : item.ItemTraits).Any(x => x == DestinyTraitID.item_weapon_sword);
         bool isShip = item.IsShip || item.IsSparrow;
@@ -97,7 +98,13 @@ public partial class CharmRenderer
 
         if (isWeapon)
         {
-            Viewport.AtmosRotation = 0.1f;
+            Viewport.AtmosRotation = 0f;
+            Viewport.TimeOfDay = 0.635f;
+        }
+        else if (isArmor)
+        {
+            Viewport.AtmosRotation = 0.17f;
+            Viewport.TimeOfDay = 0.635f;
         }
     }
 

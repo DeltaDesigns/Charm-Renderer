@@ -14,6 +14,7 @@ public partial class CharmRenderer
         var buffers = GBuffers.Bloom;
         if (!Viewport.AutoExposure && !Viewport.Bloom)
         {
+            Externs.ScreenArea.Unk40 = AssetManager.Get().BlackTextureWAlpha;
             buffers.BloomFinal.Clear(Context, new RawColor4(0, 0, 0, 1));
             return;
         }
@@ -242,6 +243,7 @@ public partial class CharmRenderer
         }
         else
         {
+            Externs.ScreenArea.Unk40 = AssetManager.Get().BlackTextureWAlpha;
             buffers.BloomFinal.Clear(Context, new RawColor4(0, 0, 0, 1));
         }
 

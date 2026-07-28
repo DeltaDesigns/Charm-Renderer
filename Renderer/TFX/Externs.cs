@@ -276,7 +276,7 @@ public class Externs : IDisposable
         [ExternField(0x1C4)] public float AtmosUnk1C4 { get; set; } = 1f;
         [ExternField(0x1D0)] public Vector4 AtmosUnk1D0 { get; set; } = Vector4.Zero;
         [ExternField(0x1E0)] public float AtmosUnk1E0 { get; set; } = -0.85f;
-        [ExternField(0x1E4)] public float AtmosSunIntensity { get; set; } = 0.05923f;
+        [ExternField(0x1E4)] public float AtmosUnk1E4 { get; set; } = 0.05923f;
         [ExternField(0x1E8)] public float AtmosUnk1E8 { get; set; } = 0f;
         [ExternField(0x1EC)] public float AtmosUnk1EC { get; set; } = 0f;
         [ExternField(0x1F8)] public float AtmosUnk1F8 { get; set; } = 0f;
@@ -297,12 +297,17 @@ public class Externs : IDisposable
             var cam = renderer.Camera;
             RTDimensions = cam.GetResolutionInverse();
             var channels = renderer.World.GlobalChannels;
-            var sunDiskSize = -0.85f;
+
+            float distanceToNight = 1f - MathF.Abs((AtmosTimeOfDay * 3600f) / 1800f - 1f) * 0.725f;
+            var sunDiskSize = -0.8f;
+            var sunDiskIntensity = distanceToNight * 1.25f;
 
             AtmosSunColor = channels.Get("skybox_sun_color");
+
             //AtmosUnk150 = channels.Get("sun_glow_shape").X;
             AtmosUnk150 = sunDiskSize;
-            AtmosUnk154 = channels.Get("sun_glow_intensity").X;
+            AtmosUnk154 = sunDiskIntensity; //channels.Get("sun_glow_intensity").X;
+
             AtmosFogIntensity = channels.Get(26).X;
             AtmosUnk164 = channels.Get(15).X; // Fog density? Unsure
             AtmosUnk168 = channels.Get(16).X;
@@ -317,11 +322,13 @@ public class Externs : IDisposable
             AtmosUnk1BC = channels.Get(new TigerHash(0x79f2e305)).X;
             AtmosUnk1C0 = channels.Get(new TigerHash(0x62e4542e)).X;
             AtmosUnk1C4 = channels.Get(new TigerHash(0x949768cf)).X;
-            AtmosUnk1D0 = channels.Get("sky_color_override"); // sky_color_override?
+            AtmosUnk1D0 = channels.Get("sky_color_override");
+
             //AtmosUnk1E0 = channels.Get(new TigerHash(0x4aa1bef5)).X;
             AtmosUnk1E0 = sunDiskSize;
+            AtmosUnk1E4 = sunDiskIntensity; //channels.Get("sun_glow_intensity").X;
+
             AtmosUnk1E8 = channels.Get(new TigerHash(0xe685c537)).X;
-            AtmosSunIntensity = channels.Get("sun_glow_intensity").X;
             AtmosUnk1EC = channels.Get(new TigerHash(0xe4a1bf60)).X;
 
             SunDirRotate(channels.Get("sun_track_direction"));
@@ -338,6 +345,7 @@ public class Externs : IDisposable
 
                 dir = System.Numerics.Vector4.Transform(channels.Get("sun_atmosphere_direction"), tilt);
                 channels.Set("sun_atmosphere_direction", dir);
+
             }
 
             RenderHelpers.EndProfile();
@@ -436,7 +444,7 @@ public class Externs : IDisposable
         {
             Unk00 = gbuffer.Bloom.Bloom24th.SRV;
             Unk50 = gbuffer.Bloom.AutoExposureColumns.GetResolutionInverse();
-            UnkC0 = new(0.01f, 0.9f, 0.2125f, 1f); //new(0.01f, 0.9f, 1f, 1f);
+            UnkC0 = new(0.01f, 0.9f, 0.325f, 1f); //new(0.01f, 0.9f, 1f, 1f);
         }
 
         public void Dispose()
@@ -565,7 +573,7 @@ public class Externs : IDisposable
         public void Update(RendererGlobalChannels globals)
         {
             RenderHelpers.Profile("Extern GlobalLighting Update");
-            Unk10 = globals.Get("sun_color") * globals.Get("sun_intensity").X * 2.5f;
+            Unk10 = globals.Get("sun_color") * globals.Get("sun_intensity").X;
             Unk30 = globals.Get("sun_track_direction");
             Unk50 = globals.Get("sun_ambient_direction");
             Unk70 = globals.Get("up_ambient_color") * globals.Get("up_ambient_intensity").X;
