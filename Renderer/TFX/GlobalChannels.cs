@@ -73,16 +73,16 @@ public class RendererGlobalChannels
                     channel.InterpretedBytecode.Name = $"Global Channel {name} ({index})";
                     Channels[index] = channel;
 
-                    if (channel.Name == "sun_glow_intensity" || channel.ID.Hash32 == 0x56007c7)
-                    {
-                        Console.WriteLine($"--- {channel.Name} ({channel.ID.Hash32:X2}) ---");
-                        foreach (var op in channel.InterpretedBytecode.Opcodes)
-                        {
-                            var opString = $"0x{op.rawOp:X2} {op.op} : {TfxBytecodeOp.TfxToString(op, global.Values, null)}";
-                            Console.WriteLine(opString);
-                        }
-                        Console.WriteLine("\n");
-                    }
+                    //if (channel.Name == "sun_glow_intensity" || channel.ID.Hash32 == 0x56007c7)
+                    //{
+                    //    Console.WriteLine($"--- {channel.Name} ({channel.ID.Hash32:X2}) ---");
+                    //    foreach (var op in channel.InterpretedBytecode.Opcodes)
+                    //    {
+                    //        var opString = $"0x{op.rawOp:X2} {op.op} : {TfxBytecodeOp.TfxToString(op, global.Values, null)}";
+                    //        Console.WriteLine(opString);
+                    //    }
+                    //    Console.WriteLine("\n");
+                    //}
                 }
             }
         }
