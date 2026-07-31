@@ -304,6 +304,16 @@ public class TfxBytecodeInterpreter
                         StackPush(TFXFunctions.Saturate(saturate));
                         break;
 
+                    case TfxBytecode.Unk24:
+                        var unk24 = StackTop();
+                        StackPush(new Vec4(
+                                MathF.Pow(2f, unk24.X),
+                                MathF.Pow(2f, unk24.Y),
+                                MathF.Pow(2f, unk24.Z),
+                                MathF.Pow(2f, unk24.W)
+                            ));
+                        break;
+
                     case TfxBytecode.Unk25:
                         var unk25 = StackTop();
                         StackPush(new Vec4(

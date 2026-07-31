@@ -467,89 +467,6 @@ public class RenderObject : GpuResource
         _meshes.Add(mesh);
     }
 
-    // TODO, WIP
-    public void BindParallel(CharmRenderer renderer, TfxRenderStage renderStage, int jobCount)
-    {
-        if (!Stages.IsSubscribed(renderStage))
-            return;
-
-        RenderHelpers.Profile($"{Feature} {Hash} Bind (Parallel)");
-
-        MeshPartData[] meshes;
-        lock (renderer.World.WorldLock)
-            meshes = Meshes.ToArray();
-
-        // Filter once on main thread
-        var stageMeshes = meshes
-            .Where(m => m.RenderStage == renderStage)
-            .ToArray();
-
-        if (stageMeshes.Length == 0)
-            return;
-
-        jobCount = Math.Min(jobCount, stageMeshes.Length);
-
-        var initialState = new GPUState().Backup(renderer.CMD);
-
-        var deferredContexts = new DeviceContext[jobCount];
-        var commandLists = new SharpDX.Direct3D11.CommandList[jobCount];
-
-        for (int i = 0; i < jobCount; i++)
-            deferredContexts[i] = new DeviceContext(renderer.Device);
-
-        Parallel.For(0, jobCount, jobIndex =>
-        {
-            int start = (jobIndex * stageMeshes.Length) / jobCount;
-            int end = ((jobIndex + 1) * stageMeshes.Length) / jobCount;
-
-            var ctx = deferredContexts[jobIndex];
-
-            var cmdCopy = new CommandList
-            {
-                Parent = renderer.CMD.Parent,
-                GpuState = renderer.CMD.GpuState,
-                DeferredContext = ctx,
-                States = renderer.CMD.States
-            };
-            initialState.Restore(cmdCopy);
-
-            for (int i = start; i < end; i++)
-            {
-                var mesh = stageMeshes[i];
-
-                if (Feature == TfxFeatureRenderer.StaticObjects)
-                {
-                    renderer.TempScopes.UpdateChunkModelScope(ctx, mesh, GlobalTransforms);
-                    if (InstanceCount > 1)
-                        mesh.DrawInstanced(renderer, InstanceCount);
-                    else
-                        mesh.Draw(renderer);
-                }
-                else
-                {
-                    renderer.TempScopes.UpdateRigidModelScope(ctx, mesh, GlobalTransforms, TransformOffset);
-                    if (Investment is not null)
-                        Investment.Bind(renderer);
-
-                    mesh.Draw(renderer);
-                }
-            }
-
-            commandLists[jobIndex] = ctx.FinishCommandList(false);
-        });
-
-        for (int i = 0; i < jobCount; i++)
-        {
-            renderer.Context.ExecuteCommandList(commandLists[i], false);
-            commandLists[i].Dispose();
-            deferredContexts[i].Dispose();
-        }
-
-        initialState.Restore(renderer.CMD);
-
-        RenderHelpers.EndProfile();
-    }
-
     public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
     {
         if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible || !Stages.IsSubscribed(renderStage))
@@ -829,7 +746,7 @@ public class MaterialData : GpuResource
         switch (BindMode)
         {
             case ShaderBindMode.VertexPixel:
-                Compute?.Unbind(renderer);
+                renderer.Context.ComputeShader.Set(null);
 
                 Vertex?.Bind(renderer);
                 SetVSOverride(renderer);
@@ -837,16 +754,16 @@ public class MaterialData : GpuResource
                 break;
 
             case ShaderBindMode.VertexOnly:
-                Pixel?.Unbind(renderer);
-                Compute?.Unbind(renderer);
+                renderer.Context.PixelShader.Set(null);
+                renderer.Context.ComputeShader.Set(null);
 
                 Vertex?.Bind(renderer);
                 SetVSOverride(renderer);
                 break;
 
             case ShaderBindMode.Compute:
-                Vertex?.Unbind(renderer);
-                Pixel?.Unbind(renderer);
+                renderer.Context.VertexShader.Set(null);
+                renderer.Context.PixelShader.Set(null);
 
                 Compute?.Bind(renderer);
                 break;

@@ -261,8 +261,6 @@ public partial class CharmRenderer : IDisposable
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
             RenderGlobalPipeline(Viewport.DisplayPass.ToString());
         }
-        //else
-        //    RenderLuminance();
 
         var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
         if (Viewport.ShowGrid)

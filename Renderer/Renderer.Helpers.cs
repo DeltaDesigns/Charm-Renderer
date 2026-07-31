@@ -38,7 +38,7 @@ public partial class CharmRenderer
 
     private void CreateDefaults()
     {
-        AssetManager = AssetManager.Instance;
+        AssetManager = AssetManager.Get();
 
         CreateGrid();
 

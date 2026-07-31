@@ -28,6 +28,9 @@ public class Externs : IDisposable
         ScreenArea = new(renderer);
         FXAA = new();
         GlobalLighting = new();
+        HDAO = new();
+        UberDepth = new();
+        DownsampleTextureGeneric = new();
     }
 
     public ExternFrame Frame;
@@ -42,6 +45,9 @@ public class Externs : IDisposable
     public ExternScreenArea ScreenArea;
     public ExternFxaa FXAA;
     public ExternGlobalLighting GlobalLighting;
+    public ExternHDAO HDAO;
+    public ExternUberDepth UberDepth;
+    public ExternDownsampleTextureGeneric DownsampleTextureGeneric;
 
     public class ExternFrame : IDisposable
     {
@@ -51,7 +57,7 @@ public class Externs : IDisposable
         [ExternField(0x10)] public float Unk10 { get; set; } = 0.5f;
         [ExternField(0x14)] public float DeltaTime { get; set; }
         [ExternField(0x18)] public float ExposureTime { get; set; } = 0.016666668f;
-        [ExternField(0x1C)] public float ExposureScale { get; set; } = 0.8f;
+        [ExternField(0x1C)] public float ExposureScale { get; set; } = 0.25f;
         [ExternField(0x20)] public float Unk20 { get; set; } = 1f;
         [ExternField(0x28)] public float ExposureIllumRelative { get; set; } = 1f;
         [ExternField(0xA8)] public ShaderResourceView SpecularLobeLookup { get; set; }
@@ -251,8 +257,8 @@ public class Externs : IDisposable
         [ExternField(0x78)] public float AtmosUnk78 { get; set; } = 0f;
         [ExternField(0x80)] public ShaderResourceView AtmosLookup2 { get; set; }
         [ExternField(0x90)] public Vector4 RTDimensions { get; set; } = new(0);
-        [ExternField(0xA0)] public ShaderResourceView UnkA0 { get; set; }
-        [ExternField(0xC0)] public ShaderResourceView UnkC0 { get; set; }
+        [ExternField(0xA0)] public ShaderResourceView SkyMaskBlur { get; set; }
+        [ExternField(0xC0)] public ShaderResourceView SkyHemisphereBlur { get; set; }
         [ExternField(0xD0)] public Vector4 DepthAngleRTDimensions { get; set; } = new(512f, 512f, 1f / 512f, 1f / 512f);
         [ExternField(0xE0)] public ShaderResourceView AtmosFar { get; set; }
         [ExternField(0xF0)] public ShaderResourceView AtmosNear { get; set; }
@@ -286,16 +292,13 @@ public class Externs : IDisposable
 
         public ExternAtmosphere()
         {
-            UnkA0 = AssetManager.Get().WhiteTexture;
-            UnkC0 = AssetManager.Get().WhiteTexture;
+            SkyMaskBlur = AssetManager.Get().WhiteTexture;
+            SkyHemisphereBlur = AssetManager.Get().WhiteTexture;
         }
 
         public void Update(CharmRenderer renderer)
         {
             RenderHelpers.Profile("Extern Atmosphere Update");
-
-            var cam = renderer.Camera;
-            RTDimensions = cam.GetResolutionInverse();
             var channels = renderer.World.GlobalChannels;
 
             float distanceToNight = 1f - MathF.Abs((AtmosTimeOfDay * 3600f) / 1800f - 1f) * 0.725f;
@@ -319,7 +322,7 @@ public class Externs : IDisposable
             AtmosUnk198 = channels.Get(new TigerHash(0x7e92eb31)).X;
             AtmosRotation = channels.Get("sky_snapshot_rotation").X / 360f;
             AtmosIntensity = channels.Get("sky_snapshot_intensity").X;
-            AtmosUnk1BC = channels.Get(new TigerHash(0x79f2e305)).X;
+            AtmosUnk1BC = channels.Get(new TigerHash(0x79f2e305)).X; // god ray intensity
             AtmosUnk1C0 = channels.Get(new TigerHash(0x62e4542e)).X;
             AtmosUnk1C4 = channels.Get(new TigerHash(0x949768cf)).X;
             AtmosUnk1D0 = channels.Get("sky_color_override");
@@ -403,6 +406,11 @@ public class Externs : IDisposable
             Unk10 = AssetManager.Get().WhiteTexture;
         }
 
+        public void Update(GBuffer buffers)
+        {
+            Unk10 = buffers.UberDepthHalf.SRV;
+        }
+
         public void Dispose()
         {
         }
@@ -431,13 +439,18 @@ public class Externs : IDisposable
             RenderHelpers.EndProfile();
         }
 
-        public void UpdateStageAtmos(ExternAtmosphere atmos)
+        public void UpdateStageAtmos(CharmRenderer renderer)
         {
+            var atmos = renderer.Externs.Atmosphere;
             var up = atmos.AtmosSunDir.ToVector3().GetUp();
             var right = atmos.AtmosSunDir.ToVector3().GetRight(up);
             UnkC0 = right.ToVector4(right.Z);
             UnkD0 = up.ToVector4(up.Z);
             UnkE0 = atmos.AtmosSunDir;
+
+            Unk00 = renderer.GBuffers.UberDepthHalf.SRV;
+            Unk50 = renderer.GBuffers.SkyGenerateMask.GetResolutionInverse();
+            Unk60 = renderer.GBuffers.UberDepthHalf.GetResolutionInverse();
         }
 
         public void UpdateAutoExposure(GBuffer gbuffer)
@@ -592,6 +605,94 @@ public class Externs : IDisposable
         }
     }
 
+    public class ExternHDAO : IDisposable
+    {
+        [ExternField(0x0)] public Vector4 Unk00 { get; set; }
+        [ExternField(0x10)] public Vector4 Unk10 { get; set; }
+        [ExternField(0x20)] public Vector4 Unk20 { get; set; }
+        [ExternField(0x30)] public Vector4 Unk30 { get; set; }
+        [ExternField(0x40)] public Vector4 Unk40 { get; set; }
+        [ExternField(0x50)] public Vector4 Unk50 { get; set; }
+        [ExternField(0x60)] public ShaderResourceView Unk60 { get; set; }
+        [ExternField(0x68)] public ShaderResourceView Unk68 { get; set; }
+        [ExternField(0x70)] public Vector4 Unk70 { get; set; }
+        [ExternField(0x80)] public Vector4 Unk80 { get; set; }
+        [ExternField(0x90)] public Vector4 Unk90 { get; set; }
+        [ExternField(0xA0)] public UnorderedAccessView UnkA0 { get; set; }
+
+        public ExternHDAO()
+        {
+        }
+
+        public void Update()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class ExternUberDepth : IDisposable
+    {
+        [ExternField(0x0)] public ShaderResourceView Depth { get; set; }
+        [ExternField(0x18)] public UnorderedAccessView Unk18 { get; set; }
+        [ExternField(0x28)] public UnorderedAccessView Unk28 { get; set; }
+        [ExternField(0x30)] public UnorderedAccessView Unk30 { get; set; }
+        [ExternField(0x40)] public UnorderedAccessView Unk40 { get; set; }
+        [ExternField(0x48)] public UnorderedAccessView Unk48 { get; set; }
+        [ExternField(0x50)] public Vector4 Unk50 { get; set; }
+        [ExternField(0x70)] public Vector4 Unk70 { get; set; }
+        [ExternField(0x80)] public Vector4 Unk80 { get; set; }
+        [ExternField(0x90)] public Vector4 Unk90 { get; set; }
+        [ExternField(0xA0)] public Vector4 UnkA0 { get; set; }
+        [ExternField(0xB0)] public Vector4 UnkB0 { get; set; }
+        [ExternField(0xC0)] public UnorderedAccessView UnkC0 { get; set; }
+        [ExternField(0xC8)] public UnorderedAccessView UnkC8 { get; set; }
+        [ExternField(0xD0)] public UnorderedAccessView UnkD0 { get; set; }
+        [ExternField(0xD8)] public UnorderedAccessView UnkD8 { get; set; }
+
+        public ExternUberDepth()
+        {
+        }
+
+        public void Update(CharmRenderer renderer)
+        {
+            var buffers = renderer.GBuffers;
+            Depth = buffers.Depth_Clone.DepthSRV;
+            Unk30 = buffers.UberDepthHalf.UAV;
+            Unk40 = buffers.UberDepthQuarter.UAV;
+            Unk50 = renderer.Externs.Deferred.DepthConstants;
+            Unk70 = new Vector4(0, 0, buffers.Depth.Width, buffers.Depth.Height);
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class ExternDownsampleTextureGeneric : IDisposable
+    {
+        [ExternField(0x38)] public ShaderResourceView Source { get; set; }
+        [ExternField(0x40)] public Vector4 ResDest { get; set; }
+        [ExternField(0x50)] public Vector4 ResSource { get; set; }
+
+        public ExternDownsampleTextureGeneric()
+        {
+        }
+
+        public void Update(ShaderResourceView source, Vector4 resDest, Vector4 resSource)
+        {
+            Source = source;
+            ResDest = resDest;
+            ResSource = resSource;
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     public void Update(CharmRenderer renderer)
     {
         if (renderer is null)
@@ -619,6 +720,9 @@ public class Externs : IDisposable
         ScreenArea.Dispose();
         FXAA.Dispose();
         GlobalLighting.Dispose();
+        HDAO.Dispose();
+        UberDepth.Dispose();
+        DownsampleTextureGeneric.Dispose();
     }
 
     private static Dictionary<int, Func<object, object>> GetFieldMap(Type type)
@@ -675,6 +779,9 @@ public class Externs : IDisposable
             TfxExtern.ScreenArea => ScreenArea,
             TfxExtern.Fxaa => FXAA,
             TfxExtern.GlobalLighting => GlobalLighting,
+            TfxExtern.Hdao => HDAO,
+            TfxExtern.UberDepth => UberDepth,
+            TfxExtern.DownsampleTextureGeneric => DownsampleTextureGeneric,
             _ => null
         };
 

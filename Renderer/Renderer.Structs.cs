@@ -37,12 +37,24 @@ public partial class CharmRenderer
 
         public DepthTarget Depth { get; private set; }
         public DepthTarget Depth_Clone { get; private set; }
+        public DepthTarget DepthHalf { get; private set; }
+
+        public RenderTarget2D UberDepthHalf { get; private set; }
+        public RenderTarget2D UberDepthQuarter { get; private set; }
+        public RenderTarget2D UberDepth8th { get; private set; }
 
         public RenderTarget2D SkyGenerateMask { get; private set; }
+        public RenderTarget2D SkyGenerateMaskHalf { get; private set; }
         public RenderTarget2D SkyGenerateFar { get; private set; }
         public RenderTarget2D SkyGenerateNear { get; private set; }
         public RenderTarget2D FullHemisphereSkyColor { get; private set; }
         public RenderTarget2D DepthAngleDensityLookup { get; private set; }
+
+        public RenderTarget2D SkyBlur1 { get; private set; }
+        public RenderTarget2D SkyBlur2 { get; private set; }
+
+        public RenderTarget2D SkyHemiSeedInscatter { get; private set; }
+        public RenderTarget2D SkyHemiBlur { get; private set; }
 
         public RenderTarget2D ColorGradingLUT { get; private set; }
         public UAVTarget3D LUTVolume { get; private set; }
@@ -78,12 +90,25 @@ public partial class CharmRenderer
 
             Depth = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth");
             Depth_Clone = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone");
+            DepthHalf = new DepthTarget(device, width / 2, height / 2, Format.R24G8_Typeless, debugName: "Depth Half");
+
+            UberDepthHalf = new RenderTarget2D(device, width / 2, height / 2, Format.R16G16_Float, createUAV: true, debugName: "Uber Depth (Half)");
+            UberDepthQuarter = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, createUAV: true, debugName: "Uber Depth (Quarter)");
+            UberDepth8th = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16_Float, createUAV: true, debugName: "Uber Depth (8th)");
 
             SkyGenerateMask = new RenderTarget2D(device, width / 4, height / 4, Format.R8_UNorm, debugName: "Sky Generate Mask");
+            SkyGenerateMaskHalf = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Generate Mask (Half)");
             SkyGenerateFar = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Far");
             SkyGenerateNear = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Near");
+
+            SkyBlur1 = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 1");
+            SkyBlur2 = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 2");
+
             FullHemisphereSkyColor = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color Generate", resourceOptionFlags: ResourceOptionFlags.GenerateMipMaps, mipLevels: 0);
             DepthAngleDensityLookup = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Depth Angle Density Lookup");
+
+            SkyHemiSeedInscatter = new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Seed Inscattering");
+            SkyHemiBlur = new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Blur");
 
             ColorGradingLUT = new RenderTarget2D(device, 1024, 32, Format.R16G16B16A16_Float, debugName: "Color Grading LUT");
             LUTVolume = new UAVTarget3D(device, 32, 32, 32, Format.R11G11B10_Float, "LUT Volume");
@@ -137,13 +162,35 @@ public partial class CharmRenderer
             Depth = null;
             Depth_Clone?.Dispose();
             Depth_Clone = null;
+            DepthHalf?.Dispose();
+            DepthHalf = null;
+
+            UberDepthHalf?.Dispose();
+            UberDepthHalf = null;
+            UberDepthQuarter?.Dispose();
+            UberDepthQuarter = null;
+            UberDepth8th?.Dispose();
+            UberDepth8th = null;
 
             SkyGenerateMask?.Dispose();
             SkyGenerateMask = null;
+            SkyGenerateMaskHalf?.Dispose();
+            SkyGenerateMaskHalf = null;
             SkyGenerateFar?.Dispose();
             SkyGenerateFar = null;
             SkyGenerateNear?.Dispose();
             SkyGenerateNear = null;
+
+            SkyBlur1?.Dispose();
+            SkyBlur1 = null;
+            SkyBlur2?.Dispose();
+            SkyBlur2 = null;
+
+            SkyHemiSeedInscatter?.Dispose();
+            SkyHemiSeedInscatter = null;
+            SkyHemiBlur?.Dispose();
+            SkyHemiBlur = null;
+
             FullHemisphereSkyColor?.Dispose();
             FullHemisphereSkyColor = null;
             DepthAngleDensityLookup?.Dispose();
@@ -267,6 +314,7 @@ public partial class CharmRenderer
         public Texture2D Texture { get; private set; }
         public RenderTargetView RTV { get; private set; }
         public ShaderResourceView SRV { get; private set; }
+        public UnorderedAccessView UAV { get; private set; }
 
         public int Width { get; }
         public int Height { get; }
@@ -277,11 +325,16 @@ public partial class CharmRenderer
             int height,
             Format format = Format.R8G8B8A8_UNorm,
             ResourceOptionFlags resourceOptionFlags = ResourceOptionFlags.None,
+            bool createUAV = false,
             int mipLevels = 1,
             string debugName = "")
         {
             Width = width;
             Height = height;
+
+            BindFlags flags = BindFlags.RenderTarget;
+            if (createUAV)
+                flags |= BindFlags.UnorderedAccess;
 
             // Texture description
             var texDesc = new Texture2DDescription
@@ -293,7 +346,7 @@ public partial class CharmRenderer
                 Format = format,
                 SampleDescription = new SampleDescription(1, 0),
                 Usage = ResourceUsage.Default,
-                BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
+                BindFlags = flags | BindFlags.ShaderResource,
                 CpuAccessFlags = CpuAccessFlags.None,
                 OptionFlags = resourceOptionFlags
             };
@@ -305,6 +358,21 @@ public partial class CharmRenderer
             RTV = new RenderTargetView(device, Texture);
             SRV = new ShaderResourceView(device, Texture);
             SRV.DebugName = $"{Texture.DebugName} SRV";
+
+            if (createUAV)
+            {
+                var uavDesc = new UnorderedAccessViewDescription
+                {
+                    Format = format,
+                    Dimension = UnorderedAccessViewDimension.Texture2D,
+                    Texture2D = new UnorderedAccessViewDescription.Texture2DResource
+                    {
+                        MipSlice = 0,
+                    }
+                };
+                UAV = new UnorderedAccessView(device, Texture, uavDesc);
+                UAV.DebugName = $"{Texture.DebugName} UAV";
+            }
         }
 
         public void Clear(DeviceContext context, RawColor4? clearColor = null)
@@ -344,6 +412,13 @@ public partial class CharmRenderer
             return new(width, height, 1f / width, 1f / height);
         }
 
+        public (int width, int height) GetResolution()
+        {
+            int width = Texture.Description.Width;
+            int height = Texture.Description.Height;
+            return (width, height);
+        }
+
         public Viewport GetViewport()
         {
             return new Viewport
@@ -375,9 +450,11 @@ public partial class CharmRenderer
             Texture?.Dispose();
             SRV?.Dispose();
             RTV?.Dispose();
+            UAV?.Dispose();
 
             SRV = null;
             RTV = null;
+            UAV = null;
             Texture = null;
         }
     }
@@ -447,9 +524,9 @@ public partial class CharmRenderer
             context.ClearDepthStencilView(DSV, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, depth, stencilRef);
         }
 
-        public void Set(DeviceContext context, bool clearDepth = true, bool clearStencil = true)
+        public void Set(DeviceContext context)
         {
-            context.OutputMerger.SetRenderTargets(DSV);
+            context.OutputMerger.SetRenderTargets(DSV, [null]);
             //if (clear)
             //    context.ClearDepthStencilView(DSV, DepthStencilClearFlags.Depth);
         }
@@ -472,6 +549,13 @@ public partial class CharmRenderer
             int width = Texture.Description.Width;
             int height = Texture.Description.Height;
             return new(width, height, 1f / width, 1f / height);
+        }
+
+        public (int width, int height) GetResolution()
+        {
+            int width = Texture.Description.Width;
+            int height = Texture.Description.Height;
+            return (width, height);
         }
 
         public void Dispose()

@@ -44,9 +44,10 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public bool RenderSkyObjs { get; set; } = true;
     public float TimeOfDay { get; set; } = 0.635f;
     public bool AutoExposure { get; set; } = true;
-    public float Exposure { get; set; } = 0.5f;
+    public float Exposure { get; set; } = 0.25f;
     public float ExposureIllum { get; set; } = 1f;
     public bool Bloom { get; set; } = true;
+    public bool GodRays { get; set; } = true;
     public float FOV { get; set; } = 60f;
     public float TimeScale { get; set; } = 1f;
     public float AtmosRotation { get; set; } = 0.50f; //0.825f;
@@ -305,6 +306,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 Text = "Bloom",
                 GetValue = () => Bloom,
                 SetValue = v => Bloom = v
+            },
+            new ToggleSetting
+            {
+                Text = "God Rays",
+                GetValue = () => GodRays,
+                SetValue = v => GodRays = v
             },
             ExposureSetting,
             new SliderSetting

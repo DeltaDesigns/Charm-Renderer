@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using HelixToolkit.Geometry;
+using HelixToolkit.Maths;
 using SharpDX;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
@@ -7,7 +8,9 @@ using SharpDX.Mathematics.Interop;
 using Tiger;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
+using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
+using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
@@ -45,8 +48,9 @@ public partial class CharmRenderer
         Context.PixelShader.SetShaderResources(0, GBuffers.RT2_Clone.SRV);
 
         DrawScreenQuad();
-
         RenderHelpers.EndProfile();
+
+        RenderDownsampleDepth();
     }
 
     private void RenderAtmosphere()
@@ -56,19 +60,21 @@ public partial class CharmRenderer
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
             Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
 
-            Externs.Atmosphere.AtmosNear = AssetManager.Get().BlackTextureWAlpha;
-            Externs.Atmosphere.AtmosFar = AssetManager.Get().BlackTextureWAlpha;
+            Externs.Atmosphere.AtmosNear = AssetManager.BlackTextureWAlpha;
+            Externs.Atmosphere.AtmosFar = AssetManager.BlackTextureWAlpha;
+            Externs.Atmosphere.SkyMaskBlur = AssetManager.WhiteTexture;
+            Externs.Atmosphere.SkyHemisphereBlur = AssetManager.WhiteTexture;
 
-            Externs.Transparent.AtmosNear = AssetManager.Get().BlackTextureWAlpha;
-            Externs.Transparent.AtmosFar = AssetManager.Get().BlackTextureWAlpha;
-            Externs.Transparent.AtmosDepthAngleDensity = AssetManager.Get().WhiteTexture;
+            Externs.Transparent.AtmosNear = AssetManager.BlackTextureWAlpha;
+            Externs.Transparent.AtmosFar = AssetManager.BlackTextureWAlpha;
+            Externs.Transparent.AtmosDepthAngleDensity = AssetManager.WhiteTexture;
             return;
         }
 
         RenderHelpers.Profile("Render Atmosphere");
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        Annotation.BeginEvent("Atmosphere");
 
-        var mask = GBuffers.SkyGenerateMask;
+        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
         var far = GBuffers.SkyGenerateFar;
         var near = GBuffers.SkyGenerateNear;
         var hemisphere = GBuffers.FullHemisphereSkyColor;
@@ -76,14 +82,12 @@ public partial class CharmRenderer
 
         Externs.Atmosphere.RTDimensions = far.GetResolutionInverse();
         Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
-        //Externs.Atmosphere.AtmosRotation = Viewport.AtmosRotation;
-        //Externs.Atmosphere.AtmosIntensity = Viewport.AtmosIntensity;
 
         Externs.Atmosphere.Update(this);
         Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
         Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
-        Externs.PostProcess.UpdateStageAtmos(Externs.Atmosphere);
+        Externs.PostProcess.UpdateStageAtmos(this);
 
         hemisphere.Bind(Context);
         {
@@ -102,13 +106,15 @@ public partial class CharmRenderer
             Annotation.EndEvent();
         }
 
-        //mask.Bind(Context);
-        //{
-        //	Externs.PostProcess.Unk00 = Externs.Deferred.DeferredDepth;
-        //	Externs.PostProcess.Unk50 = GBuffers.Depth.GetResolutionInverse();
-        //	Externs.PostProcess.Unk60 = mask.GetResolutionInverse();
-        //	RenderGlobalPipeline("sky_generate_sky_mask");
-        //}
+        if (Viewport.GodRays)
+        {
+            GenerateSkyMask();
+        }
+        else
+        {
+            Externs.Atmosphere.SkyMaskBlur = AssetManager.WhiteTexture;
+            Externs.Atmosphere.SkyHemisphereBlur = AssetManager.WhiteTexture;
+        }
 
         far.Bind(Context);
         RenderGlobalPipeline("sky_lookup_generate_far");
@@ -134,7 +140,99 @@ public partial class CharmRenderer
         // Gotta set back to main viewport dims since this gets used for other non-atmosphere things for some reason
         Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
 
+        Annotation.EndEvent();
         RenderHelpers.EndProfile();
+    }
+
+    private void GenerateSkyMask()
+    {
+        var pp = Externs.PostProcess;
+        void BindDownsample(RenderTarget2D rtIn, RenderTarget2D rtOut)
+        {
+            rtOut.Bind(Context);
+            pp.Unk00 = rtIn.SRV;
+            pp.Unk60 = rtIn.GetResolutionInverse();
+            pp.Unk50 = rtOut.GetResolutionInverse();
+        }
+
+        void BindRadialBlur(RenderTarget2D rtIn, RenderTarget2D rtOut, Vector4 unkC0, Vector4 unkD0)
+        {
+            rtOut.Bind(Context);
+            pp.Unk00 = rtIn.SRV;
+            pp.Unk50 = rtOut.GetResolutionInverse();
+            pp.UnkC0 = unkC0;
+            pp.UnkD0 = unkD0;
+
+            //RenderGlobalPipeline("radial_blur_8"); // used on low settings
+            RenderGlobalPipeline("radial_blur_16");
+        }
+
+        (System.Numerics.Vector2 sunScreenUV, float behindFlag) CalculateSunRay()
+        {
+            Vector4 clipPos = Vector4.Transform(
+                Externs.Atmosphere.AtmosSunDir,
+                Externs.View.WorldToProj);
+
+            float behindFlag = clipPos.W >= 0f ? 1f : -1f;
+
+            const float epsilon = 1e-5f;
+            float w = MathF.Abs(clipPos.W) < epsilon ? epsilon * behindFlag : clipPos.W;
+
+            Vector3 ndc = new Vector3(clipPos.X, clipPos.Y, clipPos.Z) / w;
+            Vector2 sunScreenUV = new(
+                ndc.X * 0.5f + 0.5f,
+                1f - (ndc.Y * 0.5f + 0.5f));
+
+            return (sunScreenUV, behindFlag);
+        }
+
+        var buffers = GBuffers;
+        var mask = buffers.SkyGenerateMask;
+
+        var sunRay = CalculateSunRay();
+        var uv = sunRay.sunScreenUV;
+        var behindFlag = sunRay.behindFlag;
+
+        mask.Bind(Context);
+        RenderGlobalPipeline("sky_generate_sky_mask");
+
+        BindDownsample(mask, buffers.SkyGenerateMaskHalf);
+        RenderGlobalPipeline("downsample_block_2x2");
+
+        BindRadialBlur(buffers.SkyGenerateMaskHalf, buffers.SkyBlur1,
+            new Vector4(uv.X, uv.Y, 0.03f, 0.022f),
+            new Vector4(behindFlag, 1f, 1f, 1f)
+        );
+
+        BindRadialBlur(buffers.SkyBlur1, buffers.SkyBlur2,
+            new Vector4(uv.X, uv.Y, 0.08f, 0.05867f),
+            new Vector4(behindFlag, 0.273f, 1f, 1f)
+        );
+        Externs.Atmosphere.SkyMaskBlur = buffers.SkyBlur2.SRV;
+
+        var up = Externs.Atmosphere.AtmosSunDir.ToVector3().GetUp();
+        var right = Externs.Atmosphere.AtmosSunDir.ToVector3().GetRight(up);
+        // seed_inscattering
+        {
+            buffers.SkyHemiSeedInscatter.Bind(Context);
+            pp.Unk00 = buffers.FullHemisphereSkyColor.SRV;
+            pp.UnkC0 = new Vector4(0.175f);
+            pp.UnkD0 = right.ToVector4(right.Z);
+            pp.UnkE0 = up.ToVector4(up.Z);
+            pp.UnkF0 = Externs.Atmosphere.AtmosSunDir;
+
+            RenderGlobalPipeline("sky_hemisphere_seed_inscattering");
+        }
+
+        // spherical_blur
+        {
+            buffers.SkyHemiBlur.Bind(Context);
+            pp.Unk00 = buffers.SkyHemiSeedInscatter.SRV;
+            pp.UnkC0 = new Vector4(0.70f);
+
+            RenderGlobalPipeline("sky_hemisphere_spherical_blur");
+        }
+        Externs.Atmosphere.SkyHemisphereBlur = buffers.SkyHemiBlur.SRV;
     }
 
     private void RenderLighting()
@@ -155,6 +253,8 @@ public partial class CharmRenderer
             RenderGlobalPipeline("cubemap_apply_sky_copy_ao");
 
             Externs.GlobalLighting.Update(World.GlobalChannels);
+            Externs.ShadowMask.Update(GBuffers);
+
             Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
             CMD.States.CreateStates(Context, new(2, 16, 0, 0));
             RenderGlobalPipeline("global_lighting");
@@ -317,6 +417,53 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
+    private void RenderDownsampleDepth()
+    {
+        RenderHelpers.Profile("Render Downsample Depth");
+        Annotation.BeginEvent("Downsample Depth");
+
+        CMD.States.CreateStates(Context, new(0, 2, 0, 0));
+        GBuffers.DepthHalf.Clear(Context, 0, 0);
+        GBuffers.DepthHalf.Set(Context);
+
+        Externs.HDAO.Unk60 = GBuffers.Depth_Clone.DepthSRV;
+        Externs.HDAO.Unk70 = GBuffers.DepthHalf.GetResolutionInverse();
+        Externs.HDAO.Unk80 = GBuffers.Depth.GetResolutionInverse();
+
+        RenderGlobalPipeline("downsample_depth_buffer");
+
+        {
+            Annotation.BeginEvent($"Global Pipeline: uber_depth_default");
+            UnbindAllRTVs();
+            Externs.UberDepth.Update(this);
+
+            ExecutePipeline("uber_depth_default");
+
+            var res = GBuffers.Depth.GetResolution();
+            int groupsX = (res.width + 15) / 16;
+            int groupsY = (res.height + 15) / 16;
+
+            Context.Dispatch(groupsX, groupsY, 1);
+            Context.ComputeShader.SetUnorderedAccessViews(0, [null, null]);
+
+            Annotation.EndEvent();
+        }
+
+        // Used for shadow mask, not important rn
+        //CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        //GBuffers.UberDepth8th.Bind(Context);
+        //{
+        //    Externs.DownsampleTextureGeneric.Update(
+        //        GBuffers.UberDepthQuarter.SRV,
+        //        GBuffers.UberDepth8th.GetResolutionInverse(),
+        //        GBuffers.UberDepthQuarter.GetResolutionInverse());
+        //}
+        //RenderGlobalPipeline("downsample_max_min_avg_no_swizzle");
+
+        Annotation.EndEvent();
+        RenderHelpers.EndProfile();
+    }
+
     // Old Exposure
     private float _currentExposure = 1.0f;
     private float _targetExposure = 1.0f;
@@ -466,36 +613,6 @@ public partial class CharmRenderer
             renderable?.Bind(this, renderStage);
         }
 
-        Annotation.EndEvent();
-    }
-
-
-    // TODO, actually make this work
-    private void RenderParallel(TfxRenderStage renderStage, string passName)
-    {
-        Annotation.BeginEvent(passName);
-        RenderObject[] renderObjects;
-        RenderObject[] persistentObjects;
-
-        lock (World.WorldLock)
-        {
-            renderObjects = World.RenderObjects.ToArray();
-            persistentObjects = World.PersistantRenderObjects.ToArray();
-        }
-
-        foreach (var renderable in renderObjects)
-        {
-            renderable?.BindParallel(this, renderStage, 6);
-        }
-
-        foreach (var renderable in persistentObjects)
-        {
-            var bb = renderable.BoundingBox;
-            if (!Camera.Frustum.Intersects(ref bb))
-                continue;
-
-            renderable?.BindParallel(this, renderStage, 6);
-        }
         Annotation.EndEvent();
     }
 
