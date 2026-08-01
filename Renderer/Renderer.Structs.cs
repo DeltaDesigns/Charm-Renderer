@@ -171,14 +171,14 @@ public enum RenderPass
     // Diffuse
     [Description("Diffuse Color")] debug_diffuse_color,
     [Description("Diffuse Light")] debug_diffuse_light,
+    [Description("Diffuse IBL")] debug_diffuse_ibl,
     [Description("Diffuse Only")] debug_diffuse_only,
-    //[Description("Diffuse IBL")] debug_diffuse_ibl,
 
     // Specular
     [Description("Specular Color")] debug_specular_color,
     [Description("Specular Light")] debug_specular_light,
+    [Description("Specular IBL")] debug_specular_ibl,
     [Description("Specular Only")] debug_specular_only,
-    //[Description("Specular IBL")] debug_specular_ibl
 
     // Depth
     [Description("Depth")] debug_depth,

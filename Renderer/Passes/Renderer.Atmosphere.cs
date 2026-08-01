@@ -39,7 +39,7 @@ public partial class CharmRenderer
         Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
         Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
-        Externs.PostProcess.UpdateStageAtmos(this);
+        Externs.PostProcess.UpdateAtmos(this);
 
         hemisphere.Bind(Context);
         {

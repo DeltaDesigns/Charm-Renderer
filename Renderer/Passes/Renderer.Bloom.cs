@@ -251,14 +251,16 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
-
-    private int _frameIndex;
+    private float _addedDeltaTime;
     private readonly AutoExposureSystem _autoexposure = new AutoExposureSystem();
-    private readonly object _autoexposureColumnsLock = new object();
     public void UpdateAutoexposure(float deltaTime)
     {
-        if (_frameIndex > 0 && Viewport.AutoExposure && Viewport.RenderSky)
+        if (_frameCounter > 0 && Viewport.AutoExposure && Viewport.RenderSky)
         {
+            _addedDeltaTime += deltaTime;
+            if (_frameCounter % 2 != 0)
+                return;
+
             RenderHelpers.Profile("Auto Exposure Updating");
             var autoexposureColumns = GBuffers.Bloom.AutoExposureColumnsStaging;
             int columnCount = autoexposureColumns.Description.Width;
@@ -268,17 +270,13 @@ public partial class CharmRenderer
 
             try
             {
-                var data = new Vector4[columnCount];
+                ReadOnlySpan<Vector4> data;
                 unsafe
                 {
-                    var src = (Vector4*)mappedBuffer.DataPointer;
-                    for (int i = 0; i < columnCount; i++)
-                    {
-                        data[i] = src[i];
-                    }
+                    data = new ReadOnlySpan<Vector4>((void*)mappedBuffer.DataPointer, columnCount);
                 }
 
-                ExposureResult exposureResult = _autoexposure.UpdateFromRaw(data, deltaTime);
+                ExposureResult exposureResult = _autoexposure.UpdateFromRaw(data, _addedDeltaTime);
                 Externs.Frame.ExposureScale = exposureResult.ExposureScale;
                 //Externs.Frame.ExposureIllumRelative = exposureResult.ExposureIllumRelative;
                 //Console.WriteLine(Viewport.Exposure);
@@ -286,17 +284,16 @@ public partial class CharmRenderer
             finally
             {
                 GPU.Instance.ImmediateContext.UnmapSubresource(autoexposureColumns, 0);
+                _addedDeltaTime = 0.0f;
             }
             RenderHelpers.EndProfile();
         }
         else
         {
             Externs.Frame.ExposureScale = Viewport.Exposure;
+            _addedDeltaTime = 0.0f;
         }
-
-        _frameIndex++;
     }
-
 }
 
 public struct ExposureColumn
@@ -353,9 +350,9 @@ public class AutoExposureSystem
     /// </summary>
     /// <param name="rawColumns">Flat array of Vector4 data representing ExposureColumn data from the GPU.</param>
     /// <param name="deltaTime">Time in seconds since the last frame.</param>
-    public ExposureResult UpdateFromRaw(IReadOnlyList<Vector4> rawColumns, float deltaTime)
+    public ExposureResult UpdateFromRaw(ReadOnlySpan<Vector4> rawColumns, float deltaTime)
     {
-        var columns = new List<ExposureColumn>(rawColumns.Count);
+        var columns = new List<ExposureColumn>(rawColumns.Length);
         foreach (var col in rawColumns)
         {
             columns.Add(new ExposureColumn

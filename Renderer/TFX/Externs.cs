@@ -440,7 +440,7 @@ public class Externs : IDisposable
             RenderHelpers.EndProfile();
         }
 
-        public void UpdateStageAtmos(CharmRenderer renderer)
+        public void UpdateAtmos(CharmRenderer renderer)
         {
             var atmos = renderer.Externs.Atmosphere;
             var up = atmos.AtmosSunDir.ToVector3().GetUp();
@@ -549,12 +549,10 @@ public class Externs : IDisposable
 
         public void Update(DeviceContext context, GBuffer gbuffer)
         {
-            //RenderHelpers.Profile("Extern Fxaa Update");
             Unk00 = gbuffer.PostProcessResult.SRV;
             Unk50 = 0.75f;
             Unk54 = 0.166f;
             Unk58 = 0.0833f;
-            //RenderHelpers.EndProfile();
         }
 
         public void Dispose()
