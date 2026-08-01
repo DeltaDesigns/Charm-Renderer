@@ -244,6 +244,7 @@ public partial class CharmRenderer : IDisposable
 
         RenderGBuffer();
         RenderAtmosphere();
+        RenderHDAO();
         RenderLighting();
         RenderShading();
         RenderTransparent();

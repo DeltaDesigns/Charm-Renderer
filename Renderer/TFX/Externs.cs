@@ -88,6 +88,7 @@ public class Externs : IDisposable
             GameTime = renderer.Time * renderer.Viewport.TimeScale;
             RenderTime = renderer.Time * renderer.Viewport.TimeScale;
             DeltaTime = renderer.DeltaTime;
+            Unk1B0 = new(0f, 0f, 1f, 1f);
             RenderHelpers.EndProfile();
         }
 
@@ -624,8 +625,23 @@ public class Externs : IDisposable
         {
         }
 
-        public void Update()
+        public void Update(CharmRenderer renderer)
         {
+            var buffers = renderer.GBuffers;
+            var depthConstants = renderer.Externs.Deferred.DepthConstants;
+            Unk60 = buffers.Depth_Clone.DepthSRV;
+            Unk68 = buffers.UberDepthHalf.SRV;
+            Unk70 = buffers.UberDepthHalf.GetResolutionInverse();
+            Unk80 = buffers.Depth.GetResolutionInverse();
+            Unk90 = new(depthConstants.X, depthConstants.Y, 114.58865f, 1f);
+            Unk20 = new(0.00104f, 0.00185f, 9.00f, 9.00f);
+            Unk00 = new(8f, -6.6f, 0, 0);
+            Unk10 = new(-140f, 279.29999f, 0, 0);
+            //Unk40 = new(-0.00098f);
+            Unk40 = new(-0.0012f);
+            Unk50 = new(10000, 50000, -0.02f, 20);
+            //Unk30 = new(0.4f, 0.4f, 0.6f, 0.6f);
+            Unk30 = new(0.28f, 0.28f, 0.6f, 0.6f);
         }
 
         public void Dispose()

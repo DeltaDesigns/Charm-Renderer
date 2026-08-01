@@ -129,6 +129,27 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
+    private void RenderHDAO()
+    {
+        if (!Viewport.HDAO)
+        {
+            Externs.ShadowMask.Unk08 = AssetManager.WhiteTexture;
+            return;
+        }
+
+        RenderHelpers.Profile("Render HDAO");
+        Annotation.BeginEvent("HDAO");
+        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+
+        GBuffers.HDAO.Bind(Context);
+        Externs.HDAO.Update(this);
+        RenderGlobalPipeline("hdao");
+        Externs.ShadowMask.Unk08 = GBuffers.HDAO.SRV;
+
+        Annotation.EndEvent();
+        RenderHelpers.EndProfile();
+    }
+
     // Old Exposure
     private float _currentExposure = 1.0f;
     private float _targetExposure = 1.0f;

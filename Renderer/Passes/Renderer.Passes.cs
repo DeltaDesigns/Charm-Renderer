@@ -88,7 +88,7 @@ public partial class CharmRenderer
         {
             CMD.States.SetStencilRef(Context, 0);
             // Supposed to be Diffuse and IBL but swapping IBL with Specular instead cus it just looks better with this setup
-            Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
+            Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightIBL.RTV);
             RenderGlobalPipeline("cubemap_apply_sky_copy_ao");
 
             Externs.GlobalLighting.Update(World.GlobalChannels);
@@ -108,7 +108,7 @@ public partial class CharmRenderer
         {
             Externs.Deferred.LightDiffuse = GBuffers.LightDiffuse.SRV;
             Externs.Deferred.LightSpecular = GBuffers.LightSpecular.SRV;
-            Externs.Deferred.LightIBL = GBuffers.LightSpecular.SRV;
+            Externs.Deferred.LightIBL = GBuffers.LightIBL.SRV;
         }
         Annotation.EndEvent();
         RenderHelpers.EndProfile();

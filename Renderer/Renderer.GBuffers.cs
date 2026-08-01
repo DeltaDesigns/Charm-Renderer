@@ -30,6 +30,7 @@ public partial class CharmRenderer
 
         public RenderTarget2D PostProcessResult { get; private set; }
         public RenderTarget2D FXAA { get; private set; }
+        public RenderTarget2D HDAO { get; private set; }
 
         public DepthTarget Depth { get; private set; }
         public DepthTarget Depth_Clone { get; private set; }
@@ -83,6 +84,7 @@ public partial class CharmRenderer
 
             PostProcessResult = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result");
             FXAA = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "FXAA Result");
+            HDAO = new RenderTarget2D(device, width, height, Format.R8G8_UNorm, debugName: "HDAO");
 
             Depth = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth");
             Depth_Clone = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone");
@@ -153,6 +155,8 @@ public partial class CharmRenderer
             PostProcessResult = null;
             FXAA?.Dispose();
             FXAA = null;
+            HDAO?.Dispose();
+            HDAO = null;
 
             Depth?.Dispose();
             Depth = null;
