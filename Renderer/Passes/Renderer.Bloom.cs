@@ -313,7 +313,7 @@ public struct ExposureResult
 public class AutoExposureConfig
 {
     /// <summary>Target middle grey value.</summary>
-    public float TargetLuminance = 0.01f;
+    public float TargetLuminance = 0.0075f;
     public float MinLuminance = 0.0001f;
     public float MaxLuminance = 65000.0f;
 

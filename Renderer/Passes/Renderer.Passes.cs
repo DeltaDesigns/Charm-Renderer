@@ -134,15 +134,15 @@ public partial class CharmRenderer
 
             CMD.States.SetStencilRef(Context, 0);
             CMD.States.CreateStates(Context, new(0, 31, 0, 0));
-            //RenderGlobalPipeline("deferred_shading");
+            RenderGlobalPipeline("deferred_shading");
         }
         else
         {
             CMD.States.SetStencilRef(Context, 0);
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            RenderGlobalPipeline("deferred_shading_no_atm");
         }
 
-        RenderGlobalPipeline("deferred_shading_no_atm");
         RenderHelpers.EndProfile();
     }
 

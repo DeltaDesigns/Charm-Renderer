@@ -58,15 +58,7 @@ public partial class CharmRenderer
             Annotation.EndEvent();
         }
 
-        if (Viewport.GodRays)
-        {
-            GenerateSkyMask();
-        }
-        else
-        {
-            Externs.Atmosphere.SkyMaskBlur = AssetManager.WhiteTexture;
-            Externs.Atmosphere.SkyHemisphereBlur = AssetManager.WhiteTexture;
-        }
+        GenerateSkyMask();
 
         far.Bind(Context);
         RenderGlobalPipeline("sky_lookup_generate_far");
@@ -140,50 +132,57 @@ public partial class CharmRenderer
 
         var buffers = GBuffers;
         var mask = buffers.SkyGenerateMask;
-
-        var sunRay = CalculateSunRay();
-        var uv = sunRay.sunScreenUV;
-        var behindFlag = sunRay.behindFlag;
-
         mask.Bind(Context);
         RenderGlobalPipeline("sky_generate_sky_mask");
 
         BindDownsample(mask, buffers.SkyGenerateMaskHalf);
         RenderGlobalPipeline("downsample_block_2x2");
 
-        BindRadialBlur(buffers.SkyGenerateMaskHalf, buffers.SkyBlur1,
-            new Vector4(uv.X, uv.Y, 0.03f, 0.022f),
-            new Vector4(behindFlag, 1f, 1f, 1f)
-        );
-
-        BindRadialBlur(buffers.SkyBlur1, buffers.SkyBlur2,
-            new Vector4(uv.X, uv.Y, 0.08f, 0.05867f),
-            new Vector4(behindFlag, 0.273f, 1f, 1f)
-        );
-        Externs.Atmosphere.SkyMaskBlur = buffers.SkyBlur2.SRV;
-
-        var up = Externs.Atmosphere.AtmosSunDir.ToVector3().GetUp();
-        var right = Externs.Atmosphere.AtmosSunDir.ToVector3().GetRight(up);
-        // seed_inscattering
+        if (Viewport.GodRays)
         {
-            buffers.SkyHemiSeedInscatter.Bind(Context);
-            pp.Unk00 = buffers.FullHemisphereSkyColor.SRV;
-            pp.UnkC0 = new Vector4(0.175f);
-            pp.UnkD0 = right.ToVector4(right.Z);
-            pp.UnkE0 = up.ToVector4(up.Z);
-            pp.UnkF0 = Externs.Atmosphere.AtmosSunDir;
+            var sunRay = CalculateSunRay();
+            var uv = sunRay.sunScreenUV;
+            var behindFlag = sunRay.behindFlag;
 
-            RenderGlobalPipeline("sky_hemisphere_seed_inscattering");
+            BindRadialBlur(buffers.SkyGenerateMaskHalf, buffers.SkyBlur1,
+                new Vector4(uv.X, uv.Y, 0.03f, 0.022f),
+                new Vector4(behindFlag, 1f, 1f, 1f)
+            );
+
+            BindRadialBlur(buffers.SkyBlur1, buffers.SkyBlur2,
+                new Vector4(uv.X, uv.Y, 0.08f, 0.05867f),
+                new Vector4(behindFlag, 0.273f, 1f, 1f)
+            );
+            Externs.Atmosphere.SkyMaskBlur = buffers.SkyBlur2.SRV;
+
+            var up = Externs.Atmosphere.AtmosSunDir.ToVector3().GetUp();
+            var right = Externs.Atmosphere.AtmosSunDir.ToVector3().GetRight(up);
+            // seed_inscattering
+            {
+                buffers.SkyHemiSeedInscatter.Bind(Context);
+                pp.Unk00 = buffers.FullHemisphereSkyColor.SRV;
+                pp.UnkC0 = new Vector4(0.175f);
+                pp.UnkD0 = right.ToVector4(right.Z);
+                pp.UnkE0 = up.ToVector4(up.Z);
+                pp.UnkF0 = Externs.Atmosphere.AtmosSunDir;
+
+                RenderGlobalPipeline("sky_hemisphere_seed_inscattering");
+            }
+
+            // spherical_blur
+            {
+                buffers.SkyHemiBlur.Bind(Context);
+                pp.Unk00 = buffers.SkyHemiSeedInscatter.SRV;
+                pp.UnkC0 = new Vector4(0.70f);
+
+                RenderGlobalPipeline("sky_hemisphere_spherical_blur");
+            }
+            Externs.Atmosphere.SkyHemisphereBlur = buffers.SkyHemiBlur.SRV;
         }
-
-        // spherical_blur
+        else
         {
-            buffers.SkyHemiBlur.Bind(Context);
-            pp.Unk00 = buffers.SkyHemiSeedInscatter.SRV;
-            pp.UnkC0 = new Vector4(0.70f);
-
-            RenderGlobalPipeline("sky_hemisphere_spherical_blur");
+            Externs.Atmosphere.SkyMaskBlur = buffers.SkyGenerateMask.SRV;
+            Externs.Atmosphere.SkyHemisphereBlur = AssetManager.WhiteTexture;
         }
-        Externs.Atmosphere.SkyHemisphereBlur = buffers.SkyHemiBlur.SRV;
     }
 }

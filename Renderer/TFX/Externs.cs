@@ -458,7 +458,7 @@ public class Externs : IDisposable
         {
             Unk00 = gbuffer.Bloom.Bloom24th.SRV;
             Unk50 = gbuffer.Bloom.AutoExposureColumns.GetResolutionInverse();
-            UnkC0 = new(0.01f, 0.9f, 0.325f, 1f); //new(0.01f, 0.9f, 1f, 1f);
+            UnkC0 = new(0.01f, 0.9f, 0.3f, 1f); //new(0.01f, 0.9f, 1f, 1f);
         }
 
         public void Dispose()

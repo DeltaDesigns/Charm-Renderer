@@ -234,7 +234,16 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         {
             Text = "Render Sky",
             GetValue = () => RenderSky,
-            SetValue = v => RenderSky = v
+            SetValue = v =>
+            {
+                if (!v)
+                {
+                    Exposure = 1f;
+                    ExposureSetting.NotifyValueChanged();
+                }
+
+                RenderSky = v;
+            }
         };
         TimeOfDaySetting = new SliderSetting
         {
