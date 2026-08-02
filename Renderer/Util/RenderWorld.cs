@@ -38,9 +38,9 @@ public class RenderWorld : IDisposable
 
     public void CreateWorld(CharmRenderer renderer, Tag<SBubbleParent> bubble)
     {
-        renderer.Externs.Atmosphere.AtmosLookup0 = null;
-        renderer.Externs.Atmosphere.AtmosLookup1 = null;
-        renderer.Externs.Atmosphere.AtmosLookup2 = null;
+        renderer.Externs.Atmosphere.SkySnapshot1 = null;
+        renderer.Externs.Atmosphere.SkySnapshot2 = null;
+        renderer.Externs.Atmosphere.SkyDensityLookup = null;
         renderer.Externs.ScreenArea.Unk08 = null;
 
         bubble.TagData.ChildMapReference.TagData.MapResources.ForEach(m =>
@@ -214,12 +214,12 @@ public class RenderWorld : IDisposable
         }
         else
         {
-            renderer.Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup0).SRV;
-            renderer.Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup1 ?? Atmosphere.Value.Lookup0).SRV;
+            renderer.Externs.Atmosphere.SkySnapshot1 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup0).SRV;
+            renderer.Externs.Atmosphere.SkySnapshot2 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup1 ?? Atmosphere.Value.Lookup0).SRV;
         }
 
         if (Atmosphere.Value.Lookup4 != null)
-            renderer.Externs.Atmosphere.AtmosLookup2 = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup4).SRV;
+            renderer.Externs.Atmosphere.SkyDensityLookup = AssetManager.Get().GetOrCreateGlobalTexture(Atmosphere.Value.Lookup4).SRV;
 
         Log.Debug("Assigned Atmopshere Extern Textures.");
     }

@@ -251,12 +251,12 @@ public class Externs : IDisposable
 
     public class ExternAtmosphere : IDisposable
     {
-        [ExternField(0x40)] public ShaderResourceView AtmosLookup0 { get; set; }
-        [ExternField(0x58)] public ShaderResourceView AtmosLookup1 { get; set; }
+        [ExternField(0x40)] public ShaderResourceView SkySnapshot1 { get; set; }
+        [ExternField(0x58)] public ShaderResourceView SkySnapshot2 { get; set; }
         [ExternField(0x70)] public float AtmosTimeOfDay { get; set; } = 0.5f;
         [ExternField(0x74)] public float AtmosUnk74 { get; set; } = 0f;
         [ExternField(0x78)] public float AtmosUnk78 { get; set; } = 0f;
-        [ExternField(0x80)] public ShaderResourceView AtmosLookup2 { get; set; }
+        [ExternField(0x80)] public ShaderResourceView SkyDensityLookup { get; set; }
         [ExternField(0x90)] public Vector4 RTDimensions { get; set; } = new(0);
         [ExternField(0xA0)] public ShaderResourceView SkyMaskBlur { get; set; }
         [ExternField(0xC0)] public ShaderResourceView SkyHemisphereBlur { get; set; }

@@ -1057,7 +1057,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         [Description("Vesper Station")] VesperStation = 0x80EF4378,
         [Description("Botza Ruins")] BotzaRuins = 0x813E57CA,
         [Description("Dreaming City")] DreamingCity = 0x813E57D4, // Keep of Voices
-        [Description("Twilight Gap")] Moon = 0x8118D1D7, // Seraphs Shield: Depot
+        [Description("Twilight Gap")] SeraphShield = 0x8118D1D7, // Seraphs Shield: Depot
         [Description("Warlord's Ruin")] WarlordsRuin = 0x8112FC9E,
         Cosmodrome = 0x80C86FD6,
         Mars = 0x80D44F41,

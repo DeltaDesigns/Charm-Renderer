@@ -36,8 +36,8 @@ public partial class CharmRenderer
         Externs.Atmosphere.AtmosTimeOfDay = Viewport.TimeOfDay;
 
         Externs.Atmosphere.Update(this);
-        Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
-        Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
+        Externs.Atmosphere.SkySnapshot1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
+        Externs.Atmosphere.SkySnapshot2 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
         Externs.PostProcess.UpdateAtmos(this);
 
@@ -67,10 +67,10 @@ public partial class CharmRenderer
 
         // I guess this is how it actually works? Far uses first 2 textures, Near uses last 2, even if they are the same
         if (World.Atmosphere?.Lookup2 is not null)
-            Externs.Atmosphere.AtmosLookup0 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup2).SRV;
+            Externs.Atmosphere.SkySnapshot1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup2).SRV;
 
         if (World.Atmosphere?.Lookup3 is not null)
-            Externs.Atmosphere.AtmosLookup1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup3).SRV;
+            Externs.Atmosphere.SkySnapshot2 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup3).SRV;
 
         near.Bind(Context);
         RenderGlobalPipeline("sky_lookup_generate_near");
