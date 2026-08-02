@@ -13,28 +13,27 @@ public partial class CharmRenderer
 
         RenderBloom();
 
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
-        GBuffers.ColorGradingLUT.Bind(Context);
-
-        if (Externs.ScreenArea.Unk08 is not null)
+        // TODO, compute dispatching in MaterialData binding
+        if (Viewport.DisplayPass == RenderPass.final_color_grade)
         {
-            TempScopes.UpdateColorGradingScope(Context, true);
-            RenderGlobalPipeline("color_grading_fill_using_tint_map_plus_matrix_hdr");
-        }
-        else
-        {
-            TempScopes.UpdateColorGradingScope(Context);
-            RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
-        }
+            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            GBuffers.ColorGradingLUT.Bind(Context);
+            if (Externs.ScreenArea.Unk08 is not null)
+            {
+                TempScopes.UpdateColorGradingScope(Context, true);
+                RenderGlobalPipeline("color_grading_fill_using_tint_map_plus_matrix_hdr");
+            }
+            else
+            {
+                TempScopes.UpdateColorGradingScope(Context);
+                RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
+            }
 
-        { // TODO, compute dispatching in MaterialData binding
             Annotation.BeginEvent($"Global Pipeline: color_grading_convert_to_volume_texture_hdr");
             UnbindAllRTVs();
 
-            {
-                Externs.ScreenArea.Unk00 = GBuffers.ColorGradingLUT.SRV;
-                Externs.ScreenArea.Unk60 = GBuffers.LUTVolume.UAV;
-            }
+            Externs.ScreenArea.Unk00 = GBuffers.ColorGradingLUT.SRV;
+            Externs.ScreenArea.Unk60 = GBuffers.LUTVolume.UAV;
 
             ExecutePipeline("color_grading_convert_to_volume_texture_hdr");
 

@@ -38,6 +38,11 @@ public class RenderWorld : IDisposable
 
     public void CreateWorld(CharmRenderer renderer, Tag<SBubbleParent> bubble)
     {
+        renderer.Externs.Atmosphere.AtmosLookup0 = null;
+        renderer.Externs.Atmosphere.AtmosLookup1 = null;
+        renderer.Externs.Atmosphere.AtmosLookup2 = null;
+        renderer.Externs.ScreenArea.Unk08 = null;
+
         bubble.TagData.ChildMapReference.TagData.MapResources.ForEach(m =>
         {
             foreach (SMapDataTableEntry dataTable in m.MapContainer.TagData.MapDataTables)
