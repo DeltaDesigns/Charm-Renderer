@@ -39,8 +39,6 @@ public partial class CharmRenderer
         Externs.Atmosphere.SkySnapshot1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
         Externs.Atmosphere.SkySnapshot2 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
-        Externs.PostProcess.UpdateAtmos(this);
-
         hemisphere.Bind(Context);
         {
             Annotation.BeginEvent($"Global Pipeline: full_hemisphere_sky_color_generate");
@@ -59,6 +57,8 @@ public partial class CharmRenderer
         }
 
         GenerateSkyMask();
+
+        Externs.PostProcess.UpdateAtmos(this);
 
         far.Bind(Context);
         RenderGlobalPipeline("sky_lookup_generate_far");
@@ -129,6 +129,10 @@ public partial class CharmRenderer
 
             return (sunScreenUV, behindFlag);
         }
+
+        Externs.PostProcess.Unk00 = GBuffers.UberDepthHalf.SRV;
+        Externs.PostProcess.Unk50 = GBuffers.SkyGenerateMask.GetResolutionInverse();
+        Externs.PostProcess.Unk60 = GBuffers.UberDepthHalf.GetResolutionInverse();
 
         var buffers = GBuffers;
         var mask = buffers.SkyGenerateMask;

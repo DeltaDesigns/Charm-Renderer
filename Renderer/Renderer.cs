@@ -238,9 +238,9 @@ public partial class CharmRenderer : IDisposable
 
         UpdateAutoexposure(DeltaTime);
         UpdateCamera();
-        UpdateExterns();
+        UpdateExterns(); // Only Frame and View externs here
         UpdateGlobalChannels();
-        UpdateScopes();
+        UpdateScopes(); // Again, only Frame and View scopes here
 
         RenderGBuffer();
         RenderAtmosphere();

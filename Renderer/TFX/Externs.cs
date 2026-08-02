@@ -448,10 +448,6 @@ public class Externs : IDisposable
             UnkC0 = right.ToVector4(right.Z);
             UnkD0 = up.ToVector4(up.Z);
             UnkE0 = atmos.AtmosSunDir;
-
-            Unk00 = renderer.GBuffers.UberDepthHalf.SRV;
-            Unk50 = renderer.GBuffers.SkyGenerateMask.GetResolutionInverse();
-            Unk60 = renderer.GBuffers.UberDepthHalf.GetResolutionInverse();
         }
 
         public void UpdateAutoExposure(GBuffer gbuffer)
@@ -631,15 +627,16 @@ public class Externs : IDisposable
             Unk68 = buffers.UberDepthHalf.SRV;
             Unk70 = buffers.UberDepthHalf.GetResolutionInverse();
             Unk80 = buffers.Depth.GetResolutionInverse();
-            Unk90 = new(depthConstants.X, depthConstants.Y, 114.58865f, 1f);
-            Unk20 = new(0.00104f, 0.00185f, 9.00f, 9.00f);
+
             Unk00 = new(8f, -6.6f, 0, 0);
             Unk10 = new(-140f, 279.29999f, 0, 0);
+            Unk20 = new(0.00104f, 0.00185f, 9.00f, 9.00f);
+            Unk30 = new(0.4f, 0.4f, 0.6f, 0.6f);
+            //Unk30 = new(0.35f, 0.35f, 0.6f, 0.6f);
             //Unk40 = new(-0.00098f);
-            Unk40 = new(-0.0012f);
+            Unk40 = new(-0.0015f);
             Unk50 = new(10000, 50000, -0.02f, 20);
-            //Unk30 = new(0.4f, 0.4f, 0.6f, 0.6f);
-            Unk30 = new(0.28f, 0.28f, 0.6f, 0.6f);
+            Unk90 = new(depthConstants.X, depthConstants.Y, 114.58865f, 1f);
         }
 
         public void Dispose()

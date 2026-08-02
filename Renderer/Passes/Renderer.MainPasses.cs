@@ -97,6 +97,15 @@ public partial class CharmRenderer
             Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
             CMD.States.CreateStates(Context, new(2, 16, 0, 0));
             RenderGlobalPipeline("global_lighting");
+
+            if (Viewport.HDAO)
+            {
+                CMD.States.CreateStates(Context, new(3, 0, 0, 0));
+                Externs.PostProcess.Unk00 = GBuffers.HDAO.SRV;
+                Externs.PostProcess.UnkC0 = new(0.6f, 0.6f, 1, 1);
+                Externs.PostProcess.Unk50 = GBuffers.HDAO.GetResolutionInverse();
+                RenderGlobalPipeline("apply_ssao_to_light_buffers");
+            }
         }
         else
         {

@@ -1059,6 +1059,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         [Description("Dreaming City")] DreamingCity = 0x813E57D4, // Keep of Voices
         [Description("Twilight Gap")] SeraphShield = 0x8118D1D7, // Seraphs Shield: Depot
         [Description("Warlord's Ruin")] WarlordsRuin = 0x8112FC9E,
+        [Description("Infinite Forest")] InfiniteForest = 0x811BE157,
         Cosmodrome = 0x80C86FD6,
         Mars = 0x80D44F41,
         Eternity = 0x80F2CB14,
