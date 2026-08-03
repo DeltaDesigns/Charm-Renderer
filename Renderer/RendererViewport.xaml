@@ -413,6 +413,7 @@
 
                             <!--  Atmosphere options  -->
                             <Border
+                                Margin="0,5,0,5"
                                 Background="#75000000"
                                 BorderBrush="#759D9D9D"
                                 BorderThickness="1">
@@ -467,6 +468,14 @@
                                 </StackPanel>
                             </Border>
 
+                            <ItemsControl x:Name="RenderOptions">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Margin="0" Orientation="Vertical" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+
                             <!--  Render Pass box  -->
                             <Grid
                                 Margin="0,5,0,5"
@@ -498,13 +507,6 @@
                                     Style="{DynamicResource D2StyleComboBox}" />
                             </Grid>
 
-                            <ItemsControl x:Name="RenderOptions">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Margin="5" Orientation="Vertical" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
 
                             <!--  Debug Options  -->
                             <Expander
@@ -825,7 +827,7 @@
                                             Panel.ZIndex="1"
                                             FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
                                             FontSize="16"
-                                            Text="Investment Options" />
+                                            Text="Gear Options" />
                                     </Expander.Header>
 
                                     <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
@@ -863,10 +865,10 @@
                                                             HorizontalAlignment="Left"
                                                             VerticalAlignment="Center"
                                                             FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                                            Text="Item Shaders" />
+                                                            Text="Gear Shaders" />
 
                                                         <StackPanel
-                                                            Margin="15,0,0,0"
+                                                            Margin="15,0,15,0"
                                                             Orientation="Vertical"
                                                             Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                             <RadioButton
@@ -884,11 +886,18 @@
                                                                 IsChecked="True"
                                                                 Tag="1" />
                                                         </StackPanel>
+
+                                                        <shared:SearchBar
+                                                            Width="150"
+                                                            Margin="5"
+                                                            Placeholder="Search shaders..."
+                                                            Text="{Binding ShaderSearch, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
                                                     </StackPanel>
                                                 </Expander.Header>
 
                                                 <StackPanel Margin="10,0,0,0" Orientation="Vertical">
-
                                                     <ContentControl x:Name="AllItemShaders" ContentTemplate="{StaticResource SocketCategory}" />
 
                                                     <ScrollViewer

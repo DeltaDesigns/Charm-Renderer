@@ -968,34 +968,80 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         Renderer.Resume();
     }
 
+    private string _shaderSearch = string.Empty;
+    public string ShaderSearch
+    {
+        get => _shaderSearch;
+        set
+        {
+            _shaderSearch = value;
+            OnPropertyChanged(nameof(ShaderSearch));
+            SearchShaders();
+        }
+    }
+
+    private int _currentOrder = 0;
+    private readonly Dictionary<SocketCategory, List<APIPlugItem>> _shaderItems = new();
+    private DispatcherTimer _searchDebounceTimer;
+    private void SearchShaders()
+    {
+        if (_searchDebounceTimer == null)
+        {
+            _searchDebounceTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+            _searchDebounceTimer.Tick += (s, args) =>
+            {
+                _searchDebounceTimer.Stop();
+                FilterInvestmentShaders();
+            };
+        }
+
+        _searchDebounceTimer.Stop();
+        _searchDebounceTimer.Start();
+    }
+
     private void InvestmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not RadioButton rb || !int.TryParse((string)rb.Tag, out int order))
             return;
 
-        ReorderSocket(AllShadersCategories, order);
+        _currentOrder = order;
+        FilterInvestmentShaders();
+    }
+
+    private void FilterInvestmentShaders()
+    {
+        FilterSocket(AllShadersCategories, _currentOrder);
         AllItemShaders.Content = null;
         AllItemShaders.Content = AllShadersCategories;
 
         if (ItemShadersCategories != null && ItemShadersCategories.Count > 0)
         {
             foreach (var entry in ItemShadersCategories)
-                ReorderSocket(entry.ShadersCategory, order);
+                FilterSocket(entry.ShadersCategory, _currentOrder);
 
             PerItemShaders.ItemsSource = null;
             PerItemShaders.ItemsSource = ItemShadersCategories;
         }
     }
 
-    private static void ReorderSocket(SocketCategory category, int order)
+    private void FilterSocket(SocketCategory category, int order)
     {
         var socket = category.Sockets[0];
 
+        if (!_shaderItems.TryGetValue(category, out var shaders))
+        {
+            shaders = [.. socket.PlugItems];
+            _shaderItems[category] = shaders;
+        }
+
         var items = order switch
         {
-            0 => socket.PlugItems.OrderBy(x => x.Item.Name).ToList(),
-            1 => socket.PlugItems.OrderByDescending(x => x.Item.GetItemIndex()).ToList(),
-            _ => socket.PlugItems
+            0 => shaders.OrderBy(x => x.Item.Name).ToList(),
+            1 => shaders.OrderByDescending(x => x.Item.GetItemIndex()).ToList(),
+            _ => [.. shaders]
         };
 
         var initial = socket.SingleInitialItem;
@@ -1005,7 +1051,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             items.Insert(0, initial);
         }
 
-        socket.PlugItems = items;
+        var filtered = string.IsNullOrWhiteSpace(ShaderSearch)
+            ? items
+            : items.Where(x => x.Item.Name.Contains(ShaderSearch, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+        socket.PlugItems = filtered;
     }
 
     private void ArmorGenderToggle_Click(object sender, RoutedEventArgs e)
