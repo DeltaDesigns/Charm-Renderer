@@ -665,40 +665,53 @@
                                         </StackPanel>
                                     </Expander.Header>
 
-                                    <ScrollViewer
-                                        Margin="0,0,0,0"
-                                        HorizontalScrollBarVisibility="Disabled"
-                                        VerticalScrollBarVisibility="Auto">
-                                        <ScrollViewer.Resources>
-                                            <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
-                                                <Setter Property="Width" Value="7" />
-                                            </Style>
-                                        </ScrollViewer.Resources>
+                                    <StackPanel Margin="0,0,0,0" Orientation="Vertical">
+                                        <TextBlock
+                                            Margin="20,-5,0,10"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Foreground="White"
+                                            Opacity="0.5"
+                                            Text="Hold Ctrl when selecting to isolate a group" />
 
-                                        <ItemsControl x:Name="MeshGroups" Margin="20,0,20,10">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type local:ToggleSetting}">
-                                                    <StackPanel Margin="3" Orientation="Horizontal">
-                                                        <ToggleButton
-                                                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
-                                                            PreviewMouseLeftButtonDown="MeshGroup_PreviewMouseLeftButtonDown"
-                                                            Style="{DynamicResource D2StyleToggleBoxButton}">
-                                                            <ToggleButton.LayoutTransform>
-                                                                <ScaleTransform ScaleX=".75" ScaleY=".75" />
-                                                            </ToggleButton.LayoutTransform>
-                                                        </ToggleButton>
+                                        <ScrollViewer
+                                            Margin="0,0,0,0"
+                                            HorizontalScrollBarVisibility="Disabled"
+                                            VerticalScrollBarVisibility="Auto">
+                                            <ScrollViewer.Resources>
+                                                <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                                    <Setter Property="Width" Value="7" />
+                                                </Style>
+                                            </ScrollViewer.Resources>
 
-                                                        <TextBlock
-                                                            Margin="0"
-                                                            VerticalAlignment="Center"
-                                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                                            FontSize="14"
-                                                            Text="{Binding Text}" />
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
+                                            <ItemsControl x:Name="MeshGroups" Margin="20,0,20,10">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type local:ToggleSetting}">
+                                                        <StackPanel Margin="3" Orientation="Horizontal">
+                                                            <ToggleButton
+                                                                IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                                PreviewMouseLeftButtonDown="MeshGroup_PreviewMouseLeftButtonDown"
+                                                                Style="{DynamicResource D2StyleToggleBoxButton}">
+                                                                <ToggleButton.LayoutTransform>
+                                                                    <ScaleTransform ScaleX=".75" ScaleY=".75" />
+                                                                </ToggleButton.LayoutTransform>
+                                                            </ToggleButton>
+
+                                                            <TextBlock
+                                                                Margin="0"
+                                                                VerticalAlignment="Center"
+                                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                                FontSize="14"
+                                                                Text="{Binding Text}" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </StackPanel>
+
+
                                 </Expander>
 
                                 <Expander

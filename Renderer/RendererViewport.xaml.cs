@@ -970,30 +970,42 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
     private void InvestmentShadersOrderBy_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not RadioButton rb)
+        if (sender is not RadioButton rb || !int.TryParse((string)rb.Tag, out int order))
             return;
 
-        _ = int.TryParse((string)rb.Tag, out int order);
-
-        var items = AllShadersCategories.Sockets[0].PlugItems;
-        switch (order)
-        {
-            case 0:
-                items = [.. items.OrderBy(x => x.Item.Name)];
-                break;
-
-            case 1:
-                items = [.. items.OrderByDescending(x => x.Item.GetItemIndex())];
-                break;
-        }
-        var initial = AllShadersCategories.Sockets[0].SingleInitialItem;
-        items.Remove(initial);
-        items.Insert(0, initial);
-
-        AllShadersCategories.Sockets[0].PlugItems = items;
-
+        ReorderSocket(AllShadersCategories, order);
         AllItemShaders.Content = null;
         AllItemShaders.Content = AllShadersCategories;
+
+        if (ItemShadersCategories != null && ItemShadersCategories.Count > 0)
+        {
+            foreach (var entry in ItemShadersCategories)
+                ReorderSocket(entry.ShadersCategory, order);
+
+            PerItemShaders.ItemsSource = null;
+            PerItemShaders.ItemsSource = ItemShadersCategories;
+        }
+    }
+
+    private static void ReorderSocket(SocketCategory category, int order)
+    {
+        var socket = category.Sockets[0];
+
+        var items = order switch
+        {
+            0 => socket.PlugItems.OrderBy(x => x.Item.Name).ToList(),
+            1 => socket.PlugItems.OrderByDescending(x => x.Item.GetItemIndex()).ToList(),
+            _ => socket.PlugItems
+        };
+
+        var initial = socket.SingleInitialItem;
+        if (initial != null)
+        {
+            items.Remove(initial);
+            items.Insert(0, initial);
+        }
+
+        socket.PlugItems = items;
     }
 
     private void ArmorGenderToggle_Click(object sender, RoutedEventArgs e)
@@ -1071,7 +1083,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
     private void MeshGroup_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             if (sender is ToggleButton tb && tb.DataContext is GroupToggleVM selected)
             {
