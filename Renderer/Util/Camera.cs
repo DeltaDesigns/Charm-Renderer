@@ -104,7 +104,7 @@ public class FirstPersonCamera
         Frustum = new(CameraToProjective * WorldToCamera);
     }
 
-    private bool IsOrbiting = false;
+    private OrbitMode CurrentOrbitMode = OrbitMode.None;
     private float OrbitDistance = 5f;
     private Vector3 OrbitPivot;
     public bool AutoOrbit = false;
@@ -157,9 +157,9 @@ public class FirstPersonCamera
             var extents = (bbox.Maximum - bbox.Minimum) / 2f;
             var target = center + extents * AutoOrbitOffset;
 
-            if (!IsOrbiting)
+            if (CurrentOrbitMode != OrbitMode.Auto)
             {
-                IsOrbiting = true;
+                CurrentOrbitMode = OrbitMode.Auto;
                 OrbitDistance = Vector3.Distance(Position, target);
                 AutoOrbitAngle = Yaw;
             }
@@ -195,7 +195,8 @@ public class FirstPersonCamera
             return;
         }
 
-        IsOrbiting = false;
+        if (CurrentOrbitMode == OrbitMode.Auto)
+            CurrentOrbitMode = OrbitMode.None;
 
         if (!viewport.ViewportContainer.IsMouseOver)
             return; // doesnt process input if mouse is over any ui or off screen, but still allows auto orbiting to work
@@ -206,7 +207,7 @@ public class FirstPersonCamera
         if (scrollDelta != 0)
         {
             float zoomAmount = scrollDelta * zoomSpeed;
-            if (IsOrbiting)
+            if (CurrentOrbitMode != OrbitMode.None)
             {
                 OrbitDistance -= zoomAmount;
                 OrbitDistance = MathF.Max(0.1f, OrbitDistance);
@@ -220,10 +221,10 @@ public class FirstPersonCamera
         // Left click — free-pivot orbit
         if (mouse.Buttons[0])
         {
-            if (!IsOrbiting)
+            if (CurrentOrbitMode != OrbitMode.FreePivot)
             {
-                IsOrbiting = true;
-                OrbitDistance = Vector3.Distance(Position, Forward);
+                CurrentOrbitMode = OrbitMode.FreePivot;
+                OrbitDistance = 10f;
                 OrbitPivot = Position + Forward * OrbitDistance;
             }
 
@@ -246,7 +247,7 @@ public class FirstPersonCamera
         // Right click — free look
         else if (mouse.Buttons[1])
         {
-            IsOrbiting = false;
+            CurrentOrbitMode = OrbitMode.None;
             Look(mouseDeltaX, mouseDeltaY);
         }
         // Middle click — BBox orbit
@@ -258,9 +259,9 @@ public class FirstPersonCamera
 
             var target = (bbox.Minimum + bbox.Maximum) / 2f;
 
-            if (!IsOrbiting)
+            if (CurrentOrbitMode != OrbitMode.BBox)
             {
-                IsOrbiting = true;
+                CurrentOrbitMode = OrbitMode.BBox;
                 OrbitDistance = Vector3.Distance(Position, target);
             }
 
@@ -281,7 +282,7 @@ public class FirstPersonCamera
         }
         else
         {
-            IsOrbiting = false;
+            CurrentOrbitMode = OrbitMode.None;
         }
 
         if (keyboard.IsPressed(SharpDX.DirectInput.Key.R))
@@ -402,5 +403,13 @@ public class FirstPersonCamera
     {
         public int X;
         public int Y;
+    }
+
+    private enum OrbitMode
+    {
+        None,
+        FreePivot,
+        BBox,
+        Auto
     }
 }
