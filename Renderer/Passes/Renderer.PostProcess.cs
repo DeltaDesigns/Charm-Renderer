@@ -14,7 +14,6 @@ public partial class CharmRenderer
         RenderBloom();
 
         // TODO, compute dispatching in MaterialData binding
-        if (Viewport.DisplayPass == RenderPass.final_color_grade)
         {
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
             GBuffers.ColorGradingLUT.Bind(Context);
@@ -53,10 +52,8 @@ public partial class CharmRenderer
         Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
         Context.Rasterizer.SetViewport(GBuffers.PostProcessResult.GetViewport());
 
-        {
-            Externs.ScreenArea.Unk00 = GBuffers.Shading_Clone.SRV;
-            Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
-        }
+        Externs.ScreenArea.Unk00 = GBuffers.Shading_Clone.SRV;
+        Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
 
         if (Viewport.DisplayPass == RenderPass.final_color_grade)
             RenderGlobalPipeline("screen_area_global_lut3d_hdr");
