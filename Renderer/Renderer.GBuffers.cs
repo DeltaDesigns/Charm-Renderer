@@ -45,6 +45,7 @@ public partial class CharmRenderer
         public RenderTarget2D SkyGenerateFar { get; private set; }
         public RenderTarget2D SkyGenerateNear { get; private set; }
         public RenderTarget2D FullHemisphereSkyColor { get; private set; }
+        public RenderTarget2D FullHemisphereSkyColorTemp { get; private set; }
         public RenderTarget2D DepthAngleDensityLookup { get; private set; }
 
         public RenderTarget2D SkyBlur1 { get; private set; }
@@ -102,7 +103,8 @@ public partial class CharmRenderer
             SkyBlur1 = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 1");
             SkyBlur2 = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 2");
 
-            FullHemisphereSkyColor = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color Generate", resourceOptionFlags: ResourceOptionFlags.GenerateMipMaps, mipLevels: 0);
+            FullHemisphereSkyColorTemp = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color Temp");
+            FullHemisphereSkyColor = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color", resourceOptionFlags: ResourceOptionFlags.GenerateMipMaps, mipLevels: 0);
             DepthAngleDensityLookup = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Depth Angle Density Lookup");
 
             SkyHemiSeedInscatter = new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Seed Inscattering");
@@ -191,6 +193,8 @@ public partial class CharmRenderer
             SkyHemiBlur?.Dispose();
             SkyHemiBlur = null;
 
+            FullHemisphereSkyColorTemp?.Dispose();
+            FullHemisphereSkyColorTemp = null;
             FullHemisphereSkyColor?.Dispose();
             FullHemisphereSkyColor = null;
             DepthAngleDensityLookup?.Dispose();
