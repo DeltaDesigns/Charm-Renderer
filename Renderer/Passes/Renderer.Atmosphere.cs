@@ -40,7 +40,7 @@ public partial class CharmRenderer
         Externs.Atmosphere.SkySnapshot1 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup0).SRV;
         Externs.Atmosphere.SkySnapshot2 = AssetManager.Get().GetOrCreateGlobalTexture(World.Atmosphere?.Lookup1 ?? World.Atmosphere?.Lookup0).SRV;
 
-        hemisphereTemp.Bind(Context);
+        hemisphere.Bind(Context);
         {
             Annotation.BeginEvent($"Global Pipeline: full_hemisphere_sky_color_generate");
             ExecutePipeline("full_hemisphere_sky_color_generate");
@@ -51,9 +51,10 @@ public partial class CharmRenderer
 
             DrawScreenQuad();
 
-            hemisphere.Bind(Context);
-            Externs.PostProcess.Unk00 = hemisphereTemp.SRV;
-            RenderGlobalPipeline("sky_hemisphere_copy_and_tint");
+            // While this does provide some under shading, its kinda a bit too dark and makes metals look not that great
+            //hemisphere.Bind(Context);
+            //Externs.PostProcess.Unk00 = hemisphereTemp.SRV;
+            //RenderGlobalPipeline("sky_hemisphere_copy_and_tint");
 
             // cubemap_apply_sky_copy_ao samples the 8th mipmap as the sky color average
             // the game uses sky_hemisphere_downsample_filter_ggx, but this should be fine (probably)
@@ -169,7 +170,7 @@ public partial class CharmRenderer
             // seed_inscattering
             {
                 buffers.SkyHemiSeedInscatter.Bind(Context);
-                pp.Unk00 = buffers.FullHemisphereSkyColorTemp.SRV;
+                pp.Unk00 = buffers.FullHemisphereSkyColor.SRV; //FullHemisphereSkyColorTemp
                 pp.UnkC0 = new Vector4(0.175f);
                 pp.UnkD0 = right.ToVector4(right.Z);
                 pp.UnkE0 = up.ToVector4(up.Z);

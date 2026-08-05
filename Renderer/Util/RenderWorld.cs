@@ -290,6 +290,8 @@ public class RenderWorld : IDisposable
 
         await GlobalChannels.Evaluate();
         GlobalChannels.Set(7, Vector4.One);
+        //GlobalChannels.Set(143, Vector4.Zero);
+        //GlobalChannels.Set(144, Vector4.Zero);
         //GlobalChannels.Set(46, Vector4.One);
         //GlobalChannels.Set(47, Vector4.One);
 
