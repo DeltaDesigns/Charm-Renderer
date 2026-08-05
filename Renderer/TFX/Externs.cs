@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
 using HelixToolkit.Maths;
@@ -736,43 +737,21 @@ public class Externs : IDisposable
         DownsampleTextureGeneric.Dispose();
     }
 
-    private static Dictionary<int, Func<object, object>> GetFieldMap(Type type)
+    private static readonly ConcurrentDictionary<(Type, int, Type), Delegate> _typedGetters = new();
+    private static Func<object, T> BuildTypedGetter<T>(Type declaringType, int element)
     {
-        return _fieldMaps.GetOrAdd(type, t =>
-        {
-            var map = new Dictionary<int, Func<object, object>>();
-            foreach (var prop in t.GetProperties())
-            {
-                var attr = prop.GetCustomAttribute<ExternFieldAttribute>();
-                if (attr == null)
-                    continue;
+        var prop = declaringType.GetProperties()
+            .FirstOrDefault(p => p.GetCustomAttribute<ExternFieldAttribute>()?.Element == element);
 
-                if (attr.Strategy != Strategy.CurrentStrategy)
-                    continue;
+        if (prop is null)
+            return _ => default;
 
-                var getter = CreateGetterDelegate(prop, t);
-                map[attr.Element] = getter;
-            }
-            return map;
-        });
-    }
+        var instanceParam = Expression.Parameter(typeof(object), "instance");
+        var typedInstance = Expression.Convert(instanceParam, declaringType);
+        var propertyAccess = Expression.Property(typedInstance, prop);
+        var typedResult = Expression.Convert(propertyAccess, typeof(T));
 
-    private static Func<object, object> CreateGetterDelegate(PropertyInfo prop, Type declaringType)
-    {
-        var typedDelegateType = typeof(Func<,>).MakeGenericType(declaringType, prop.PropertyType);
-        var typedGetter = (Delegate)prop.GetMethod.CreateDelegate(typedDelegateType);
-
-        return instance =>
-        {
-            try
-            {
-                return typedGetter.DynamicInvoke(Convert.ChangeType(instance, declaringType));
-            }
-            catch
-            {
-                return prop.PropertyType.IsValueType ? Activator.CreateInstance(prop.PropertyType) : null;
-            }
-        };
+        return Expression.Lambda<Func<object, T>>(typedResult, instanceParam).Compile();
     }
 
     public T Get<T>(TfxExtern tfxExtern, int element)
@@ -796,24 +775,11 @@ public class Externs : IDisposable
             _ => null
         };
 
-        if (target == null)
-            //throw new NotImplementedException($"Extern field not implemented: {tfxExtern} , element 0x{element:X}");
-            return default;
+        if (target == null) return default;
 
-
-        var map = GetFieldMap(target.GetType());
-        if (map.TryGetValue(element, out var getter))
-        {
-            var value = getter(target);
-            if (value is T typedValue)
-                return typedValue;
-
-            if (typeof(T).IsNumericType() && value?.GetType().IsNumericType() == true)
-                return (T)Convert.ChangeType(value, typeof(T));
-        }
-
-        //throw new NotImplementedException($"Extern value not found: {tfxExtern}, element 0x{element:X}");
-        return default;
+        var key = (target.GetType(), element, typeof(T));
+        var getter = (Func<object, T>)_typedGetters.GetOrAdd(key, _ => BuildTypedGetter<T>(target.GetType(), element));
+        return getter(target);
     }
 }
 

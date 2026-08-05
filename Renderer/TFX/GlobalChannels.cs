@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using Tiger;
+﻿using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
 using static TfxBytecodeOp;
@@ -112,29 +111,12 @@ public class RendererGlobalChannels
         return defaultGlobals;
     }
 
-    //public void Evaluate()
-    //{
-    //	foreach (var channel in Channels)
-    //	{
-    //		channel.Evaulate(this);
-    //	}
-    //}
-
-    public async Task Evaluate()
+    public void Evaluate()
     {
-        var partitioner = Partitioner.Create(Channels, true);
-        var tasks = partitioner.GetPartitions(Environment.ProcessorCount).Select(async partition =>
+        foreach (var channel in Channels)
         {
-            using (partition)
-            {
-                while (partition.MoveNext())
-                {
-                    await partition.Current.Evaulate(this);
-                }
-            }
-        });
-
-        await Task.WhenAll(tasks);
+            channel.Evaluate(this);
+        }
     }
 
     public System.Numerics.Vector4 Get(int index) => channelsByIndex[index].Value;
@@ -161,12 +143,21 @@ public class RendererGlobalChannels
 
         }
 
-        public async Task Evaulate(RendererGlobalChannels globals)
+        public void Evaluate(RendererGlobalChannels globals)
         {
             if (Bytecode.Length == 0 || BytecodeConstants.Length == 0)
                 return;
 
-            var evaluated = await InterpretedBytecode.EvaluateAsync(null, new System.Numerics.Vector4[1], BytecodeConstants, null, null, null, globalChannels: globals);
+            InterpretedBytecode.Evaluate(
+                null,
+                new System.Numerics.Vector4[1],
+                BytecodeConstants,
+                null,
+                null,
+                null,
+                out System.Numerics.Vector4[] evaluated,
+                globalChannels: globals);
+
             Value = evaluated[0];
         }
     }

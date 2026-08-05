@@ -256,7 +256,7 @@ public class RenderWorld : IDisposable
 
     private float _dayLength = 3600f;
     public bool UseDayCycle { get; set; } = false;
-    public async void EvaluateGlobalChannels(Externs externs)
+    public void EvaluateGlobalChannels(Externs externs)
     {
         if (GlobalChannels is null)
             return;
@@ -288,7 +288,7 @@ public class RenderWorld : IDisposable
         GlobalChannels.Set("cubemap_relighting_sky_intensity", new(1f - DistanceToNight));
         GlobalChannels.MiscValues[0] = new((1f - DistanceToNight) * 0.725f);
 
-        await GlobalChannels.Evaluate();
+        GlobalChannels.Evaluate();
         GlobalChannels.Set(7, Vector4.One);
         //GlobalChannels.Set(143, Vector4.Zero);
         //GlobalChannels.Set(144, Vector4.Zero);
