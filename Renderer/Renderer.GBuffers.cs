@@ -12,6 +12,14 @@ public partial class CharmRenderer
 {
     public class GBuffer : IDisposable
     {
+        private readonly List<IDisposable> _disposables = new();
+
+        private T Track<T>(T disposable) where T : IDisposable
+        {
+            _disposables.Add(disposable);
+            return disposable;
+        }
+
         public BloomBuffers Bloom { get; private set; }
 
         public RenderTarget2D RT0 { get; private set; }
@@ -68,55 +76,55 @@ public partial class CharmRenderer
             Width = width;
             Height = height;
 
-            RT0 = new RenderTarget2D(device, width, height, Format.R8G8B8A8_UNorm, debugName: "RT0: Albedo");
+            RT0 = Track(new RenderTarget2D(device, width, height, Format.R8G8B8A8_UNorm, debugName: "RT0: Albedo"));
 
-            RT1 = new RenderTarget2D(device, width, height, Format.R10G10B10A2_UNorm, debugName: "RT1: Normal");
-            RT1_Clone = new RenderTarget2D(device, width, height, Format.R10G10B10A2_UNorm, debugName: "RT1 Clone: Normal");
+            RT1 = Track(new RenderTarget2D(device, width, height, Format.R10G10B10A2_UNorm, debugName: "RT1: Normal"));
+            RT1_Clone = Track(new RenderTarget2D(device, width, height, Format.R10G10B10A2_UNorm, debugName: "RT1 Clone: Normal"));
 
-            RT2 = new RenderTarget2D(device, width, height, Format.R8G8B8A8_UNorm, debugName: "RT2: Stack");
-            RT2_Clone = new RenderTarget2D(device, width, height, Format.R8G8B8A8_UNorm, debugName: "RT2 Clone: Stack");
+            RT2 = Track(new RenderTarget2D(device, width, height, Format.R8G8B8A8_UNorm, debugName: "RT2: Stack"));
+            RT2_Clone = Track(new RenderTarget2D(device, width, height, Format.R8G8B8A8_UNorm, debugName: "RT2 Clone: Stack"));
 
-            LightDiffuse = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light Diffuse");
-            LightSpecular = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light Specular");
-            LightIBL = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light IBL");
+            LightDiffuse = Track(new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light Diffuse"));
+            LightSpecular = Track(new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light Specular"));
+            LightIBL = Track(new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Light IBL"));
 
-            Shading = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Shading");
-            Shading_Clone = new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Shading Clone");
+            Shading = Track(new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Shading"));
+            Shading_Clone = Track(new RenderTarget2D(device, width, height, Format.R11G11B10_Float, debugName: "Shading Clone"));
 
-            PostProcessResult = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result");
-            FXAA = new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "FXAA Result");
-            HDAO = new RenderTarget2D(device, width, height, Format.R8G8_UNorm, debugName: "HDAO");
+            PostProcessResult = Track(new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result"));
+            FXAA = Track(new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "FXAA Result"));
+            HDAO = Track(new RenderTarget2D(device, width, height, Format.R8G8_UNorm, debugName: "HDAO"));
 
-            Depth = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth");
-            Depth_Clone = new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone");
-            DepthHalf = new DepthTarget(device, width / 2, height / 2, Format.R24G8_Typeless, debugName: "Depth Half");
+            Depth = Track(new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth"));
+            Depth_Clone = Track(new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone"));
+            DepthHalf = Track(new DepthTarget(device, width / 2, height / 2, Format.R24G8_Typeless, debugName: "Depth Half"));
 
-            UberDepthHalf = new RenderTarget2D(device, width / 2, height / 2, Format.R16G16_Float, createUAV: true, debugName: "Uber Depth (Half)");
-            UberDepthQuarter = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, createUAV: true, debugName: "Uber Depth (Quarter)");
-            UberDepth8th = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16_Float, createUAV: true, debugName: "Uber Depth (8th)");
+            UberDepthHalf = Track(new RenderTarget2D(device, width / 2, height / 2, Format.R16G16_Float, createUAV: true, debugName: "Uber Depth (Half)"));
+            UberDepthQuarter = Track(new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, createUAV: true, debugName: "Uber Depth (Quarter)"));
+            UberDepth8th = Track(new RenderTarget2D(device, width / 8, height / 8, Format.R16G16_Float, createUAV: true, debugName: "Uber Depth (8th)"));
 
-            SkyGenerateMask = new RenderTarget2D(device, width / 4, height / 4, Format.R8_UNorm, debugName: "Sky Generate Mask");
-            SkyGenerateMaskHalf = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Generate Mask (Half)");
-            SkyGenerateFar = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Far");
-            SkyGenerateNear = new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Near");
+            SkyGenerateMask = Track(new RenderTarget2D(device, width / 4, height / 4, Format.R8_UNorm, debugName: "Sky Generate Mask"));
+            SkyGenerateMaskHalf = Track(new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Generate Mask (Half)"));
+            SkyGenerateFar = Track(new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Far"));
+            SkyGenerateNear = Track(new RenderTarget2D(device, width / 4, height / 4, Format.R16G16B16A16_Float, debugName: "Sky Generate Near"));
 
-            SkyBlur1 = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 1");
-            SkyBlur2 = new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 2");
+            SkyBlur1 = Track(new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 1"));
+            SkyBlur2 = Track(new RenderTarget2D(device, width / 8, height / 8, Format.R16G16B16A16_Float, debugName: "Sky Mask Blur 2"));
 
-            FullHemisphereSkyColorTemp = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color Temp");
-            FullHemisphereSkyColor = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color", resourceOptionFlags: ResourceOptionFlags.GenerateMipMaps, mipLevels: 0);
-            DepthAngleDensityLookup = new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Depth Angle Density Lookup");
+            FullHemisphereSkyColorTemp = Track(new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color Temp"));
+            FullHemisphereSkyColor = Track(new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Full Hemisphere Sky Color", resourceOptionFlags: ResourceOptionFlags.GenerateMipMaps, mipLevels: 0));
+            DepthAngleDensityLookup = Track(new RenderTarget2D(device, 512, 512, Format.R16G16B16A16_Float, debugName: "Depth Angle Density Lookup"));
 
-            SkyHemiSeedInscatter = new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Seed Inscattering");
-            SkyHemiBlur = new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Blur");
+            SkyHemiSeedInscatter = Track(new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Seed Inscattering"));
+            SkyHemiBlur = Track(new RenderTarget2D(device, 512, 512, Format.R16G16_Float, debugName: "Hemisphere Blur"));
 
-            ColorGradingLUT = new RenderTarget2D(device, 1024, 32, Format.R16G16B16A16_Float, debugName: "Color Grading LUT");
-            LUTVolume = new UAVTarget3D(device, 32, 32, 32, Format.R11G11B10_Float, "LUT Volume");
+            ColorGradingLUT = Track(new RenderTarget2D(device, 1024, 32, Format.R16G16B16A16_Float, debugName: "Color Grading LUT"));
+            LUTVolume = Track(new UAVTarget3D(device, 32, 32, 32, Format.R11G11B10_Float, "LUT Volume"));
 
-            Luminance = new RenderTarget2D(device, width, height, Format.R32_Float, debugName: "Luminance");
-            LuminanceStaging = RenderHelpers.CreateStagingTexture(device, 1, 1, Luminance.Texture.Description.Format, "Luminance Staging");
+            Luminance = Track(new RenderTarget2D(device, width, height, Format.R32_Float, debugName: "Luminance"));
+            LuminanceStaging = Track(RenderHelpers.CreateStagingTexture(device, 1, 1, Luminance.Texture.Description.Format, "Luminance Staging"));
 
-            Bloom = new BloomBuffers(device, width, height);
+            Bloom = Track(new BloomBuffers(device, width, height));
         }
 
         public void SetRenderTargets(DeviceContext ctx)
@@ -130,88 +138,25 @@ public partial class CharmRenderer
 
         public void Dispose()
         {
-            RT0?.Dispose();
-            RT0 = null;
-            RT1?.Dispose();
-            RT1 = null;
-            RT1_Clone?.Dispose();
-            RT1_Clone = null;
-            RT2?.Dispose();
-            RT2 = null;
-            RT2_Clone?.Dispose();
-            RT2_Clone = null;
+            foreach (var d in _disposables)
+            {
+                d?.Dispose();
+            }
 
-            LightDiffuse?.Dispose();
-            LightDiffuse = null;
-            LightSpecular?.Dispose();
-            LightSpecular = null;
-            LightIBL?.Dispose();
-            LightIBL = null;
-
-            Shading?.Dispose();
-            Shading = null;
-            Shading_Clone?.Dispose();
-            Shading_Clone = null;
-
-            PostProcessResult?.Dispose();
-            PostProcessResult = null;
-            FXAA?.Dispose();
-            FXAA = null;
-            HDAO?.Dispose();
-            HDAO = null;
-
-            Depth?.Dispose();
-            Depth = null;
-            Depth_Clone?.Dispose();
-            Depth_Clone = null;
-            DepthHalf?.Dispose();
-            DepthHalf = null;
-
-            UberDepthHalf?.Dispose();
-            UberDepthHalf = null;
-            UberDepthQuarter?.Dispose();
-            UberDepthQuarter = null;
-            UberDepth8th?.Dispose();
-            UberDepth8th = null;
-
-            SkyGenerateMask?.Dispose();
-            SkyGenerateMask = null;
-            SkyGenerateMaskHalf?.Dispose();
-            SkyGenerateMaskHalf = null;
-            SkyGenerateFar?.Dispose();
-            SkyGenerateFar = null;
-            SkyGenerateNear?.Dispose();
-            SkyGenerateNear = null;
-
-            SkyBlur1?.Dispose();
-            SkyBlur1 = null;
-            SkyBlur2?.Dispose();
-            SkyBlur2 = null;
-
-            SkyHemiSeedInscatter?.Dispose();
-            SkyHemiSeedInscatter = null;
-            SkyHemiBlur?.Dispose();
-            SkyHemiBlur = null;
-
-            FullHemisphereSkyColorTemp?.Dispose();
-            FullHemisphereSkyColorTemp = null;
-            FullHemisphereSkyColor?.Dispose();
-            FullHemisphereSkyColor = null;
-            DepthAngleDensityLookup?.Dispose();
-            DepthAngleDensityLookup = null;
-            LUTVolume?.Dispose();
-            LUTVolume = null;
-            LuminanceStaging?.Dispose();
-            LuminanceStaging = null;
-            ColorGradingLUT?.Dispose();
-            ColorGradingLUT = null;
-            Bloom?.Dispose();
-            Bloom = null;
+            _disposables.Clear();
         }
     }
 
     public class BloomBuffers : IDisposable
     {
+        private readonly List<IDisposable> _disposables = new();
+
+        private T Track<T>(T disposable) where T : IDisposable
+        {
+            _disposables.Add(disposable);
+            return disposable;
+        }
+
         public RenderTarget2D Bloom3rd { get; private set; }
         public RenderTarget2D Bloom3rdTemp { get; private set; }
         public RenderTarget2D Bloom3rdComb { get; private set; }
@@ -238,28 +183,28 @@ public partial class CharmRenderer
 
         public BloomBuffers(Device device, int width, int height)
         {
-            Bloom3rd = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd");
-            Bloom3rdTemp = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd Temp");
-            Bloom3rdComb = new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd Combined");
+            Bloom3rd = Track(new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd"));
+            Bloom3rdTemp = Track(new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd Temp"));
+            Bloom3rdComb = Track(new RenderTarget2D(device, width / 3, height / 3, Format.R16G16B16A16_Float, debugName: "Bloom 3rd Combined"));
 
-            Bloom6th = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th");
-            Bloom6thTemp = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th Temp");
-            Bloom6thComb = new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th Comb Combined");
+            Bloom6th = Track(new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th"));
+            Bloom6thTemp = Track(new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th Temp"));
+            Bloom6thComb = Track(new RenderTarget2D(device, width / 6, height / 6, Format.R16G16B16A16_Float, debugName: "Bloom 6th Comb Combined"));
 
-            Bloom12th = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th");
-            Bloom12thTemp = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Temp");
-            Bloom12thComb = new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Combined");
+            Bloom12th = Track(new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th"));
+            Bloom12thTemp = Track(new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Temp"));
+            Bloom12thComb = Track(new RenderTarget2D(device, width / 12, height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Combined"));
 
-            Bloom12thHalfW = new RenderTarget2D(device, width / (12 * 2), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Half");
-            Bloom12thQuarterW = new RenderTarget2D(device, width / (12 * 4), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Quarter");
-            Bloom12thQuarterWTemp = new RenderTarget2D(device, width / (12 * 4), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Quarter Temp");
+            Bloom12thHalfW = Track(new RenderTarget2D(device, width / (12 * 2), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Half"));
+            Bloom12thQuarterW = Track(new RenderTarget2D(device, width / (12 * 4), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Quarter"));
+            Bloom12thQuarterWTemp = Track(new RenderTarget2D(device, width / (12 * 4), height / 12, Format.R16G16B16A16_Float, debugName: "Bloom 12th Quarter Temp"));
 
-            Bloom24th = new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 24th");
-            Bloom24thTemp = new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 24th Temp");
+            Bloom24th = Track(new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 24th"));
+            Bloom24thTemp = Track(new RenderTarget2D(device, width / 24, height / 24, Format.R16G16B16A16_Float, debugName: "Bloom 24th Temp"));
 
-            BloomFinal = new RenderTarget2D(device, width / 2, height / 2, Format.R16G16B16A16_Float, debugName: "Bloom Final");
+            BloomFinal = Track(new RenderTarget2D(device, width / 2, height / 2, Format.R16G16B16A16_Float, debugName: "Bloom Final"));
 
-            AutoExposureColumns = new RenderTarget2D(device, width / 48, 1, Format.R32G32B32A32_Float, debugName: "AutoExposureColumns");
+            AutoExposureColumns = Track(new RenderTarget2D(device, width / 48, 1, Format.R32G32B32A32_Float, debugName: "AutoExposureColumns"));
             //AutoExposureColumnsStaging = RenderHelpers.CreateStagingTexture(device,
             //    AutoExposureColumns.Width,
             //    AutoExposureColumns.Height,
@@ -282,47 +227,11 @@ public partial class CharmRenderer
 
         public void Dispose()
         {
-            Bloom3rd?.Dispose();
-            Bloom3rd = null;
-            Bloom3rdComb?.Dispose();
-            Bloom3rdComb = null;
-            Bloom3rdTemp?.Dispose();
-            Bloom3rdTemp = null;
-
-            Bloom6th?.Dispose();
-            Bloom6th = null;
-            Bloom6thComb?.Dispose();
-            Bloom6thComb = null;
-            Bloom6thTemp?.Dispose();
-            Bloom6thTemp = null;
-
-            Bloom12th?.Dispose();
-            Bloom12th = null;
-            Bloom12thComb?.Dispose();
-            Bloom12thComb = null;
-            Bloom12thTemp?.Dispose();
-            Bloom12thTemp = null;
-
-            Bloom12thHalfW?.Dispose();
-            Bloom12thHalfW = null;
-
-            Bloom12thQuarterW?.Dispose();
-            Bloom12thQuarterW = null;
-            Bloom12thQuarterWTemp?.Dispose();
-            Bloom12thQuarterWTemp = null;
-
-            Bloom24th?.Dispose();
-            Bloom24th = null;
-            Bloom24thTemp?.Dispose();
-            Bloom24thTemp = null;
-
-            BloomFinal?.Dispose();
-            BloomFinal = null;
-
-            AutoExposureColumns?.Dispose();
-            AutoExposureColumns = null;
-            //AutoExposureColumnsStaging?.Dispose();
-            //AutoExposureColumnsStaging = null;
+            foreach (var d in _disposables)
+            {
+                d?.Dispose();
+            }
+            _disposables.Clear();
 
             foreach (var tex in ExposureStagings)
             {
