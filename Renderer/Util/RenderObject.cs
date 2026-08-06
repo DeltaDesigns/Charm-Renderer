@@ -877,7 +877,7 @@ public class Constants : GpuResource
 
     public Vector4[] ConstantValues;
     public Vector4[] BytecodeConstants;
-    public List<SamplerState> Samplers = new();
+    public List<SamplerAsset> Samplers = new();
     public Dictionary<uint, TextureAsset> Textures = new();
     public string DebugName { get; set; }
 
@@ -1012,9 +1012,9 @@ public class Constants : GpuResource
         }
         Textures.Clear();
 
-        foreach (var samp in Samplers)
+        foreach (var sampler in Samplers)
         {
-            samp?.Dispose();
+            AssetManager.Get().ReleaseSampler(sampler);
         }
         Samplers.Clear();
 

@@ -59,7 +59,7 @@ public class TfxBytecodeInterpreter
         Vec4[] constants,
         Vec4[] bytecodeConstants,
         SMaterialShader? shader,
-        List<SamplerState> samplers,
+        List<SamplerAsset> samplers,
         ObjectChannels objectChannels,
         bool print = false,
         RendererGlobalChannels globalChannels = null)
@@ -84,7 +84,7 @@ public class TfxBytecodeInterpreter
         System.Numerics.Vector4[] constants,
         System.Numerics.Vector4[] bytecodeConstants,
         SMaterialShader? shader,
-        List<SamplerState> samplers,
+        List<SamplerAsset> samplers,
         ObjectChannels objectChannels,
         out System.Numerics.Vector4[] evaluated,
         bool print = false,
@@ -658,11 +658,11 @@ public class TfxBytecodeInterpreter
                         switch (shader_stage)
                         {
                             case ShaderStage.Vertex:
-                                renderer.Context.VertexShader.SetSampler(slot, samplers[samplerIndex]);
+                                renderer.Context.VertexShader.SetSampler(slot, samplers[samplerIndex].Sampler);
                                 break;
 
                             case ShaderStage.Pixel:
-                                renderer.Context.PixelShader.SetSampler(slot, samplers[samplerIndex]);
+                                renderer.Context.PixelShader.SetSampler(slot, samplers[samplerIndex].Sampler);
                                 break;
 
                             default:

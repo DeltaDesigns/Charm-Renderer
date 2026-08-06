@@ -45,9 +45,41 @@ public sealed class TextureAsset : IDisposable
     }
 }
 
+public sealed class SamplerAsset : IDisposable
+{
+    public uint Hash;
+    public SamplerState Sampler;
+    public int RefCount;
+
+    public SamplerAsset(uint hash, SamplerState sampler)
+    {
+        Hash = hash;
+        Sampler = sampler;
+    }
+
+    public void AddRef()
+    {
+        RefCount++;
+    }
+
+    public bool Release()
+    {
+        RefCount--;
+        return RefCount <= 0;
+    }
+
+    public void Dispose()
+    {
+        RefCount = 0;
+        Sampler?.Dispose();
+        Sampler = null;
+    }
+}
+
 public class AssetManager : IDisposable
 {
     public readonly Dictionary<uint, MaterialData> _materialCache = new();
+    public readonly Dictionary<uint, SamplerAsset> _samplerCache = new();
     public readonly Dictionary<uint, TextureAsset> _cache = new(); // used for mesh
     public readonly Dictionary<uint, TextureAsset> _globalCache = new(); // used for pipelines/externs
     public ShaderResourceView WhiteTexture;
@@ -153,18 +185,6 @@ public class AssetManager : IDisposable
         return mat;
     }
 
-    public void ReleaseMaterial(uint hash)
-    {
-        if (_materialCache.TryGetValue(hash, out var mat))
-        {
-            if (mat.Release())
-            {
-                mat.Dispose();
-                _materialCache.Remove(hash);
-            }
-        }
-    }
-
     public TextureAsset GetOrCreateTexture(Texture texture)
     {
         if (!_cache.TryGetValue(texture.Hash.Hash32, out var tex))
@@ -189,24 +209,16 @@ public class AssetManager : IDisposable
         return tex;
     }
 
-    public void ReleaseTexture(uint hash)
+    public SamplerAsset GetOrCreateSampler(DirectXSampler sampler)
     {
-        if (_cache.TryGetValue(hash, out var tex))
+        if (!_samplerCache.TryGetValue(sampler.Hash.Hash32, out var samp))
         {
-            if (tex.Release())
-            {
-                tex.Dispose();
-                _cache.Remove(hash);
-            }
+            samp = new SamplerAsset(sampler.Hash.Hash32, CreateSampler(GPU.Instance.ImmediateContext, sampler.Sampler));
+            _samplerCache[sampler.Hash.Hash32] = samp;
         }
-    }
 
-    public void ReleaseTexture(TextureAsset tex)
-    {
-        if (tex is null)
-            return;
-
-        ReleaseTexture(tex.Hash);
+        samp.AddRef();
+        return samp;
     }
 
     public Dictionary<uint, TextureAsset> CreateTextures(SMaterialShader stage)
@@ -395,29 +407,29 @@ public class AssetManager : IDisposable
         }
     }
 
-    public List<SamplerState> CreateSamplers(SMaterialShader stage)
+    public List<SamplerAsset> CreateSamplers(SMaterialShader stage)
     {
-        List<SamplerState> samplers = new();
+        List<SamplerAsset> samplers = new();
         foreach (var sampler in stage.EnumerateSamplers())
         {
-            if (sampler.Hash.GetFileMetadata().Type != 34)
+            if (sampler.Hash.GetFileMetadata().Type != 34 || sampler is null)
                 continue;
 
-            samplers.Add(CreateSampler(GPU.Instance.ImmediateContext, sampler.Sampler));
+            samplers.Add(GetOrCreateSampler(sampler));
         }
 
         return samplers;
     }
 
-    public List<SamplerState> CreateSamplers(List<DirectXSampler> samplersStucts)
+    public List<SamplerAsset> CreateSamplers(List<DirectXSampler> samplersStucts)
     {
-        List<SamplerState> samplers = new();
+        List<SamplerAsset> samplers = new();
         foreach (var sampler in samplersStucts)
         {
-            if (sampler.Hash.GetFileMetadata().Type != 34)
+            if (sampler.Hash.GetFileMetadata().Type != 34 || sampler is null)
                 continue;
 
-            samplers.Add(CreateSampler(GPU.Instance.ImmediateContext, sampler.Sampler));
+            samplers.Add(GetOrCreateSampler(sampler));
         }
         return samplers;
     }
@@ -519,6 +531,58 @@ public class AssetManager : IDisposable
         return srv;
     }
 
+    public void ReleaseTexture(uint hash)
+    {
+        if (_cache.TryGetValue(hash, out var tex))
+        {
+            if (tex.Release())
+            {
+                tex.Dispose();
+                _cache.Remove(hash);
+            }
+        }
+    }
+
+    public void ReleaseTexture(TextureAsset tex)
+    {
+        if (tex is null)
+            return;
+
+        ReleaseTexture(tex.Hash);
+    }
+
+    public void ReleaseMaterial(uint hash)
+    {
+        if (_materialCache.TryGetValue(hash, out var mat))
+        {
+            if (mat.Release())
+            {
+                mat.Dispose();
+                _materialCache.Remove(hash);
+            }
+        }
+    }
+
+    public void ReleaseSampler(SamplerAsset sampler)
+    {
+        if (sampler is null)
+            return;
+
+        ReleaseSampler(sampler.Hash);
+    }
+
+    public void ReleaseSampler(uint hash)
+    {
+        if (_samplerCache.TryGetValue(hash, out var sampler))
+        {
+            if (sampler.Release())
+            {
+                sampler.Dispose();
+                _samplerCache.Remove(hash);
+            }
+        }
+    }
+
     /// <summary>
     /// Disposes all cached textures, regardless of reference count.
     /// Should be used only when cleaning up the AssetManager.
@@ -547,6 +611,20 @@ public class AssetManager : IDisposable
         _globalCache.Clear();
     }
 
+    /// <summary>
+    /// Disposes all cached samplers, regardless of reference count.
+    /// Should be used only when cleaning up the AssetManager.
+    /// </summary>
+    public void DisposeSamplers()
+    {
+        Log.Debug($"{_samplerCache.Count} Samplers still registered.");
+        foreach (var samp in _samplerCache.Values)
+        {
+            samp?.Dispose();
+        }
+        _samplerCache.Clear();
+    }
+
     public void DisposeMaterials()
     {
         Log.Debug($"{_materialCache.Count} Materials still registered.");
@@ -562,6 +640,7 @@ public class AssetManager : IDisposable
         DisposeMaterials();
         DisposeTextures();
         DisposeGlobalTextures();
+        DisposeSamplers();
 
         WhiteTexture?.Dispose();
         BlackTexture?.Dispose();
