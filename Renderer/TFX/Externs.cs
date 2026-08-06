@@ -128,7 +128,10 @@ public class Externs : IDisposable
         public void Update(CharmRenderer renderer)
         {
             RenderHelpers.Profile("Extern View Update");
+
             var cam = renderer.Camera;
+            var targetPixelToProj = UNormToSNorm * Matrix4x4ButGood.FromScale(new(1f / cam.Viewport.Width, 1f / cam.Viewport.Height, 1f));
+
             ResolutionX = cam.Viewport.Width;
             ResolutionY = cam.Viewport.Height;
             Position = new Vector4(cam.Position, 1f);
@@ -142,11 +145,11 @@ public class Externs : IDisposable
             WorldToProj = CameraToProj * WorldToCamera;
             ProjToWorld = WorldToProj.Invert();
 
-            TargetPixelToCamera = ProjToCamera * cam.TargetPixelToProjective();
+            TargetPixelToCamera = ProjToCamera * targetPixelToProj;
             TargetPixelToWorld = CameraToWorld * TargetPixelToCamera;
 
             Matrix4x4ButGood ptow_no_proj_w = CameraToWorld.WithW(Vector4.UnitW) * ProjToCamera;
-            TpToWw_No_Proj_W = ptow_no_proj_w * cam.TargetPixelToProjective();
+            TpToWw_No_Proj_W = ptow_no_proj_w * targetPixelToProj;
 
             Unk240 = ProjToWorld * UNormToSNorm;
             Unk2C0 = ptow_no_proj_w * UNormToSNorm;

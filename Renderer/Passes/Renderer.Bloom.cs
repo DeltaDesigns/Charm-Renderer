@@ -9,6 +9,10 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
+    private int _exposureIndex = 0;
+    private float _addedDeltaTime;
+    private readonly AutoExposureSystem _autoexposure = new AutoExposureSystem();
+
     public void RenderBloom()
     {
         var buffers = GBuffers.Bloom;
@@ -114,7 +118,8 @@ public partial class CharmRenderer
             CMD.States.CreateStates(Context, new(0, 0, 0, 0));
 
             RenderGlobalPipeline("autoexposure_sample_columns");
-            Context.CopyResource(buffers.AutoExposureColumns.Texture, buffers.AutoExposureColumnsStaging);
+            //Context.CopyResource(buffers.AutoExposureColumns.Texture, buffers.AutoExposureColumnsStaging);
+            Context.CopyResource(buffers.AutoExposureColumns.Texture, GBuffers.Bloom.ExposureStagings[_exposureIndex]);
             RenderHelpers.EndProfile();
         }
 
@@ -251,8 +256,6 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
-    private float _addedDeltaTime;
-    private readonly AutoExposureSystem _autoexposure = new AutoExposureSystem();
     public void UpdateAutoexposure(float deltaTime)
     {
         if (_frameCounter > 0 && Viewport.AutoExposure && Viewport.RenderSky)
@@ -262,7 +265,15 @@ public partial class CharmRenderer
                 return;
 
             RenderHelpers.Profile("Auto Exposure Updating");
-            var autoexposureColumns = GBuffers.Bloom.AutoExposureColumnsStaging;
+
+            //var autoexposureColumns = GBuffers.Bloom.AutoExposureColumnsStaging;
+            //int columnCount = autoexposureColumns.Description.Width;
+
+            //DataBox mappedBuffer = GPU.Instance.ImmediateContext.MapSubresource(
+            //    autoexposureColumns, 0, MapMode.Read, MapFlags.None);
+
+            int index = (_exposureIndex + 1) % BloomBuffers.ExposureBufferCount;
+            var autoexposureColumns = GBuffers.Bloom.ExposureStagings[index];
             int columnCount = autoexposureColumns.Description.Width;
 
             DataBox mappedBuffer = GPU.Instance.ImmediateContext.MapSubresource(
@@ -279,13 +290,13 @@ public partial class CharmRenderer
                 ExposureResult exposureResult = _autoexposure.UpdateFromRaw(data, _addedDeltaTime);
                 Externs.Frame.ExposureScale = exposureResult.ExposureScale;
                 //Externs.Frame.ExposureIllumRelative = exposureResult.ExposureIllumRelative;
-                //Console.WriteLine(Viewport.Exposure);
             }
             finally
             {
                 GPU.Instance.ImmediateContext.UnmapSubresource(autoexposureColumns, 0);
                 _addedDeltaTime = 0.0f;
             }
+            _exposureIndex = (_exposureIndex + 1) % BloomBuffers.ExposureBufferCount;
             RenderHelpers.EndProfile();
         }
         else

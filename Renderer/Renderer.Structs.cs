@@ -23,6 +23,17 @@ public struct Matrix4x4ButGood
         W = w;
     }
 
+    public static Matrix4x4ButGood FromScale(in Vector3 scale)
+    {
+        return new()
+        {
+            X = new(scale.X, 0, 0, 0),
+            Y = new(0, scale.Y, 0, 0),
+            Z = new(0, 0, scale.Z, 0),
+            W = new(0, 0, 0, 1)
+        };
+    }
+
     public Matrix4x4ButGood WithW(Vector4 w)
     {
         return new Matrix4x4ButGood(X, Y, Z, w);

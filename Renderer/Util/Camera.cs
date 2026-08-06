@@ -315,15 +315,6 @@ public class FirstPersonCamera
         UpdateViewMatrix();
     }
 
-    public Matrix4x4ButGood TargetPixelToProjective()
-    {
-        return new(
-        new(2.0f / Viewport.Width, 0.0f, 0.0f, 0.0f),
-        new(0.0f, -2.0f / Viewport.Height, 0.0f, 0.0f),
-        new(0.0f, 0.0f, 1.0f, 0.0f),
-        new(-1.0f, 1.0f, 0.0f, 1.0f));
-    }
-
     public void RotateAround(Vector3 pivot, float yawDegrees, float pitchDegrees)
     {
         Vector3 offset = Position - pivot;

@@ -260,11 +260,24 @@ public partial class CharmRenderer
             BloomFinal = new RenderTarget2D(device, width / 2, height / 2, Format.R16G16B16A16_Float, debugName: "Bloom Final");
 
             AutoExposureColumns = new RenderTarget2D(device, width / 48, 1, Format.R32G32B32A32_Float, debugName: "AutoExposureColumns");
-            AutoExposureColumnsStaging = RenderHelpers.CreateStagingTexture(device,
-                AutoExposureColumns.Width,
-                AutoExposureColumns.Height,
-                AutoExposureColumns.Texture.Description.Format,
-                "AutoExposureColumns Staging");
+            //AutoExposureColumnsStaging = RenderHelpers.CreateStagingTexture(device,
+            //    AutoExposureColumns.Width,
+            //    AutoExposureColumns.Height,
+            //    AutoExposureColumns.Texture.Description.Format,
+            //    "AutoExposureColumns Staging");
+
+            // improves auto exposure performance by buffering 3 column textures
+            CreateAutoExposureTextures(device, width, height);
+        }
+
+        public const int ExposureBufferCount = 3;
+        public Texture2D[] ExposureStagings = new Texture2D[ExposureBufferCount];
+        public void CreateAutoExposureTextures(Device device, int width, int height)
+        {
+            for (int i = 0; i < ExposureBufferCount; i++)
+            {
+                ExposureStagings[i] = RenderHelpers.CreateStagingTexture(device, width / 48, 1, Format.R32G32B32A32_Float, $"AutoExposure Columns Staging {i}");
+            }
         }
 
         public void Dispose()
@@ -308,8 +321,14 @@ public partial class CharmRenderer
 
             AutoExposureColumns?.Dispose();
             AutoExposureColumns = null;
-            AutoExposureColumnsStaging?.Dispose();
-            AutoExposureColumnsStaging = null;
+            //AutoExposureColumnsStaging?.Dispose();
+            //AutoExposureColumnsStaging = null;
+
+            foreach (var tex in ExposureStagings)
+            {
+                tex?.Dispose();
+            }
+            ExposureStagings = null;
         }
     }
 
@@ -401,6 +420,11 @@ public partial class CharmRenderer
         public void Bind(DeviceContext context)
         {
             context.OutputMerger.SetRenderTargets(null, RTV);
+            context.Rasterizer.SetViewport(GetViewport());
+        }
+
+        public void SetViewport(DeviceContext context)
+        {
             context.Rasterizer.SetViewport(GetViewport());
         }
 

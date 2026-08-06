@@ -9,6 +9,8 @@ using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
 using Arithmic;
 
+
+
 #if DEBUG
 using TracyWrapper;
 using Evergine.Bindings.RenderDoc;
@@ -284,6 +286,8 @@ public partial class CharmRenderer : IDisposable
             }
         }
 
+        //BlitOverlayTexture(blitRT, GBuffers.LightIBL, 2, 1, 0);
+
         // Blits to final RT/Correct format for WPF cus it hates everything
         BlitToWPF(blitRT);
 
@@ -404,6 +408,7 @@ public partial class CharmRenderer : IDisposable
         Utilities.Dispose(ref _gridShaderVS);
         Utilities.Dispose(ref _gridShaderPS);
         Utilities.Dispose(ref _pointSampler);
+        Utilities.Dispose(ref _pointBorderSampler);
         Utilities.Dispose(ref _wireframeRS);
         Utilities.Dispose(ref _debugPSCB);
         Utilities.Dispose(ref _debugLinesPS);

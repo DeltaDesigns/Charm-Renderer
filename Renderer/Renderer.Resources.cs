@@ -39,6 +39,7 @@ public partial class CharmRenderer
     public Buffer _bboxVB;
 
     private SamplerState _pointSampler;
+    private SamplerState _pointBorderSampler;
 
     public ObjectChannels EntityObjectChannels { get; set; }
 

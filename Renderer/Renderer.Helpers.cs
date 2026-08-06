@@ -85,6 +85,18 @@ public partial class CharmRenderer
             MinimumLod = 0,
             MaximumLod = float.MaxValue,
         });
+
+        _pointBorderSampler ??= new SamplerState(Device, new SamplerStateDescription
+        {
+            Filter = Filter.MinMagMipPoint,
+            AddressU = TextureAddressMode.Border,
+            AddressV = TextureAddressMode.Border,
+            AddressW = TextureAddressMode.Border,
+            ComparisonFunction = Comparison.Never,
+            BorderColor = new(0.0f, 0.0f, 0.0f, 1.0f),
+            MinimumLod = 0,
+            MaximumLod = float.MaxValue,
+        });
     }
 
     private void CreateScopes()
@@ -154,6 +166,34 @@ public partial class CharmRenderer
         Camera.RotateAround(center, yaw, pitch);
 
         Camera.UpdateVectors();
+    }
+
+    public void BlitOverlayTexture(RenderTarget2D parentRT, RenderTarget2D overlayRT,
+        float scale = 1, float xOffset = 0, float yOffset = 0)
+    {
+        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        var scaleX = overlayRT.Width / scale;
+        var scaleY = overlayRT.Height / scale;
+        var pixelX = xOffset * (parentRT.Width - scaleX);
+        var pixelY = yOffset * (parentRT.Height - scaleY);
+
+        Context.Rasterizer.SetViewport(new SharpDX.Mathematics.Interop.RawViewportF
+        {
+            X = pixelX,
+            Y = pixelY,
+            Width = scaleX,
+            Height = scaleY,
+            MinDepth = 0,
+            MaxDepth = 1,
+        });
+
+        Context.VertexShader.Set(_blitVS);
+        Context.PixelShader.Set(_blitPS);
+        Context.PixelShader.SetSampler(0, _pointSampler);
+        Context.PixelShader.SetShaderResource(0, overlayRT.SRV);
+
+        DrawScreenQuad();
+        parentRT.SetViewport(Context);
     }
 
 

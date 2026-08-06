@@ -129,6 +129,7 @@ public partial class CharmRenderer
     {
         if (!Viewport.HDAO)
         {
+            //GBuffers.HDAO.Clear(Context, new(1, 1, 1, 1));
             Externs.ShadowMask.Unk08 = AssetManager.WhiteTexture;
             return;
         }
