@@ -256,6 +256,7 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
+    private int _exposureFramesWritten = 0;
     public void UpdateAutoexposure(float deltaTime)
     {
         if (_frameCounter > 0 && Viewport.AutoExposure && Viewport.RenderSky)
@@ -263,6 +264,14 @@ public partial class CharmRenderer
             _addedDeltaTime += deltaTime;
             if (_frameCounter % 2 != 0)
                 return;
+
+            if (_exposureFramesWritten < BloomBuffers.ExposureBufferCount)
+            {
+                Externs.Frame.ExposureScale = Viewport.Exposure;
+                _exposureFramesWritten++;
+                _exposureIndex = (_exposureIndex + 1) % BloomBuffers.ExposureBufferCount;
+                return;
+            }
 
             RenderHelpers.Profile("Auto Exposure Updating");
 
@@ -342,8 +351,8 @@ public class AutoExposureSystem
     public AutoExposureConfig Config;
 
     // Current smoothed values applied to the frame
-    public float CurrentExposureScale;
-    public float CurrentIllumRelative;
+    public float CurrentExposureScale = 0.8f;
+    public float CurrentIllumRelative = 1f;
 
     public AutoExposureSystem() : this(new AutoExposureConfig())
     {
@@ -392,6 +401,8 @@ public class AutoExposureSystem
             : Config.SpeedLightToDark;
 
         float blendFactor = 1.0f - MathF.Exp(-speed * deltaTime);
+        if (CurrentExposureScale == float.NaN) // has happened only once, no idea how??
+            CurrentExposureScale = 0.5f;
 
         CurrentExposureScale = Lerp(CurrentExposureScale, target.ExposureScale, blendFactor);
         CurrentIllumRelative = Lerp(CurrentIllumRelative, target.ExposureIllumRelative, blendFactor);
@@ -437,7 +448,7 @@ public class AutoExposureSystem
 
         float clampedLuminance = Math.Clamp(blendedLuminance, Config.MinLuminance, Config.MaxLuminance);
 
-        float targetScale = Config.TargetLuminance / clampedLuminance;
+        float targetScale = MathF.Max(0.0001f, Config.TargetLuminance / clampedLuminance);
         float targetIllum = Math.Clamp(avgLinLum, 0.0f, 1.0f);
 
         return new ExposureResult
