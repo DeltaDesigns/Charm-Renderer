@@ -740,8 +740,8 @@ public class MaterialData : GpuResource
 
     public void Bind(CharmRenderer renderer)
     {
-        var states = renderer.CMD.CurrentState.Select(States);
-        renderer.CMD.States.CreateStates(renderer.Context, states);
+        var states = renderer.CMD.States.DefaultState.Select(States);
+        renderer.CMD.States.SetState(renderer.Context, states);
 
         switch (BindMode)
         {

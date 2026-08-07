@@ -6,6 +6,7 @@ namespace Charm.Renderer;
 public class States
 {
     public StateSelection CurrentState { get; set; }
+    public StateSelection DefaultState { get; set; }
 
     private Dictionary<(int, int), RasterizerState> _rasStates = new();
     private Dictionary<int, DepthStencilState> _depthStencilStates = new();
@@ -23,7 +24,26 @@ public class States
         CurrentBlendState = -1;
     }
 
-    public void CreateStates(DeviceContext context, StateSelection state)
+
+    /// <summary>
+    /// Sets the *default* StateSelection, should be used before any pipeline or render pass as this is what gets combined with any unset states from MaterialData.
+    /// See MaterialData Bind()
+    /// </summary>
+    /// <param name="context"></param>
+    /// <param name="state"></param>
+    public void SetDefaultState(DeviceContext context, StateSelection state)
+    {
+        DefaultState = state;
+        SetState(context, state);
+    }
+
+    /// <summary>
+    /// Sets the given StateSelection, should only be used to directly override the current state.
+    /// </summary>
+    /// <param name="context"></param>
+    /// <param name="state"></param>
+    /// <exception cref="ArgumentNullException"></exception>
+    public void SetState(DeviceContext context, StateSelection state)
     {
         if (state.Raw() == CurrentState.Raw())
             return;

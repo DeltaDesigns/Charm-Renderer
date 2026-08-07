@@ -157,7 +157,7 @@ public class GPUState
 
     public void Restore(CommandList cmd)
     {
-        cmd.States.CreateStates(cmd.ImmediateContext, States.CurrentState);
+        cmd.States.SetState(cmd.ImmediateContext, States.CurrentState);
         cmd.ImmediateContext.InputAssembler.InputLayout = CurrentInputLayout;
         cmd.ImmediateContext.InputAssembler.PrimitiveTopology = CurrentTopology;
         cmd.ImmediateContext.OutputMerger.SetRenderTargets(DSV, RTVs);

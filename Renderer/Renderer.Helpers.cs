@@ -171,7 +171,7 @@ public partial class CharmRenderer
     public void BlitOverlayTexture(RenderTarget2D parentRT, RenderTarget2D overlayRT,
         float scale = 1, float xOffset = 0, float yOffset = 0)
     {
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetState(Context, new(0, 0, 0, 0));
         var scaleX = overlayRT.Width / scale;
         var scaleY = overlayRT.Height / scale;
         var pixelX = xOffset * (parentRT.Width - scaleX);

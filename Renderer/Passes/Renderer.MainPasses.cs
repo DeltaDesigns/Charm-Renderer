@@ -14,7 +14,7 @@ public partial class CharmRenderer
         Context.Rasterizer.SetViewport(GBuffers.RT0.GetViewport());
 
         CMD.States.SetStencilRef(Context, 7);
-        CMD.States.CreateStates(Context, new(0, 2, 2, 0));
+        CMD.States.SetDefaultState(Context, new(0, 2, 2, 0));
         RenderMesh(TfxRenderStage.GenerateGbuffer, "GBuffer Pass");
 
         Externs.Deferred.Update(Context, GBuffers);
@@ -23,11 +23,11 @@ public partial class CharmRenderer
         TfxScopes[Tiger.TfxScope.DECAL].Bind(this);
 
         // Decal Pass
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetDefaultState(Context, new(8, 15, 2, 1));
         RenderMesh(TfxRenderStage.Decals, "Decal Pass");
 
         // Vertex AO workaround
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetState(Context, new(0, 0, 0, 0));
         GBuffers.RT2.CopyTo(Context, GBuffers.RT2_Clone);
 
         Context.OutputMerger.SetRenderTargets(null, null, null, GBuffers.RT2.RTV);
@@ -51,7 +51,7 @@ public partial class CharmRenderer
         TfxScopes[Tiger.TfxScope.TRANSPARENT].Bind(this);
 
         // Decal Additive Pass
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetDefaultState(Context, new(8, 15, 2, 1));
         RenderMesh(TfxRenderStage.DecalsAdditive, "Decal Additive Pass");
 
         GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
@@ -60,12 +60,12 @@ public partial class CharmRenderer
         // Sky Objects Pass
         if (Viewport.RenderSky && Viewport.RenderSkyObjs)
         {
-            CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+            CMD.States.SetDefaultState(Context, new(8, 15, 2, 1));
             RenderMesh(TfxRenderStage.Transparents, FeatureRendererSubscription.SkyTransparent, "Sky Objects Pass");
         }
 
         // Transparent Pass
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetDefaultState(Context, new(8, 15, 2, 1));
         RenderMesh(TfxRenderStage.Transparents,
             FeatureRendererSubscriptionExtensions.AllBut(TfxFeatureRenderer.SkyTransparent),
             "Transparent Pass");
@@ -95,12 +95,12 @@ public partial class CharmRenderer
             Externs.ShadowMask.Update(GBuffers);
 
             Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
-            CMD.States.CreateStates(Context, new(2, 16, 0, 0));
+            CMD.States.SetDefaultState(Context, new(2, 16, 0, 0));
             RenderGlobalPipeline("global_lighting");
 
             if (Viewport.HDAO)
             {
-                CMD.States.CreateStates(Context, new(3, 0, 0, 0));
+                CMD.States.SetDefaultState(Context, new(3, 0, 0, 0));
                 Externs.PostProcess.Unk00 = GBuffers.HDAO.SRV;
                 Externs.PostProcess.UnkC0 = new(0.6f, 0.6f, 1, 1);
                 Externs.PostProcess.Unk50 = GBuffers.HDAO.GetResolutionInverse();
@@ -109,7 +109,7 @@ public partial class CharmRenderer
         }
         else
         {
-            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            CMD.States.SetState(Context, new(0, 0, 0, 0));
             Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightSpecular.RTV);
             MatCapRenderer.Draw(Context, Externs);
         }
@@ -132,23 +132,23 @@ public partial class CharmRenderer
         if (Viewport.RenderSky)
         {
             CMD.States.SetStencilRef(Context, 0x10);
-            CMD.States.CreateStates(Context, new(0, 77, 0, 0));
+            CMD.States.SetState(Context, new(0, 77, 0, 0));
             Context.VertexShader.Set(_blitVS);
             Context.PixelShader.Set(null);
             DrawScreenQuad();
 
             CMD.States.SetStencilRef(Context, 0);
-            CMD.States.CreateStates(Context, new(0, 50, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 50, 0, 0));
             RenderGlobalPipeline("sky");
 
             CMD.States.SetStencilRef(Context, 0);
-            CMD.States.CreateStates(Context, new(0, 31, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 31, 0, 0));
             RenderGlobalPipeline("deferred_shading");
         }
         else
         {
             CMD.States.SetStencilRef(Context, 0);
-            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             RenderGlobalPipeline("deferred_shading_no_atm");
         }
 
@@ -159,7 +159,7 @@ public partial class CharmRenderer
     {
         RenderHelpers.Profile("Blit To WPF");
         Annotation.BeginEvent("Blit To WPF");
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetState(Context, new(0, 0, 0, 0));
 
         _rtFinal.SetRenderTarget(Context, true);
         Context.VertexShader.Set(_blitVS);

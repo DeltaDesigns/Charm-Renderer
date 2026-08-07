@@ -85,7 +85,7 @@ public partial class CharmRenderer
     {
         RenderHelpers.Profile("Render Skeleton");
         Annotation.BeginEvent("Entity Skeleton");
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetState(Context, new(8, 15, 2, 1));
 
         Context.InputAssembler.InputLayout = _debugLinesLayout;
         Context.VertexShader.Set(_debugLinesVS);
@@ -141,7 +141,7 @@ public partial class CharmRenderer
     {
         RenderHelpers.Profile("Render Bounding Boxes");
         Annotation.BeginEvent("Render Bounding Boxes");
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetState(Context, new(8, 15, 2, 1));
 
         Context.InputAssembler.InputLayout = _debugLinesLayout;
         Context.VertexShader.Set(_debugLinesVS);
@@ -202,7 +202,7 @@ public partial class CharmRenderer
                 });
         }
 
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetState(Context, new(8, 15, 2, 1));
         Context.InputAssembler.InputLayout = _debugLinesLayout;
         Context.VertexShader.Set(_debugLinesVS);
         Context.PixelShader.Set(_debugLinesPS);

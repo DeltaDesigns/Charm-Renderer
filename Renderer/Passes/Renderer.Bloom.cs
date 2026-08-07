@@ -94,7 +94,7 @@ public partial class CharmRenderer
         }
 
         CMD.States.SetStencilRef(Context, 0);
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
         Bind(GBuffers.Shading, buffers.Bloom3rd, new(0.00f, 0.0005f, 0.016f, 0.016f));
         RenderGlobalPipeline("bloom_initial_downsample_block_2x2");
@@ -115,7 +115,7 @@ public partial class CharmRenderer
             buffers.AutoExposureColumns.Bind(Context);
 
             CMD.States.SetStencilRef(Context, 0);
-            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
             RenderGlobalPipeline("autoexposure_sample_columns");
             //Context.CopyResource(buffers.AutoExposureColumns.Texture, buffers.AutoExposureColumnsStaging);

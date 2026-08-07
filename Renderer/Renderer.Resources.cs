@@ -76,7 +76,7 @@ public partial class CharmRenderer
     {
         RenderHelpers.Profile("Render Grid");
         Annotation.BeginEvent("Draw Grid");
-        CMD.States.CreateStates(Context, new(8, 15, 2, 1));
+        CMD.States.SetState(Context, new(8, 15, 2, 1));
 
         int numLines = (int)(gridSize * 2 / gridSpacing) + 1;
         int vertexCount = numLines * 2 * 2; // horizontal + vertical, 2 vertices per line

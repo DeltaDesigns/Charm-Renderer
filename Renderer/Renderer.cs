@@ -237,6 +237,7 @@ public partial class CharmRenderer : IDisposable
         int newWidth = Math.Max(1, (int)Viewport.ActualWidth);
         int newHeight = Math.Max(1, (int)Viewport.ActualHeight);
         Context.Rasterizer.SetViewport(0, 0, newWidth, newHeight, 0.0f, 1f);
+        CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
         UpdateAutoexposure(DeltaTime);
         UpdateCamera();
@@ -261,7 +262,7 @@ public partial class CharmRenderer : IDisposable
             //    Externs.PostProcess.Unk50 = GBuffers.PostProcessResult.GetResolutionInverse();
             //    Externs.PostProcess.UnkC0 = new(-3, 3, 2f, Externs.Frame.ExposureScale);
             //}
-            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             RenderGlobalPipeline(Viewport.DisplayPass.ToString());
         }
 

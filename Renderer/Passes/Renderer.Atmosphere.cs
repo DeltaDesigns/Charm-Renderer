@@ -9,7 +9,7 @@ public partial class CharmRenderer
     {
         if (!Viewport.RenderSky)
         {
-            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();
 
             Externs.Atmosphere.AtmosNear = AssetManager.BlackTextureWAlpha;
@@ -26,7 +26,7 @@ public partial class CharmRenderer
         RenderHelpers.Profile("Render Atmosphere");
         Annotation.BeginEvent("Atmosphere");
 
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
         var far = GBuffers.SkyGenerateFar;
         var near = GBuffers.SkyGenerateNear;
         var hemisphere = GBuffers.FullHemisphereSkyColor;

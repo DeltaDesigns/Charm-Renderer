@@ -15,7 +15,7 @@ public partial class CharmRenderer
 
         // TODO, compute dispatching in MaterialData binding
         {
-            CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             GBuffers.ColorGradingLUT.Bind(Context);
             if (Externs.ScreenArea.Unk08 is not null)
             {
@@ -48,7 +48,7 @@ public partial class CharmRenderer
             Annotation.EndEvent();
         }
 
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
         Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, GBuffers.PostProcessResult.RTV);
         Context.Rasterizer.SetViewport(GBuffers.PostProcessResult.GetViewport());
 
@@ -68,7 +68,7 @@ public partial class CharmRenderer
     {
         RenderHelpers.Profile("Render FXAA");
         Annotation.BeginEvent("FXAA");
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
         GBuffers.FXAA.SetRenderTarget(Context, false);
         Externs.FXAA.Update(Context, GBuffers);
@@ -83,7 +83,7 @@ public partial class CharmRenderer
         RenderHelpers.Profile("Render Downsample Depth");
         Annotation.BeginEvent("Downsample Depth");
 
-        CMD.States.CreateStates(Context, new(0, 2, 0, 0));
+        CMD.States.SetDefaultState(Context, new(0, 2, 0, 0));
         GBuffers.DepthHalf.Clear(Context, 0, 0);
         GBuffers.DepthHalf.Set(Context);
 
@@ -136,7 +136,7 @@ public partial class CharmRenderer
 
         RenderHelpers.Profile("Render HDAO");
         Annotation.BeginEvent("HDAO");
-        CMD.States.CreateStates(Context, new(0, 0, 0, 0));
+        CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
         GBuffers.HDAO.Bind(Context);
         Externs.HDAO.Update(this);
