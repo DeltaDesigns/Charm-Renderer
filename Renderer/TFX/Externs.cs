@@ -66,7 +66,7 @@ public class Externs : IDisposable
         [ExternField(0xB8)] public ShaderResourceView SpecularTintLookup { get; set; }
         [ExternField(0xC0)] public ShaderResourceView IridesenceLookup { get; set; }
 
-        [ExternField(0x1B0)] public Vector4 Unk1B0 { get; set; } = new(0f, 0f, 0f, 1f);
+        [ExternField(0x1B0)] public Vector4 Unk1B0 { get; set; } = new(0f, 0f, 1f, 1f);
         [ExternField(0x1C0)] public Vector4 Unk1C0 { get; set; } = new(1f, 1f, 0f, 1f);
 
         public ExternFrame()
@@ -89,7 +89,6 @@ public class Externs : IDisposable
             GameTime = renderer.Time * renderer.Viewport.TimeScale;
             RenderTime = renderer.Time * renderer.Viewport.TimeScale;
             DeltaTime = renderer.DeltaTime;
-            Unk1B0 = new(0f, 0f, 1f, 1f);
             RenderHelpers.EndProfile();
         }
 
@@ -187,19 +186,6 @@ public class Externs : IDisposable
 
         public void Dispose()
         {
-            // These only reference GBuffer SRVs, no need to dispose here
-            //AtmosFar?.Dispose();
-            //AtmosFar = null;
-            //AtmosNear?.Dispose();
-            //AtmosNear = null;
-            //AtmosFarDS?.Dispose();
-            //AtmosFarDS = null;
-            //AtmosNearDS?.Dispose();
-            //AtmosNearDS = null;
-            //AtmosDepthAngleDensity?.Dispose();
-            //AtmosDepthAngleDensity = null;
-            //ShadingResult?.Dispose();
-            //ShadingResult = null;
         }
     }
 

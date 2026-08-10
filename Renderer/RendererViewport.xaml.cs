@@ -27,9 +27,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
     #region Debug Options
     public ObservableCollection<SettingItem> DebugSettings { get; set; }
-    public bool ShowGrid { get; set; } = true;
     public bool CapFPS { get; set; } = true;
-    public bool FXAA { get; set; } = true;
+    public bool UseSkyCopyTint_Debug { get; set; } = false;
     #endregion
 
     #region Render Options
@@ -40,12 +39,14 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public SliderSetting ExposureSetting { get; set; }
 
     public bool AutoOrbit { get; set; } = false;
+    public bool ShowGrid { get; set; } = true;
     public bool RenderSky { get; set; } = true;
     public bool RenderSkyObjs { get; set; } = true;
     public float TimeOfDay { get; set; } = 0.635f;
     public bool AutoExposure { get; set; } = true;
     public float Exposure { get; set; } = 0.25f;
     public float ExposureIllum { get; set; } = 1f;
+    public bool FXAA { get; set; } = true;
     public bool Bloom { get; set; } = true;
     public bool GodRays { get; set; } = true;
     public bool HDAO { get; set; } = true;
@@ -370,6 +371,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 Text = "Cap FPS",
                 GetValue = () => CapFPS,
                 SetValue = v => CapFPS = v
+            },
+            new ToggleSetting
+            {
+                Text = "Use Sky Copy Tint",
+                GetValue = () => UseSkyCopyTint_Debug,
+                SetValue = v => UseSkyCopyTint_Debug = v
             }
         };
         DebugOptions.ItemsSource = DebugSettings;
