@@ -1037,6 +1037,22 @@
                 Foreground="White"
                 Opacity="0.75"
                 TextOptions.TextFormattingMode="Display" />
+
+            <TextBlock
+                x:Name="RenderdocDebug"
+                Grid.Column="1"
+                Margin="15,5,5,5"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Background="#78000000"
+                Focusable="False"
+                FontFamily="Consolas"
+                FontSize="14"
+                Foreground="Lime"
+                Opacity="0.75"
+                Text="Renderdoc Connected. F12 to capture."
+                TextOptions.TextFormattingMode="Display"
+                Visibility="Hidden" />
         </Grid>
 
     </Grid>

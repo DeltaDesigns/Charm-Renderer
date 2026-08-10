@@ -220,10 +220,6 @@ public partial class CharmRenderer : IDisposable
         _pausedEvent.Set();
     }
 
-#if DEBUG
-    private RenderDoc _renderDoc = null;
-    private bool _captured = false;
-#endif
     private void Render()
     {
         if (!_isRunning)
@@ -364,11 +360,37 @@ public partial class CharmRenderer : IDisposable
         }
     }
 
+#if DEBUG
+    private RenderDoc _renderDoc = null;
+    private bool _captured = false;
+    private bool _renderDocLoaded = true;
+    private bool _renderDocConnected = false;
+#endif
+
     private void HandleRenderDoc(bool capture)
     {
 #if DEBUG
+        if (!_renderDocLoaded)
+            return;
+
         if (_renderDoc is null)
-            RenderDoc.Load(out _renderDoc);
+        {
+            _renderDocLoaded = RenderDoc.Load(out _renderDoc);
+            _renderDocConnected = _renderDoc?.API.IsTargetControlConnected() == 1;
+            Log.Debug($"Renderdoc Loaded? {_renderDocLoaded}, Connected? {_renderDocConnected}");
+
+            if (_renderDocConnected)
+            {
+                Viewport.Dispatcher.Invoke(() =>
+                {
+                    Viewport.RenderdocDebug.Visibility = Visibility.Visible;
+                });
+            }
+        }
+
+        // only allows capturing if renderdoc is actually connected
+        if (!_renderDocConnected || !_renderDocLoaded)
+            return;
 
         if (capture)
         {
