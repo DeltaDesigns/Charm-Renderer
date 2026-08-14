@@ -1,7 +1,4 @@
-﻿using SharpDX;
-using SharpDX.Direct3D11;
-
-namespace Charm.Renderer;
+﻿namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
@@ -12,20 +9,23 @@ public partial class CharmRenderer
         Annotation.BeginEvent("Post Process");
 
         RenderBloom();
+        bool colorGrade = Viewport.DisplayPass == RenderPass.final_color_grade;
 
         // TODO, compute dispatching in MaterialData binding
         {
             CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             GBuffers.ColorGradingLUT.Bind(Context);
-            if (Externs.ScreenArea.Unk08 is not null)
+
+            if (colorGrade && Externs.ScreenArea.Unk08 is not null)
             {
                 TempScopes.UpdateColorGradingScope(Context, true);
                 RenderGlobalPipeline("color_grading_fill_using_tint_map_plus_matrix_hdr");
             }
             else
             {
-                TempScopes.UpdateColorGradingScope(Context);
-                RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
+                //TempScopes.UpdateColorGradingScope(Context);
+                //RenderGlobalPipeline("color_grading_fill_using_matrix_hdr");
+                RenderGlobalPipeline("color_grading_utility_hdr");
             }
 
             Annotation.BeginEvent($"Global Pipeline: color_grading_convert_to_volume_texture_hdr");
@@ -55,10 +55,27 @@ public partial class CharmRenderer
         Externs.ScreenArea.Unk00 = GBuffers.Shading_Clone.SRV;
         Externs.ScreenArea.Unk38 = GBuffers.LUTVolume.SRV;
 
-        if (Viewport.DisplayPass == RenderPass.final_color_grade)
-            RenderGlobalPipeline("screen_area_global_lut3d_hdr");
+        if (colorGrade)
+        {
+            RenderGlobalPipeline("screen_area_global_lut3d_distort_hdr");
+        }
         else
-            RenderGlobalPipeline("screen_area_global_lut3d_no_tonemap");
+        {
+            // Hate that I have to do this but screen_area_global_lut3d_no_tonemap doesnt support distortion.
+            // I personally like the look of no_tonemap as the other kinda washes things out a little.
+            // So screw it, I made a version of no_tonemap that adds distortion support.
+
+            RenderHelpers.Profile($"Render Global Pipeline screen_area_global_lut3d_no_tonemap");
+            Annotation.BeginEvent($"Global Pipeline: screen_area_global_lut3d_no_tonemap");
+
+            // executing this one since it sets the distortion buffer on t6, then the ps gets overriden
+            ExecutePipeline("screen_area_global_lut3d_distort_hdr");
+            Context.PixelShader.Set(AssetManager.GlobalLUT3D_No_Tonemap_Distort);
+            DrawScreenQuad();
+
+            Annotation.EndEvent();
+            RenderHelpers.EndProfile();
+        }
 
         Annotation.EndEvent();
         RenderHelpers.EndProfile();
@@ -146,82 +163,4 @@ public partial class CharmRenderer
         Annotation.EndEvent();
         RenderHelpers.EndProfile();
     }
-
-    // Old Exposure
-    private float _currentExposure = 1.0f;
-    private float _targetExposure = 1.0f;
-    private void RenderLuminance()
-    {
-        return;
-
-        if (!Viewport.AutoExposure || !Viewport.RenderSky)
-        {
-            Externs.Frame.ExposureScale = Viewport.Exposure;
-            return;
-        }
-
-        RenderHelpers.Profile("Render Luminance");
-        Annotation.BeginEvent("Luminance");
-
-        Context.OutputMerger.SetRenderTargets(null, GBuffers.Luminance.RTV);
-        Context.VertexShader.Set(_luminanceVS);
-        Context.PixelShader.Set(_luminancePS);
-        Context.PixelShader.SetShaderResources(0, GBuffers.PostProcessResult.SRV);
-
-        DrawScreenQuad();
-
-        Context.GenerateMips(GBuffers.Luminance.SRV);
-
-        //if (_frameCounter % 2 == 0)
-        {
-            int lastMip = GBuffers.Luminance.Texture.Description.MipLevels - 1;
-            GPU.Instance.ImmediateContext.CopySubresourceRegion(
-                GBuffers.Luminance.Texture,
-                Resource.CalculateSubResourceIndex(lastMip, 0, GBuffers.Luminance.Texture.Description.MipLevels),
-                null,
-                GBuffers.LuminanceStaging,
-                0
-            );
-
-            DataBox box = GPU.Instance.ImmediateContext.MapSubresource(GBuffers.LuminanceStaging, 0, MapMode.Read, MapFlags.None);
-            float avgLogLum;
-            unsafe
-            {
-                avgLogLum = *(float*)box.DataPointer;
-            }
-            GPU.Instance.ImmediateContext.UnmapSubresource(GBuffers.LuminanceStaging, 0);
-
-            float avgLum = MathF.Exp(avgLogLum);
-            _targetExposure = ComputeTargetExposure(avgLum);
-        }
-
-        _currentExposure = UpdateExposure(_currentExposure, _targetExposure, Externs.Frame.DeltaTime);
-        Externs.Frame.ExposureScale = _currentExposure;
-
-        Annotation.EndEvent();
-        RenderHelpers.EndProfile();
-
-        float UpdateExposure(float currentExposure, float targetExposure, float deltaTime)
-        {
-            if (MathF.Abs(targetExposure - currentExposure) < 0.001f)
-                return currentExposure;
-
-            const float speedUp = 2.0f;   // dark → bright
-            const float speedDown = 1.0f; // bright → dark
-
-            float speed = targetExposure > currentExposure
-                ? speedUp
-                : speedDown;
-
-            float t = 1.0f - MathF.Exp(-speed * deltaTime);
-            return float.Lerp(currentExposure, targetExposure, t);
-        }
-
-        float ComputeTargetExposure(float avgLum)
-        {
-            const float middleGray = 0.18f;
-            return middleGray / Math.Max(avgLum, 1e-4f);
-        }
-    }
-
 }

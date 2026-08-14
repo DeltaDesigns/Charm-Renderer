@@ -70,6 +70,25 @@ public partial class CharmRenderer
             FeatureRendererSubscriptionExtensions.AllBut(TfxFeatureRenderer.SkyTransparent),
             "Transparent Pass");
 
+        // Distortion Pass
+        {
+            GBuffers.Distortion.Clear(Context);
+            GBuffers.Distortion.Bind(Context, GBuffers.DepthHalf.DSV);
+
+            Externs.View.UpdateMatrices(GBuffers.Distortion.Width, GBuffers.Distortion.Height);
+            Externs.Deferred.DeferredDepth = GBuffers.UberDepthHalf.SRV;
+            TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
+
+            CMD.States.SetDefaultState(Context, new(8, 15, 2, 1));
+            RenderMesh(TfxRenderStage.Distortion, FeatureRendererSubscription.All, "Distortion Pass");
+            Externs.ScreenArea.Unk48 = GBuffers.Distortion.SRV;
+
+            // reset
+            Externs.View.UpdateMatrices(Camera.Viewport.Width, Camera.Viewport.Height);
+            Externs.Deferred.DeferredDepth = GBuffers.Depth.DepthSRV;
+            TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
+        }
+
         GBuffers.Shading.CopyTo(Context, GBuffers.Shading_Clone);
         RenderHelpers.EndProfile();
     }

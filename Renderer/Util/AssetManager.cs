@@ -85,11 +85,14 @@ public class AssetManager : IDisposable
     public ShaderResourceView WhiteTexture;
     public ShaderResourceView BlackTexture;
     public ShaderResourceView BlackTextureWAlpha;
+    public ShaderResourceView Vignette;
 
     public VertexShader EntityOverrideVS_NoVC;
     public VertexShader EntityOverrideVS_VC;
     public VertexShader InvestmentOverrideVS_NoVC; // When o7 is SV_Position
     public VertexShader InvestmentOverrideVS_VC;
+
+    public PixelShader GlobalLUT3D_No_Tonemap_Distort;
 
     private static AssetManager _instance;
     public static AssetManager Instance
@@ -121,6 +124,10 @@ public class AssetManager : IDisposable
 
     private void CreateDefaults()
     {
+        Vignette ??= HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(GPU.Instance.Device, "renderer assets/textures/vignette.dds", true);
+
+        GlobalLUT3D_No_Tonemap_Distort ??= new PixelShader(GPU.Instance.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/screen_area_global_lut3d_no_tonemap_distort.hlsl", "main", "ps_5_0"));
+
         if (WhiteTexture is null)
         {
             var whiteData = Enumerable.Repeat((byte)255, 1 * 1 * 4).ToArray();
@@ -642,19 +649,16 @@ public class AssetManager : IDisposable
         DisposeGlobalTextures();
         DisposeSamplers();
 
-        WhiteTexture?.Dispose();
-        BlackTexture?.Dispose();
-        EntityOverrideVS_VC?.Dispose();
-        EntityOverrideVS_NoVC?.Dispose();
-        InvestmentOverrideVS_NoVC?.Dispose();
-        InvestmentOverrideVS_VC?.Dispose();
+        Utilities.Dispose(ref GlobalLUT3D_No_Tonemap_Distort);
+        Utilities.Dispose(ref Vignette);
+        Utilities.Dispose(ref WhiteTexture);
+        Utilities.Dispose(ref BlackTexture);
+        Utilities.Dispose(ref EntityOverrideVS_VC);
+        Utilities.Dispose(ref EntityOverrideVS_NoVC);
+        Utilities.Dispose(ref InvestmentOverrideVS_NoVC);
+        Utilities.Dispose(ref InvestmentOverrideVS_VC);
 
-        WhiteTexture = null;
-        BlackTexture = null;
-        EntityOverrideVS_VC = null;
-        EntityOverrideVS_NoVC = null;
-        InvestmentOverrideVS_NoVC = null;
-        InvestmentOverrideVS_VC = null;
+
         _instance = null;
     }
 }

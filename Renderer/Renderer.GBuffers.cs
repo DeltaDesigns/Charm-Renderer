@@ -40,6 +40,8 @@ public partial class CharmRenderer
         public RenderTarget2D FXAA { get; private set; }
         public RenderTarget2D HDAO { get; private set; }
 
+        public RenderTarget2D Distortion { get; private set; }
+
         public DepthTarget Depth { get; private set; }
         public DepthTarget Depth_Clone { get; private set; }
         public DepthTarget DepthHalf { get; private set; }
@@ -94,6 +96,8 @@ public partial class CharmRenderer
             PostProcessResult = Track(new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "Post Process Result"));
             FXAA = Track(new RenderTarget2D(device, width, height, Format.R16G16B16A16_Float, debugName: "FXAA Result"));
             HDAO = Track(new RenderTarget2D(device, width, height, Format.R8G8_UNorm, debugName: "HDAO"));
+
+            Distortion = Track(new RenderTarget2D(device, width / 2, height / 2, Format.R8G8B8A8_UNorm, debugName: "Distortion"));
 
             Depth = Track(new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth"));
             Depth_Clone = Track(new DepthTarget(device, width, height, Format.R24G8_Typeless, debugName: "RT Depth Clone"));
@@ -323,12 +327,13 @@ public partial class CharmRenderer
         }
 
         /// <summary>
-        /// Sets the render target AND viewport to the render targets size. Does not set dsv
+        /// Sets the render target AND viewport to the render targets size.
+        /// DepthStencilView is optional.
         /// </summary>
         /// <param name="context"></param>
-        public void Bind(DeviceContext context)
+        public void Bind(DeviceContext context, DepthStencilView dsv = null)
         {
-            context.OutputMerger.SetRenderTargets(null, RTV);
+            context.OutputMerger.SetRenderTargets(dsv, RTV);
             context.Rasterizer.SetViewport(GetViewport());
         }
 

@@ -255,11 +255,10 @@ public class TempScopes : GpuResource
             ColorGradingScopeBuffer.DebugName = $"ColorGradingScope Buffer";
         }
 
-        ref var cb7_data = ref _cachedColorGrading;
         if (fillZero)
             context.UpdateSubresource(zeroColorGrade, ColorGradingScopeBuffer);
         else
-            context.UpdateSubresource(ref cb7_data, ColorGradingScopeBuffer);
+            context.UpdateSubresource(ref _cachedColorGrading, ColorGradingScopeBuffer);
 
         context.VertexShader.SetConstantBuffer(7, ColorGradingScopeBuffer);
         context.PixelShader.SetConstantBuffer(7, ColorGradingScopeBuffer);

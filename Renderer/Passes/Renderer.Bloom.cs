@@ -96,6 +96,8 @@ public partial class CharmRenderer
         CMD.States.SetStencilRef(Context, 0);
         CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
+        Externs.PostprocessInitialDownsample.Distorion = GBuffers.Distortion.SRV;
+
         Bind(GBuffers.Shading, buffers.Bloom3rd, new(0.00f, 0.0005f, 0.016f, 0.016f));
         RenderGlobalPipeline("bloom_initial_downsample_block_2x2");
 
@@ -111,7 +113,7 @@ public partial class CharmRenderer
         // Auto Exposure Sampling
         {
             RenderHelpers.Profile("Auto Exposure Sampling");
-            Externs.PostProcess.UpdateAutoExposure(GBuffers);
+            Externs.PostProcess.UpdateAutoExposure(this);
             buffers.AutoExposureColumns.Bind(Context);
 
             CMD.States.SetStencilRef(Context, 0);
@@ -333,7 +335,7 @@ public struct ExposureResult
 public class AutoExposureConfig
 {
     /// <summary>Target middle grey value.</summary>
-    public float TargetLuminance = 0.0075f;
+    public float TargetLuminance = 0.008f;
     public float MinLuminance = 0.0001f;
     public float MaxLuminance = 65000.0f;
 
@@ -351,7 +353,7 @@ public class AutoExposureSystem
     public AutoExposureConfig Config;
 
     // Current smoothed values applied to the frame
-    public float CurrentExposureScale = 0.8f;
+    public float CurrentExposureScale = 0.25f;
     public float CurrentIllumRelative = 1f;
 
     public AutoExposureSystem() : this(new AutoExposureConfig())
@@ -361,7 +363,7 @@ public class AutoExposureSystem
     public AutoExposureSystem(AutoExposureConfig config)
     {
         Config = config;
-        CurrentExposureScale = 0.8f;
+        CurrentExposureScale = 0.25f;
         CurrentIllumRelative = 1f;
     }
 

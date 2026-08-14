@@ -13,8 +13,6 @@ namespace Charm.Renderer;
 
 public class Externs : IDisposable
 {
-    private static readonly ConcurrentDictionary<Type, Dictionary<int, Func<object, object>>> _fieldMaps = new();
-
     public Externs(CharmRenderer renderer)
     {
         Frame = new();
@@ -26,7 +24,7 @@ public class Externs : IDisposable
         ShadowMask = new();
         PostProcess = new();
         PostprocessInitialDownsample = new();
-        ScreenArea = new(renderer);
+        ScreenArea = new();
         FXAA = new();
         GlobalLighting = new();
         HDAO = new();
@@ -129,17 +127,23 @@ public class Externs : IDisposable
             RenderHelpers.Profile("Extern View Update");
 
             var cam = renderer.Camera;
-            var targetPixelToProj = UNormToSNorm * Matrix4x4ButGood.FromScale(new(1f / cam.Viewport.Width, 1f / cam.Viewport.Height, 1f));
-
-            ResolutionX = cam.Viewport.Width;
-            ResolutionY = cam.Viewport.Height;
-            Position = new Vector4(cam.Position, 1f);
-
             WorldToCamera = cam.WorldToCamera;
-            CameraToWorld = WorldToCamera.Invert();
-
             CameraToProj = cam.CameraToProjective;
+            UpdateMatrices(cam.Viewport.Width, cam.Viewport.Height);
+
+            RenderHelpers.EndProfile();
+        }
+
+        public void UpdateMatrices(int width, int height)
+        {
+            var targetPixelToProj = UNormToSNorm * Matrix4x4ButGood.FromScale(new(1f / width, 1f / height, 1f));
+
+            ResolutionX = width;
+            ResolutionY = height;
+
+            CameraToWorld = WorldToCamera.Invert();
             ProjToCamera = CameraToProj.Invert();
+            Position = CameraToWorld.W;
 
             WorldToProj = CameraToProj * WorldToCamera;
             ProjToWorld = WorldToProj.Invert();
@@ -153,7 +157,6 @@ public class Externs : IDisposable
             Unk240 = ProjToWorld * UNormToSNorm;
             Unk2C0 = ptow_no_proj_w * UNormToSNorm;
             Unk30 = Vector4.UnitZ * WorldToProj.W;
-            RenderHelpers.EndProfile();
         }
 
         public void Dispose()
@@ -219,23 +222,6 @@ public class Externs : IDisposable
 
         public void Dispose()
         {
-            // All owned by GBuffer, no need to dispose here
-            //DeferredDepth?.Dispose();
-            //DeferredDepth = null;
-            //DeferredRT0?.Dispose();
-            //DeferredRT0 = null;
-            //DeferredRT1?.Dispose();
-            //DeferredRT1 = null;
-            //DeferredRT2?.Dispose();
-            //DeferredRT2 = null;
-            //LightDiffuse?.Dispose();
-            //LightDiffuse = null;
-            //LightSpecular?.Dispose();
-            //LightSpecular = null;
-            //LightIBL?.Dispose();
-            //LightIBL = null;
-            //SkyHemisphereMips?.Dispose();
-            //SkyHemisphereMips = null;
         }
     }
 
@@ -345,20 +331,8 @@ public class Externs : IDisposable
             RenderHelpers.EndProfile();
         }
 
-
         public void Dispose()
         {
-            // Lookups are owned by the AssetManager, others by GBuffer. No need to dispose here
-            //AtmosLookup0?.Dispose();
-            //AtmosLookup0 = null;
-            //AtmosLookup1?.Dispose();
-            //AtmosLookup1 = null;
-            //AtmosLookup2?.Dispose();
-            //AtmosLookup2 = null;
-            //AtmosFar?.Dispose();
-            //AtmosFar = null;
-            //AtmosNear?.Dispose();
-            //AtmosNear = null;
         }
     }
 
@@ -440,11 +414,15 @@ public class Externs : IDisposable
             UnkE0 = atmos.AtmosSunDir;
         }
 
-        public void UpdateAutoExposure(GBuffer gbuffer)
+        public void UpdateAutoExposure(CharmRenderer renderer)
         {
-            Unk00 = gbuffer.Bloom.Bloom24th.SRV;
-            Unk50 = gbuffer.Bloom.AutoExposureColumns.GetResolutionInverse();
-            UnkC0 = new(0.01f, 0.9f, 0.3f, 1f); //new(0.01f, 0.9f, 1f, 1f);
+            float val = 0.3f;
+            if (renderer.Viewport.DisplayPass == RenderPass.final_color_grade)
+                val = 0.6f;
+
+            Unk00 = renderer.GBuffers.Bloom.Bloom24th.SRV;
+            Unk50 = renderer.GBuffers.Bloom.AutoExposureColumns.GetResolutionInverse();
+            UnkC0 = new(0.01f, 0.9f, val, 1f); //new(0.01f, 0.9f, 1f, 1f);
         }
 
         public void Dispose()
@@ -496,6 +474,8 @@ public class Externs : IDisposable
         [ExternField(0xB8)] public float UnkB8 { get; set; } = 0f;
         [ExternField(0xC0)] public Vector4 UnkC0 { get; set; } = new(0f, 0.4f, -1f, -1f);
         [ExternField(0xD0)] public Vector4 UnkD0 { get; set; } = new(0.5f, 0f, 0f, 0f);
+        [ExternField(0xE0)] public Vector4 UnkE0 { get; set; } = new(0.25f, -0.225f, 0.40f, 0.96f);
+        [ExternField(0xF0)] public Vector4 UnkF0 { get; set; } = new(0.13281f, 0.23611f, 0f, 0f);
         [ExternField(0x100)] public Matrix4x4ButGood Unk100 { get; set; } = Matrix4x4ButGood.Identity / 2f;
         [ExternField(0x140)] public float Unk140 { get; set; } = 0.05f;
         [ExternField(0x150)] public Vector4 Unk150 { get; set; } = new(0.3f, 0.5f, 0f, 0.02f);
@@ -503,22 +483,19 @@ public class Externs : IDisposable
         [ExternField(0x170)] public Vector4 Unk170 { get; set; } = Vector4.One;
         [ExternField(0x18C)] public float Unk18C { get; set; } = 0.5f;
 
-        public ExternScreenArea(CharmRenderer renderer)
+        public ExternScreenArea()
         {
             Unk40 = AssetManager.Get().BlackTextureWAlpha;
             Unk50 = AssetManager.Get().BlackTextureWAlpha;
-            //Unk58 = AssetManager.Get().WhiteTexture;
-            Unk58 = HelixToolkit.SharpDX.Utilities.TextureLoader.FromFileAsShaderResourceView(renderer.Device, "renderer assets/textures/vignette.dds", true);
+            Unk58 = AssetManager.Get().Vignette;
         }
 
-        public void Update(DeviceContext context, GBuffer gbuffer)
+        public void Update()
         {
         }
 
         public void Dispose()
         {
-            Unk58?.Dispose();
-            Unk58 = null;
         }
     }
 
