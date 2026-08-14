@@ -113,7 +113,6 @@ public partial class CharmRenderer
         {
             Annotation.BeginEvent($"Global Pipeline: uber_depth_default");
             UnbindAllRTVs();
-            Externs.UberDepth.Update(this);
 
             ExecutePipeline("uber_depth_default");
 

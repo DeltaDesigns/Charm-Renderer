@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
@@ -11,25 +12,17 @@ using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
+public interface IExtern : IDisposable
+{
+}
+
 public class Externs : IDisposable
 {
-    public Externs(CharmRenderer renderer)
+    private readonly List<IExtern> _externs = new();
+    private T Track<T>(T _extern) where T : IExtern
     {
-        Frame = new();
-        View = new();
-        Transparent = new();
-        Deferred = new();
-        Atmosphere = new();
-        Decal = new();
-        ShadowMask = new();
-        PostProcess = new();
-        PostprocessInitialDownsample = new();
-        ScreenArea = new();
-        FXAA = new();
-        GlobalLighting = new();
-        HDAO = new();
-        UberDepth = new();
-        DownsampleTextureGeneric = new();
+        _externs.Add(_extern);
+        return _extern;
     }
 
     public ExternFrame Frame;
@@ -47,8 +40,29 @@ public class Externs : IDisposable
     public ExternHDAO HDAO;
     public ExternUberDepth UberDepth;
     public ExternDownsampleTextureGeneric DownsampleTextureGeneric;
+    public ExternDecalSetTransform DecalSetTransform;
 
-    public class ExternFrame : IDisposable
+    public Externs(CharmRenderer renderer)
+    {
+        Frame = Track(new ExternFrame());
+        View = Track(new ExternView());
+        Transparent = Track(new ExternTransparent());
+        Deferred = Track(new ExternDeferred());
+        Atmosphere = Track(new ExternAtmosphere());
+        Decal = Track(new ExternDecal());
+        ShadowMask = Track(new ExternShadowMask());
+        PostProcess = Track(new ExternPostProcess());
+        PostprocessInitialDownsample = Track(new ExternPostprocessInitialDownsample());
+        ScreenArea = Track(new ExternScreenArea());
+        FXAA = Track(new ExternFxaa());
+        GlobalLighting = Track(new ExternGlobalLighting());
+        HDAO = Track(new ExternHDAO());
+        UberDepth = Track(new ExternUberDepth());
+        DownsampleTextureGeneric = Track(new ExternDownsampleTextureGeneric());
+        DecalSetTransform = Track(new ExternDecalSetTransform());
+    }
+
+    public class ExternFrame : IExtern
     {
         [ExternField(0x00)] public float GameTime { get; set; }
         [ExternField(0x04)] public float RenderTime { get; set; }
@@ -84,6 +98,8 @@ public class Externs : IDisposable
         public void Update(CharmRenderer renderer)
         {
             RenderHelpers.Profile("Extern Frame Update");
+            ExposureIllumRelative = renderer.Viewport.ExposureIllum;
+            Unk10 = renderer.Viewport.TimeOfDay;
             GameTime = renderer.Time * renderer.Viewport.TimeScale;
             RenderTime = renderer.Time * renderer.Viewport.TimeScale;
             DeltaTime = renderer.DeltaTime;
@@ -95,7 +111,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternView : IDisposable
+    public class ExternView : IExtern
     {
         private static readonly Matrix4x4ButGood UNormToSNorm = new()
         {
@@ -164,7 +180,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternTransparent : IDisposable
+    public class ExternTransparent : IExtern
     {
         [ExternField(0x00)] public ShaderResourceView AtmosFar { get; set; }
         [ExternField(0x08)] public ShaderResourceView AtmosFarDS { get; set; }
@@ -192,7 +208,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternDeferred : IDisposable
+    public class ExternDeferred : IExtern
     {
         [ExternField(0x00)] public Vector4 DepthConstants { get; set; } = new(0.0f, 1f / 0.01f, 0.0f, 0.0f);
         [ExternField(0x78)] public ShaderResourceView DeferredDepth { get; set; }
@@ -225,7 +241,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternAtmosphere : IDisposable
+    public class ExternAtmosphere : IExtern
     {
         [ExternField(0x40)] public ShaderResourceView SkySnapshot1 { get; set; }
         [ExternField(0x58)] public ShaderResourceView SkySnapshot2 { get; set; }
@@ -336,7 +352,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternDecal : IDisposable
+    public class ExternDecal : IExtern
     {
         [ExternField(0x8)] public ShaderResourceView DeferredDepth { get; set; }
         [ExternField(0x8)] public ShaderResourceView DeferredRT1 { get; set; }
@@ -344,10 +360,8 @@ public class Externs : IDisposable
 
         public void Update(DeviceContext context, GBuffer gbuffer)
         {
-            RenderHelpers.Profile("Extern Decal Update");
             DeferredDepth = gbuffer.Depth_Clone.DepthSRV;
             DeferredRT1 = gbuffer.RT1_Clone.SRV;
-            RenderHelpers.EndProfile();
         }
 
         public void Dispose()
@@ -355,7 +369,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternShadowMask : IDisposable
+    public class ExternShadowMask : IExtern
     {
         [ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
         [ExternField(0x8)] public ShaderResourceView Unk08 { get; set; }
@@ -373,7 +387,6 @@ public class Externs : IDisposable
 
         public void Update(GBuffer buffers)
         {
-            Unk10 = buffers.UberDepthHalf.SRV;
         }
 
         public void Dispose()
@@ -381,7 +394,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternPostProcess : IDisposable
+    public class ExternPostProcess : IExtern
     {
         [ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
         [ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
@@ -397,11 +410,8 @@ public class Externs : IDisposable
         {
         }
 
-        public void Update(DeviceContext context, GBuffer gbuffer)
+        public void Update()
         {
-            RenderHelpers.Profile("Extern PostProcess Update");
-            UnkC0 = new(0.92537f, 0.0f, 0.37906f, 0.37906f);
-            RenderHelpers.EndProfile();
         }
 
         public void UpdateAtmos(CharmRenderer renderer)
@@ -430,7 +440,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternPostprocessInitialDownsample : IDisposable
+    public class ExternPostprocessInitialDownsample : IExtern
     {
         [ExternField(0x0)] public ShaderResourceView Distorion { get; set; }
         [ExternField(0x8)] public ShaderResourceView Unk08 { get; set; }
@@ -446,7 +456,6 @@ public class Externs : IDisposable
 
         public void Update()
         {
-            //UnkC0 = new(0.13281f, 0.23611f, 0.0f, 0.0f);
         }
 
         public void Dispose()
@@ -454,7 +463,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternScreenArea : IDisposable
+    public class ExternScreenArea : IExtern
     {
         [ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
         [ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
@@ -499,7 +508,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternFxaa : IDisposable
+    public class ExternFxaa : IExtern
     {
         [ExternField(0x0)] public ShaderResourceView Unk00 { get; set; }
         [ExternField(0x50)] public float Unk50 { get; set; } = 0.75f;
@@ -523,7 +532,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternGlobalLighting : IDisposable
+    public class ExternGlobalLighting : IExtern
     {
         [ExternField(0x08)] public ShaderResourceView Unk08 { get; set; }
         [ExternField(0x10)] public Vector4 Unk10 { get; set; } = Vector4.Zero;
@@ -567,7 +576,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternHDAO : IDisposable
+    public class ExternHDAO : IExtern
     {
         [ExternField(0x0)] public Vector4 Unk00 { get; set; }
         [ExternField(0x10)] public Vector4 Unk10 { get; set; }
@@ -611,7 +620,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternUberDepth : IDisposable
+    public class ExternUberDepth : IExtern
     {
         [ExternField(0x0)] public ShaderResourceView Depth { get; set; }
         [ExternField(0x18)] public UnorderedAccessView Unk18 { get; set; }
@@ -649,7 +658,7 @@ public class Externs : IDisposable
         }
     }
 
-    public class ExternDownsampleTextureGeneric : IDisposable
+    public class ExternDownsampleTextureGeneric : IExtern
     {
         [ExternField(0x38)] public ShaderResourceView Source { get; set; }
         [ExternField(0x40)] public Vector4 ResDest { get; set; }
@@ -671,36 +680,48 @@ public class Externs : IDisposable
         }
     }
 
+    public class ExternDecalSetTransform : IExtern
+    {
+        [ExternField(0x0)] public Vector4 Unk00 { get; set; } = Vector4.UnitW;
+        [ExternField(0x10)] public Vector4 Unk10 { get; set; } = Vector4.UnitW;
+
+        public ExternDecalSetTransform()
+        {
+        }
+
+        public void Update()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     public void Update(CharmRenderer renderer)
     {
         if (renderer is null)
             return;
 
         RenderHelpers.Profile("Update Externs");
+        var near = renderer.Camera.Near;
+        var far = renderer.Camera.Far;
+        Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
+        Decal.DepthConstants = Deferred.DepthConstants;
+
         Frame.Update(renderer);
         View.Update(renderer);
-        //Atmosphere.Update(renderer);
-        //Deferred.Update();
-        //Decal.Update();
+        UberDepth.Update(renderer);
+
         RenderHelpers.EndProfile();
     }
 
     public void Dispose()
     {
-        Frame.Dispose();
-        View.Dispose();
-        Transparent.Dispose();
-        Deferred.Dispose();
-        Atmosphere.Dispose();
-        Decal.Dispose();
-        ShadowMask.Dispose();
-        PostProcess.Dispose();
-        ScreenArea.Dispose();
-        FXAA.Dispose();
-        GlobalLighting.Dispose();
-        HDAO.Dispose();
-        UberDepth.Dispose();
-        DownsampleTextureGeneric.Dispose();
+        foreach (var _extern in _externs)
+        {
+            _extern.Dispose();
+        }
     }
 
     private static readonly ConcurrentDictionary<(Type, int, Type), Delegate> _typedGetters = new();
@@ -738,10 +759,16 @@ public class Externs : IDisposable
             TfxExtern.Hdao => HDAO,
             TfxExtern.UberDepth => UberDepth,
             TfxExtern.DownsampleTextureGeneric => DownsampleTextureGeneric,
+            TfxExtern.PostprocessInitialDownsample => PostprocessInitialDownsample,
+            TfxExtern.DecalSetTransform => DecalSetTransform,
             _ => null
         };
 
+#if DEBUG
+        if (target == null) Debug.Assert(false, $"Unimplemented Extern: {tfxExtern}");
+#else
         if (target == null) return default;
+#endif
 
         var key = (target.GetType(), element, typeof(T));
         var getter = (Func<object, T>)_typedGetters.GetOrAdd(key, _ => BuildTypedGetter<T>(target.GetType(), element));

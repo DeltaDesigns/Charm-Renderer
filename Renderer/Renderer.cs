@@ -306,12 +306,6 @@ public partial class CharmRenderer : IDisposable
 
     private void UpdateExterns()
     {
-        var near = Camera.Near;
-        var far = Camera.Far;
-        Externs.Deferred.DepthConstants = new(1.0f / far, (far - near) / (far * near), 0, 0);
-        Externs.Decal.DepthConstants = Externs.Deferred.DepthConstants;
-        Externs.Frame.ExposureIllumRelative = Viewport.ExposureIllum;
-        Externs.Frame.Unk10 = Viewport.TimeOfDay;
         Externs.Update(this);
     }
 
