@@ -637,7 +637,7 @@
 
                                 <Expander
                                     x:Name="MeshGroupsExpander"
-                                    MaxHeight="500"
+                                    MaxHeight="650"
                                     Margin="0,5,0,5"
                                     HorizontalAlignment="Stretch"
                                     Background="#75000000"
@@ -667,8 +667,14 @@
                                         </StackPanel>
                                     </Expander.Header>
 
-                                    <StackPanel Margin="0,0,0,0" Orientation="Vertical">
+                                    <Grid Margin="0,0,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+
                                         <TextBlock
+                                            Grid.Row="0"
                                             Margin="20,-5,0,10"
                                             HorizontalAlignment="Left"
                                             VerticalAlignment="Center"
@@ -678,7 +684,8 @@
                                             Text="Hold Ctrl when selecting to isolate a group" />
 
                                         <ScrollViewer
-                                            Margin="0,0,0,0"
+                                            Grid.Row="1"
+                                            Margin="0,0,0,5"
                                             HorizontalScrollBarVisibility="Disabled"
                                             VerticalScrollBarVisibility="Auto">
                                             <ScrollViewer.Resources>
@@ -711,7 +718,7 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
                                         </ScrollViewer>
-                                    </StackPanel>
+                                    </Grid>
 
 
                                 </Expander>
