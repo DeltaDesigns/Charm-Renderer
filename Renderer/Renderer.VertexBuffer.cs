@@ -56,9 +56,7 @@ public class VertexBuffer : GpuResource
             new ShaderResourceViewDescription
             {
                 Format = format,
-
                 Dimension = ShaderResourceViewDimension.Buffer,
-
                 Buffer = new ShaderResourceViewDescription.BufferResource
                 {
                     ElementOffset = 0,

@@ -77,6 +77,9 @@ public partial class CharmRenderer
             RenderHelpers.EndProfile();
         }
 
+        if (Viewport.FXAA)
+            RenderFXAA();
+
         Annotation.EndEvent();
         RenderHelpers.EndProfile();
     }

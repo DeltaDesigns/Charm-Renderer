@@ -1,6 +1,5 @@
 ﻿using SharpDX.Direct3D11;
 using SharpDX.DirectInput;
-using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Tiger.Schema;
 using Buffer = SharpDX.Direct3D11.Buffer;
@@ -10,6 +9,8 @@ using BoundingBox = HelixToolkit.Maths.BoundingBox;
 using HelixToolkit.Maths;
 using System.Runtime.CompilerServices;
 using SharpDX.DXGI;
+using System.Diagnostics;
+
 
 #if DEBUG
 using TracyWrapper;
@@ -19,6 +20,11 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
+    private int _width;
+    private int _height;
+    private static readonly uint _currentPid = (uint)Process.GetCurrentProcess().Id;
+    private Dictionary<string, MaterialData> _pipelineCache = new();
+
     public UserDefinedAnnotation Annotation;
 
     public DirectInput Input = new DirectInput();
@@ -27,9 +33,6 @@ public partial class CharmRenderer
 
     public SharpDX.DirectInput.KeyboardState KeyboardState;
     public SharpDX.DirectInput.MouseState MouseState;
-
-    private Dictionary<string, MaterialData> _pipelineCache = new();
-    public ConcurrentDictionary<Tiger.TfxScope, TfxScope> TfxScopes = new();
 
     private void CreateDefaults()
     {

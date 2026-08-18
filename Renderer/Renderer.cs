@@ -8,6 +8,8 @@ using Tiger;
 using Tiger.Schema;
 using Device = SharpDX.Direct3D11.Device;
 using Arithmic;
+using System.Collections.Concurrent;
+
 
 
 
@@ -27,20 +29,18 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer : IDisposable
 {
-    private int _width;
-    private int _height;
-
     public FirstPersonCamera Camera;
-    public TempScopes TempScopes;
     public Externs Externs;
-    public MatCap MatCapRenderer;
 
+    public TempScopes TempScopes;
+    public ConcurrentDictionary<Tiger.TfxScope, TfxScope> TfxScopes = new();
+
+    public RendererViewport Viewport;
+    public MatCap MatCapRenderer;
     public RenderWorld World = new();
     public GroupVisibility GroupVisibility { get; } = new(64);
 
-    public RendererViewport Viewport;
     public GPU _GPU { get; set; }
-
     public Device Device => _GPU?.Device;
     public DeviceContext Context; //=> _GPU?.Context;
     public CommandList CMD; //=> _GPU?.CMD;
@@ -50,7 +50,6 @@ public partial class CharmRenderer : IDisposable
     private ManualResetEventSlim _renderGate = new(true);
     private ManualResetEventSlim _pausedEvent = new(false);
     private AutoResetEvent _frameCompleteEvent = new AutoResetEvent(true);
-    private static readonly uint _currentPid = (uint)Process.GetCurrentProcess().Id;
 
     public CharmRenderer()
     {
@@ -112,7 +111,6 @@ public partial class CharmRenderer : IDisposable
             Camera.Viewport = new((int)p.X, (int)p.Y, width, height);
         }, DispatcherPriority.Send);
     }
-
 
     public void Start()
     {
@@ -248,8 +246,6 @@ public partial class CharmRenderer : IDisposable
         RenderShading();
         RenderTransparent();
         RenderPostProcess();
-        if (Viewport.FXAA)
-            RenderFXAA();
 
         if (Viewport.DisplayPass > RenderPass.final_color_grade)
         {
