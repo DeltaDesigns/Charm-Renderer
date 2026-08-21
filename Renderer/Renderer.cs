@@ -198,6 +198,7 @@ public partial class CharmRenderer : IDisposable
             Time = (float)now;
 
             Render();
+            CheckScreenshot();
 
             fpsFrames++;
             fpsTimer += delta;

@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Charm.Shared;
 using HelixToolkit.Maths;
+using Microsoft.Win32;
 using Tiger;
 using Tiger.Schema;
 using Transform = Tiger.Schema.Transform;
@@ -619,6 +620,18 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             if (item is GroupToggleVM toggle)
                 toggle.IsChecked = true;
         }
+    }
+
+    private void ScreenshotButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = "PNG|*.png",
+            FileName = $"Charm_Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+        };
+
+        if (dialog.ShowDialog() == true)
+            Renderer.RequestScreenshot(dialog.FileName);
     }
 
     public static Grid FindParentGridByName(DependencyObject start, string gridName)
