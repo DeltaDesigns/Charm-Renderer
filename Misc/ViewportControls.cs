@@ -33,6 +33,7 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
     public string Text { get; set; }
     public double Min { get; set; } = 0;
     public double Max { get; set; } = 1;
+    public bool IsInt { get; set; } = false;
 
     public Func<float> GetValue { get; set; }
     public Action<float> SetValue { get; set; }
@@ -43,6 +44,9 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
         get => GetValue != null ? GetValue() : _value;
         set
         {
+            if (IsInt)
+                value = MathF.Round(value);
+
             if (SetValue != null)
                 SetValue(value);
             else

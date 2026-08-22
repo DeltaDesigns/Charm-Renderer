@@ -240,49 +240,12 @@ public partial class CharmRenderer : IDisposable
         UpdateGlobalChannels();
         UpdateScopes(); // Again, only Frame and View scopes here
 
-        RenderGBuffer();
-        RenderAtmosphere();
-        RenderHDAO();
-        RenderLighting();
-        RenderShading();
-        RenderTransparent();
-        RenderPostProcess();
-
-        if (Viewport.DisplayPass > RenderPass.final_color_grade)
-        {
-            //if (Viewport.DisplayPass == RenderPass.autoexposure_display)
-            //{
-            //    Externs.PostProcess.Unk50 = GBuffers.PostProcessResult.GetResolutionInverse();
-            //    Externs.PostProcess.UnkC0 = new(-3, 3, 2f, Externs.Frame.ExposureScale);
-            //}
-            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
-            RenderGlobalPipeline(Viewport.DisplayPass.ToString());
-        }
-
-        var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
-        if (Viewport.ShowGrid)
-        {
-            Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);
-            RenderGrid();
-        }
-
-        if (Viewport.ShowSkele || Viewport.ShowBB)
-        {
-            Context.OutputMerger.SetTargets(blitRT.RTV);
-            if (Viewport.ShowSkele)
-                RenderSkeleton();
-
-            if (Viewport.ShowBB)
-            {
-                RenderBoundingBoxes();
-                if (World.OverrideMainBB is not null)
-                    RenderBoundingBox(World.OverrideMainBB.Value, new(1, 0, 0, 1));
-            }
-        }
+        RenderPasses();
 
         //BlitOverlayTexture(blitRT, GBuffers.LightIBL, 2, 1, 0);
 
         // Blits to final RT/Correct format for WPF cus it hates everything
+        var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
         BlitToWPF(blitRT);
 
         //if (MouseState.Buttons[1])
@@ -320,10 +283,10 @@ public partial class CharmRenderer : IDisposable
         TempScopes.UpdateFrameScope(this);
     }
 
-    public void OnSizeChanged()
+    public void ResizeViewport(int width, int height)
     {
-        int newWidth = Math.Max(1, (int)Viewport.ActualWidth);
-        int newHeight = Math.Max(1, (int)Viewport.ActualHeight);
+        int newWidth = Math.Max(1, width);
+        int newHeight = Math.Max(1, height);
         if (newWidth != _width || newHeight != _height)
         {
             Stop();

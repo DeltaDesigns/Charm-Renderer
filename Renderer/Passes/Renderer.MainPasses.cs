@@ -6,6 +6,44 @@ namespace Charm.Renderer;
 // Main Deferred Passes
 public partial class CharmRenderer
 {
+    private void RenderPasses()
+    {
+        RenderGBuffer();
+        RenderAtmosphere();
+        RenderHDAO();
+        RenderLighting();
+        RenderShading();
+        RenderTransparent();
+        RenderPostProcess();
+
+        if (Viewport.DisplayPass > RenderPass.final_color_grade)
+        {
+            CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
+            RenderGlobalPipeline(Viewport.DisplayPass.ToString());
+        }
+
+        var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
+        if (Viewport.ShowGrid)
+        {
+            Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);
+            RenderGrid();
+        }
+
+        if (Viewport.ShowSkele || Viewport.ShowBB)
+        {
+            Context.OutputMerger.SetTargets(blitRT.RTV);
+            if (Viewport.ShowSkele)
+                RenderSkeleton();
+
+            if (Viewport.ShowBB)
+            {
+                RenderBoundingBoxes();
+                if (World.OverrideMainBB is not null)
+                    RenderBoundingBox(World.OverrideMainBB.Value, new(1, 0, 0, 1));
+            }
+        }
+    }
+
     private void RenderGBuffer()
     {
         RenderHelpers.Profile("Render GBuffer");
@@ -176,21 +214,23 @@ public partial class CharmRenderer
 
     private void BlitToWPF(RenderTarget2D rt)
     {
-        RenderHelpers.Profile("Blit To WPF");
-        Annotation.BeginEvent("Blit To WPF");
+        BlitTo(rt, _rtFinal);
+        wpfRT.Present(Context);
+    }
+
+    private void BlitTo(RenderTarget2D source, RenderTarget2D destination)
+    {
+        RenderHelpers.Profile("Blit To Target");
+        Annotation.BeginEvent("Blit To Target");
         CMD.States.SetState(Context, new(0, 0, 0, 0));
 
-        _rtFinal.SetRenderTarget(Context, true);
+        destination.SetRenderTarget(Context, true);
         Context.VertexShader.Set(_blitVS);
         Context.PixelShader.Set(_blitPS);
-        //Context.PixelShader.Set(DisplayPass == RenderPass.final_color_grade ? _blitPS_Linear : _blitPS);
         Context.PixelShader.SetSampler(0, _pointSampler);
 
-        rt.SetShaderResource(Context, 0, ShaderStage.Pixel);
-
+        source.SetShaderResource(Context, 0, ShaderStage.Pixel);
         DrawScreenQuad();
-
-        wpfRT.Present(Context);
 
         Annotation.EndEvent();
         RenderHelpers.EndProfile();

@@ -26,6 +26,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public ObservableCollection<SettingItem> DebugSettings { get; set; }
     public bool CapFPS { get; set; } = true;
     public bool UseSkyCopyTint_Debug { get; set; } = false;
+    public int ScreenshotScale { get; set; } = 1;
+    public float RenderScale { get; set; } = 1f;
     #endregion
 
     #region Render Options
@@ -363,6 +365,23 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 GetValue = () => MovementSpeed,
                 SetValue = v => MovementSpeed = v
             },
+            new SliderSetting
+            {
+                Text = "Render Scale",
+                Min = 0.25f,
+                Max = 2f,
+                GetValue = () => RenderScale,
+                SetValue = async v => RenderScale = await ChangeRenderScale(v)
+            },
+            new SliderSetting
+            {
+                Text = "Screenshot Scale",
+                Min = 1f,
+                Max = 4f,
+                IsInt = true,
+                GetValue = () => ScreenshotScale,
+                SetValue = v => ScreenshotScale = (int)v
+            },
             new ToggleSetting
             {
                 Text = "Cap FPS",
@@ -511,7 +530,24 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        Renderer?.OnSizeChanged();
+        Renderer?.ResizeViewport((int)(ActualWidth * RenderScale), (int)(ActualHeight * RenderScale));
+    }
+
+    // this sucks but helps with the black flickering caused by the back buffer becoming null for a frame
+    private CancellationTokenSource _debounce;
+    private async Task<float> ChangeRenderScale(float scale)
+    {
+        _debounce?.Cancel();
+        _debounce = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(100, _debounce.Token);
+            scale = Math.Clamp(scale, 0.25f, 2f);
+            Renderer?.ResizeViewport((int)(ActualWidth * scale), (int)(ActualHeight * scale));
+        }
+        catch (TaskCanceledException) { return scale; }
+
+        return scale;
     }
 
     private void Fullscreen_Click(object sender, RoutedEventArgs e)
@@ -627,11 +663,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         var dialog = new SaveFileDialog
         {
             Filter = "PNG|*.png",
-            FileName = $"Charm_Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+            FileName = $"Charm_{DateTime.Now:yyyyMMdd_HHmmss}.png"
         };
 
         if (dialog.ShowDialog() == true)
-            Renderer.RequestScreenshot(dialog.FileName);
+            Renderer.RequestScreenshot(dialog.FileName, Math.Clamp(ScreenshotScale / RenderScale, 0.25f, 2f));
     }
 
     public static Grid FindParentGridByName(DependencyObject start, string gridName)
