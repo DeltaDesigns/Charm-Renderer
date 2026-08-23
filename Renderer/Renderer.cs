@@ -236,7 +236,7 @@ public partial class CharmRenderer : IDisposable
 
         UpdateAutoexposure(DeltaTime);
         UpdateCamera();
-        UpdateExterns(); // Only Frame and View externs here
+        UpdateExterns(Viewport.RenderScale); // Only Frame and View externs here
         UpdateGlobalChannels();
         UpdateScopes(); // Again, only Frame and View scopes here
 
@@ -264,9 +264,11 @@ public partial class CharmRenderer : IDisposable
         RenderHelpers.EndProfile();
     }
 
-    private void UpdateExterns()
+    private void UpdateExterns(float scale)
     {
         Externs.Update(this);
+        // eh this sucks doing this here but whatever
+        Externs.HDAO.Unk20 = new System.Numerics.Vector4(0.00104f, 0.00185f, 9.00f, 9.00f) * scale;
     }
 
     private void UpdateGlobalChannels()

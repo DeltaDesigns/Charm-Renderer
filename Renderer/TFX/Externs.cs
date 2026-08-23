@@ -578,12 +578,12 @@ public class Externs : IDisposable
 
     public class ExternHDAO : IExtern
     {
-        [ExternField(0x0)] public Vector4 Unk00 { get; set; }
-        [ExternField(0x10)] public Vector4 Unk10 { get; set; }
-        [ExternField(0x20)] public Vector4 Unk20 { get; set; }
-        [ExternField(0x30)] public Vector4 Unk30 { get; set; }
-        [ExternField(0x40)] public Vector4 Unk40 { get; set; }
-        [ExternField(0x50)] public Vector4 Unk50 { get; set; }
+        [ExternField(0x0)] public Vector4 Unk00 { get; set; } = new(8f, -6.6f, 0, 0);
+        [ExternField(0x10)] public Vector4 Unk10 { get; set; } = new(-140f, 279.29999f, 0, 0);
+        [ExternField(0x20)] public Vector4 Unk20 { get; set; } = new(0.00104f, 0.00185f, 9.00f, 9.00f);
+        [ExternField(0x30)] public Vector4 Unk30 { get; set; } = new(0.4f, 0.4f, 0.6f, 0.6f);
+        [ExternField(0x40)] public Vector4 Unk40 { get; set; } = new(-0.0015f); // new(-0.00098f);
+        [ExternField(0x50)] public Vector4 Unk50 { get; set; } = new(10000, 50000, -0.02f, 20);
         [ExternField(0x60)] public ShaderResourceView Unk60 { get; set; }
         [ExternField(0x68)] public ShaderResourceView Unk68 { get; set; }
         [ExternField(0x70)] public Vector4 Unk70 { get; set; }
@@ -603,15 +603,6 @@ public class Externs : IDisposable
             Unk68 = buffers.UberDepthHalf.SRV;
             Unk70 = buffers.UberDepthHalf.GetResolutionInverse();
             Unk80 = buffers.Depth.GetResolutionInverse();
-
-            Unk00 = new(8f, -6.6f, 0, 0);
-            Unk10 = new(-140f, 279.29999f, 0, 0);
-            Unk20 = new(0.00104f, 0.00185f, 9.00f, 9.00f);
-            Unk30 = new(0.4f, 0.4f, 0.6f, 0.6f);
-            //Unk30 = new(0.35f, 0.35f, 0.6f, 0.6f);
-            //Unk40 = new(-0.00098f);
-            Unk40 = new(-0.0015f);
-            Unk50 = new(10000, 50000, -0.02f, 20);
             Unk90 = new(depthConstants.X, depthConstants.Y, 114.58865f, 1f);
         }
 

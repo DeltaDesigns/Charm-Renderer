@@ -61,7 +61,7 @@ public partial class CharmRenderer
             Context.Rasterizer.SetViewport(0, 0, capWidth, capHeight, 0.0f, 1f);
 
             UpdateCamera();
-            UpdateExterns();
+            UpdateExterns(scale);
             UpdateGlobalChannels();
             UpdateScopes();
             RenderPasses();

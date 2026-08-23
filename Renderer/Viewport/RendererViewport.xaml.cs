@@ -533,7 +533,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         Renderer?.ResizeViewport((int)(ActualWidth * RenderScale), (int)(ActualHeight * RenderScale));
     }
 
-    // this sucks but helps with the black flickering caused by the back buffer becoming null for a frame
+    // this sucks but helps with the black flickering caused by the back buffer becoming null for a frame?
+    // not sure whats really going on with that
     private CancellationTokenSource _debounce;
     private async Task<float> ChangeRenderScale(float scale)
     {
@@ -541,7 +542,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         _debounce = new CancellationTokenSource();
         try
         {
-            await Task.Delay(100, _debounce.Token);
+            await Task.Delay(75, _debounce.Token);
             scale = Math.Clamp(scale, 0.25f, 2f);
             Renderer?.ResizeViewport((int)(ActualWidth * scale), (int)(ActualHeight * scale));
         }
@@ -667,7 +668,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         };
 
         if (dialog.ShowDialog() == true)
-            Renderer.RequestScreenshot(dialog.FileName, Math.Clamp(ScreenshotScale / RenderScale, 0.25f, 2f));
+            Renderer.RequestScreenshot(dialog.FileName, Math.Clamp(ScreenshotScale / RenderScale, 0.25f, 4f));
     }
 
     public static Grid FindParentGridByName(DependencyObject start, string gridName)
