@@ -49,6 +49,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public bool Bloom { get; set; } = true;
     public bool GodRays { get; set; } = true;
     public bool HDAO { get; set; } = true;
+    public bool SunShadows { get; set; } = true;
     public float FOV { get; set; } = 60f;
     public float TimeScale { get; set; } = 1f;
     public float AtmosRotation { get; set; } = 0.50f; //0.825f;
@@ -328,6 +329,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 Text = "HDAO",
                 GetValue = () => HDAO,
                 SetValue = v => HDAO = v
+            },
+            new ToggleSetting
+            {
+                Text = "Sun Shadows",
+                GetValue = () => SunShadows,
+                SetValue = v => SunShadows = v
             },
             ExposureSetting,
             new SliderSetting

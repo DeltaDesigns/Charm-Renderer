@@ -18,6 +18,7 @@ public class TempScopes : GpuResource
     public Buffer TransAdvScopeBuffer;
     public Buffer ColorGradingScopeBuffer;
     public Buffer PostProcessScopeBuffer;
+    public Buffer CascadeScopeBuffer;
 
     public TempScopes()
     {
@@ -294,6 +295,32 @@ public class TempScopes : GpuResource
         RenderHelpers.EndProfile();
     }
 
+    public void UpdateCascadeScope(DeviceContext context, ScopeCascade scope)
+    {
+        if (_disposed)
+            return;
+
+        RenderHelpers.Profile("UpdateCascadeScope");
+        if (CascadeScopeBuffer is null)
+        {
+            CascadeScopeBuffer = new Buffer(context.Device, new BufferDescription
+            {
+                SizeInBytes = Utilities.SizeOf<ScopeCascade>(),
+                Usage = ResourceUsage.Default,
+                BindFlags = BindFlags.ConstantBuffer,
+                CpuAccessFlags = CpuAccessFlags.None,
+                OptionFlags = ResourceOptionFlags.None,
+                StructureByteStride = 0
+            });
+            CascadeScopeBuffer.DebugName = $"CascadeScope Buffer";
+        }
+
+        context.UpdateSubresource(ref scope, CascadeScopeBuffer);
+        context.VertexShader.SetConstantBuffer(0, CascadeScopeBuffer);
+        context.PixelShader.SetConstantBuffer(0, CascadeScopeBuffer);
+        RenderHelpers.EndProfile();
+    }
+
     private bool _disposed;
     public override void Dispose()
     {
@@ -307,6 +334,7 @@ public class TempScopes : GpuResource
         TransAdvScopeBuffer?.Dispose();
         ColorGradingScopeBuffer?.Dispose();
         PostProcessScopeBuffer?.Dispose();
+        CascadeScopeBuffer?.Dispose();
 
         base.Dispose();
     }
@@ -540,4 +568,21 @@ public struct ScopePostProcess
     public Vector4 Unk05;
     public Vector4 Unk06;
     public Vector4 Unk07;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct ScopeCascade
+{
+    public ScopeCascade()
+    {
+
+    }
+
+    public Matrix4x4 TargetPixelToWorld;
+    public Matrix4x4 CameraToProj;
+    public Matrix4x4 WorldToCamera;
+    public Matrix4x4 WorldToCascade;
+    public Vector4 LightDir;
+    public float PlaneDistance;
+    private System.Numerics.Vector3 _padding;
 }

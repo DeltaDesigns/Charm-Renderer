@@ -3,19 +3,46 @@ using Tiger.Schema;
 
 namespace Charm.Renderer;
 
+public enum DepthMode
+{
+    // default
+    Reverse,
+    // used for shadow maps and decals
+    Forward,
+}
+
 public class States
 {
+    private static readonly List<Comparison> REVERSED_DEPTH_FUNCS = new List<Comparison>()
+    {
+        Comparison.Always,
+        Comparison.Always,
+        Comparison.LessEqual,
+        Comparison.LessEqual,
+        Comparison.GreaterEqual,
+        Comparison.GreaterEqual,
+        Comparison.Greater,
+        Comparison.LessEqual,
+        Comparison.LessEqual,
+        Comparison.Always,
+        Comparison.Never,
+        Comparison.Always,
+        Comparison.LessEqual,
+        Comparison.LessEqual,
+    };
+
     public StateSelection CurrentState { get; set; }
     public StateSelection DefaultState { get; set; }
 
     private Dictionary<(int, int), RasterizerState> _rasStates = new();
-    private Dictionary<int, DepthStencilState> _depthStencilStates = new();
+    private Dictionary<int, (DepthStencilState reverse, DepthStencilState forward)> _depthStencilStates = new();
     private Dictionary<int, BlendState> _blendStates = new();
 
     public (int, int) CurrentRasState;
     public int CurrentDepthState;
     public int CurrentBlendState;
     public int CurrentStencilRef = 0;
+    private DepthMode _depthMode = DepthMode.Reverse;
 
     public void ResetStates()
     {
@@ -56,6 +83,19 @@ public class States
         context.OutputMerger.BlendState = CreateBlendState(context, state.BlendState()) ?? throw new ArgumentNullException();
     }
 
+    public void SetDepthMode(DeviceContext context, DepthMode mode)
+    {
+        if (_depthMode != mode)
+        {
+            _depthMode = mode;
+            int d = CurrentDepthState;
+            CreateDepthStencilState(context, d);
+
+            CurrentDepthState = -1;
+            SetDepthStencilState(context, d);
+        }
+    }
+
     public void SetStencilRef(DeviceContext context, int stencilRef)
     {
         if (CurrentStencilRef != stencilRef)
@@ -74,7 +114,7 @@ public class States
         if (CurrentDepthState != index)
         {
             CurrentDepthState = index;
-            context.OutputMerger.SetDepthStencilState(_depthStencilStates[index], CurrentStencilRef);
+            context.OutputMerger.SetDepthStencilState(_depthMode == DepthMode.Reverse ? _depthStencilStates[index].reverse : _depthStencilStates[index].forward, CurrentStencilRef);
         }
     }
 
@@ -120,11 +160,12 @@ public class States
 
         CurrentDepthState = state;
         if (_depthStencilStates.TryGetValue(state, out var value))
-            return value;
+            return _depthMode == DepthMode.Reverse ? value.reverse : value.forward;
 
         RenderStates.BungieDepthStencilDesc dsState = RenderStates.DepthStencilStates[state];
+        int _depthIndex = RenderStates.DEPTH_STENCIL_COMBOS[state].Item1;
 
-        var depthStencilState = new DepthStencilState(context.Device, new DepthStencilStateDescription
+        var func = new DepthStencilStateDescription
         {
             IsDepthEnabled = dsState.Depth.Enable,
             DepthWriteMask = (DepthWriteMask)dsState.Depth.WriteMask,
@@ -146,11 +187,18 @@ public class States
                 FailOperation = dsState.Stencil.BackFace.FailOp,
                 PassOperation = dsState.Stencil.BackFace.PassOp
             }
-        });
-        depthStencilState.DebugName = $"DepthStencilState_{state}";
-        _depthStencilStates.TryAdd(state, depthStencilState);
+        };
 
-        return depthStencilState;
+        var regular = new DepthStencilState(context.Device, func);
+
+        func.DepthComparison = REVERSED_DEPTH_FUNCS[_depthIndex];
+        var regular_reversed = new DepthStencilState(context.Device, func);
+
+        regular.DebugName = $"DepthStencilState_{state}";
+        regular_reversed.DebugName = $"DepthStencilState_{state}_Reverse";
+
+        _depthStencilStates.TryAdd(state, (regular, regular_reversed));
+        return _depthMode == DepthMode.Reverse ? regular : regular_reversed;
     }
 
     private BlendState CreateBlendState(DeviceContext context, int state)
@@ -186,7 +234,10 @@ public class States
         _rasStates.Clear();
 
         foreach (var state in _depthStencilStates.Values)
-            state?.Dispose();
+        {
+            state.forward?.Dispose();
+            state.reverse?.Dispose();
+        }
         _depthStencilStates.Clear();
 
         foreach (var state in _blendStates.Values)
@@ -194,3 +245,5 @@ public class States
         _blendStates.Clear();
     }
 }
+
+

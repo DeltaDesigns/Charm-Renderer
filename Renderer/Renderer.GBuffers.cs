@@ -67,8 +67,8 @@ public partial class CharmRenderer
         public RenderTarget2D ColorGradingLUT { get; private set; }
         public UAVTarget3D LUTVolume { get; private set; }
 
-        public RenderTarget2D Luminance { get; private set; }
-        public Texture2D LuminanceStaging { get; private set; }
+        public DepthTarget[] SunShadowCascades { get; private set; }
+        public RenderTarget2D ShadowMask { get; private set; }
 
         public int Width { get; }
         public int Height { get; }
@@ -125,10 +125,19 @@ public partial class CharmRenderer
             ColorGradingLUT = Track(new RenderTarget2D(device, 1024, 32, Format.R16G16B16A16_Float, debugName: "Color Grading LUT"));
             LUTVolume = Track(new UAVTarget3D(device, 32, 32, 32, Format.R11G11B10_Float, "LUT Volume"));
 
-            Luminance = Track(new RenderTarget2D(device, width, height, Format.R32_Float, debugName: "Luminance"));
-            LuminanceStaging = Track(RenderHelpers.CreateStagingTexture(device, 1, 1, Luminance.Texture.Description.Format, "Luminance Staging"));
+            CreateSunShadowCascades(device);
+            ShadowMask = Track(new RenderTarget2D(device, width / 2, height / 2, Format.R8G8_UNorm, debugName: "Shadow Mask"));
 
             Bloom = Track(new BloomBuffers(device, width, height));
+        }
+
+        public void CreateSunShadowCascades(Device device)
+        {
+            SunShadowCascades = new DepthTarget[NumSunShadowCascades];
+            for (int i = 0; i < NumSunShadowCascades; i++)
+            {
+                SunShadowCascades[i] = Track(new DepthTarget(device, 2048, 2048, Format.R24G8_Typeless, debugName: $"Sun Shadow Cascade {i}"));
+            }
         }
 
         public void SetRenderTargets(DeviceContext ctx)
@@ -146,7 +155,6 @@ public partial class CharmRenderer
             {
                 d?.Dispose();
             }
-
             _disposables.Clear();
         }
     }
@@ -225,9 +233,10 @@ public partial class CharmRenderer
         {
             for (int i = 0; i < ExposureBufferCount; i++)
             {
-                ExposureStagings[i] = RenderHelpers.CreateStagingTexture(device, width / 48, 1, Format.R32G32B32A32_Float, $"AutoExposure Columns Staging {i}");
+                ExposureStagings[i] = Track(RenderHelpers.CreateStagingTexture(device, width / 48, 1, Format.R32G32B32A32_Float, $"AutoExposure Columns Staging {i}"));
             }
         }
+
 
         public void Dispose()
         {
@@ -236,12 +245,6 @@ public partial class CharmRenderer
                 d?.Dispose();
             }
             _disposables.Clear();
-
-            foreach (var tex in ExposureStagings)
-            {
-                tex?.Dispose();
-            }
-            ExposureStagings = null;
         }
     }
 
@@ -471,6 +474,19 @@ public partial class CharmRenderer
             context.OutputMerger.SetRenderTargets(DSV, [null]);
             //if (clear)
             //    context.ClearDepthStencilView(DSV, DepthStencilClearFlags.Depth);
+        }
+
+        public Viewport GetViewport()
+        {
+            return new Viewport
+            {
+                X = 0,
+                Y = 0,
+                Width = Width,
+                Height = Height,
+                MinDepth = 0,
+                MaxDepth = 1,
+            };
         }
 
         public void SetShaderResource(DeviceContext context, int slot, ShaderStage stage)

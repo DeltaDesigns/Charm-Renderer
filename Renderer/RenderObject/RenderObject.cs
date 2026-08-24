@@ -75,7 +75,7 @@ public class RenderObject : GpuResource
             // This works fine but some entity bounding boxes just dont feel good to orbit around
             LocalBoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
 
-            var parts = entity.LoadModel(ExportDetailLevel.MostDetailed);
+            var parts = entity.LoadModel(ExportDetailLevel.MostDetailed, LoadLevel.Full);
             CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 
             using TigerReader reader = entity.ModelParent.GetReader();
@@ -99,7 +99,7 @@ public class RenderObject : GpuResource
             if (inventoryItem is not null)
                 obj.Investment = new(context, entity, inventoryItem);
 
-            var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed);
+            var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed, LoadLevel.Full);
             obj.CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 
             using TigerReader reader = entity.PhysicsModelParent.GetReader();
@@ -115,7 +115,7 @@ public class RenderObject : GpuResource
     public void Create(DeviceContext context, RenderWorld world, StaticMesh staticMesh)
     {
         Hash = staticMesh.Hash;
-        var staticParts = staticMesh.Load(ExportDetailLevel.MostDetailed);
+        var staticParts = staticMesh.LoadAllParts(ExportDetailLevel.MostDetailed);
         //var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
         LocalBoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
@@ -139,7 +139,7 @@ public class RenderObject : GpuResource
 
         foreach (var part in parts)
         {
-            if (part.Material is null)
+            if (part.Material == null || part.Material.Vertex.Shader == null)
                 continue;
 
             var meshData = new MeshPartData

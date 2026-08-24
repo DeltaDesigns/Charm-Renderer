@@ -96,7 +96,7 @@ public class FirstPersonCamera
             case CameraType.Orthographic:
                 Vector2 extents = new Vector2(OrthoWidth, OrthoWidth / AspectRatio) * 0.5f;
                 CameraToProjective = Matrix4x4ButGood.OrthographicRH(
-                    -extents.X, extents.X, -extents.Y, extents.Y, Far, Near
+                    -extents.X, extents.X, -extents.Y, extents.Y, Near, Far
                 );
                 break;
         }
@@ -313,6 +313,57 @@ public class FirstPersonCamera
         );
 
         UpdateViewMatrix();
+    }
+
+    public void BuildShadowCascade(Vector3 sunDir, float zNear, float zFar)
+    {
+        const float ZOffset = 1000f;
+
+        var projSlice = ProjectionMatrixSlice(zNear, zFar);
+        var frustum = new BoundingFrustum(projSlice * WorldToCamera);
+        var corners = frustum.GetCorners();
+
+        Vector3 sum = Vector3.Zero;
+        foreach (var p in corners)
+            sum += p;
+        Vector3 center = sum / corners.Length;
+
+        var cascadeWorldToCamera = Matrix4x4ButGood.LookAt(center, center + sunDir, Vector3.UnitZ);
+
+        float minX = float.MaxValue, maxX = float.MinValue;
+        float minY = float.MaxValue, maxY = float.MinValue;
+        float minZ = float.MaxValue, maxZ = float.MinValue;
+
+        foreach (var corner in corners)
+        {
+            var transformedCorner = Vector3.Transform(corner, cascadeWorldToCamera);
+            minX = MathF.Min(minX, transformedCorner.X);
+            maxX = MathF.Max(maxX, transformedCorner.X);
+            minY = MathF.Min(minY, transformedCorner.Y);
+            maxY = MathF.Max(maxY, transformedCorner.Y);
+            minZ = MathF.Min(minZ, transformedCorner.Z);
+            maxZ = MathF.Max(maxZ, transformedCorner.Z);
+        }
+
+        minZ -= ZOffset;
+        maxZ += ZOffset;
+
+        var cascadeCameraToProj = Matrix4x4ButGood.OrthographicRH(minX, maxX, minY, maxY, minZ, maxZ);
+
+        WorldToCamera = cascadeWorldToCamera;
+        CameraToProjective = cascadeCameraToProj;
+    }
+
+    public Matrix4x4ButGood ProjectionMatrixSlice(float zNear, float zFar)
+    {
+        float f = 1f / MathF.Tan(0.5f * float.DegreesToRadians(FOV));
+        float far = (1f / zFar) * zNear;
+        return new Matrix4x4ButGood(
+            new(f / AspectRatio, 0, 0, 0),
+            new(0, f, 0, 0),
+            new(0, 0, far, -1),
+            new(0, 0, zNear, 0)
+        );
     }
 
     public void RotateAround(Vector3 pivot, float yawDegrees, float pitchDegrees)

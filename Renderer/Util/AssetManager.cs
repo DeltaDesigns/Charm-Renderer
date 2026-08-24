@@ -80,10 +80,11 @@ public class AssetManager : IDisposable
 {
     public readonly Dictionary<uint, MaterialData> _materialCache = new();
     public readonly Dictionary<uint, SamplerAsset> _samplerCache = new();
-    public readonly Dictionary<uint, TextureAsset> _cache = new(); // used for mesh
-    public readonly Dictionary<uint, TextureAsset> _globalCache = new(); // used for pipelines/externs
+    public readonly Dictionary<uint, TextureAsset> _textureCache = new(); // used for mesh
+    public readonly Dictionary<uint, TextureAsset> _globalTextureCache = new(); // used for pipelines/externs
     public ShaderResourceView WhiteTexture;
     public ShaderResourceView BlackTexture;
+    public ShaderResourceView BlueTexture;
     public ShaderResourceView BlackTextureWAlpha;
     public ShaderResourceView Vignette;
 
@@ -93,6 +94,9 @@ public class AssetManager : IDisposable
     public VertexShader InvestmentOverrideVS_VC;
 
     public PixelShader GlobalLUT3D_No_Tonemap_Distort;
+
+    public VertexShader ShadowMapVS;
+    public PixelShader ShadowMapPS;
 
     private static AssetManager _instance;
     public static AssetManager Instance
@@ -128,6 +132,9 @@ public class AssetManager : IDisposable
 
         GlobalLUT3D_No_Tonemap_Distort ??= new PixelShader(GPU.Instance.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/screen_area_global_lut3d_no_tonemap_distort.hlsl", "main", "ps_5_0"));
 
+        ShadowMapVS ??= new VertexShader(GPU.Instance.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/shadow_map.hlsl", "mainVS", "vs_5_0"));
+        ShadowMapPS ??= new PixelShader(GPU.Instance.Device, SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/shadow_map.hlsl", "mainPS", "ps_5_0"));
+
         if (WhiteTexture is null)
         {
             var whiteData = Enumerable.Repeat((byte)255, 1 * 1 * 4).ToArray();
@@ -153,6 +160,15 @@ public class AssetManager : IDisposable
                 GPU.Instance.Device,
                 SharpDX.Toolkit.Graphics.Texture2D.New(GPU.Instance.Device, 1, 1, Format.R8G8B8A8_UNorm, blackdata));
             BlackTextureWAlpha.DebugName = "Placeholder Black W Alpha";
+        }
+
+        if (BlueTexture is null)
+        {
+            var blackdata = new byte[] { 0, 0, 255, 255 };
+            BlueTexture = new ShaderResourceView(
+                GPU.Instance.Device,
+                SharpDX.Toolkit.Graphics.Texture2D.New(GPU.Instance.Device, 1, 1, Format.R8G8B8A8_UNorm_SRgb, blackdata));
+            BlueTexture.DebugName = "Placeholder Blue";
         }
 
         var bytecode = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile("renderer assets/shaders/entity_vs_override.hlsl", "VSMain", "vs_5_0");
@@ -194,10 +210,10 @@ public class AssetManager : IDisposable
 
     public TextureAsset GetOrCreateTexture(Texture texture)
     {
-        if (!_cache.TryGetValue(texture.Hash.Hash32, out var tex))
+        if (!_textureCache.TryGetValue(texture.Hash.Hash32, out var tex))
         {
             tex = new TextureAsset(texture.Hash.Hash32, CreateTexture(GPU.Instance.ImmediateContext, texture));
-            _cache[texture.Hash.Hash32] = tex;
+            _textureCache[texture.Hash.Hash32] = tex;
         }
 
         tex.AddRef();
@@ -206,10 +222,10 @@ public class AssetManager : IDisposable
 
     public TextureAsset GetOrCreateGlobalTexture(Texture texture)
     {
-        if (!_globalCache.TryGetValue(texture.Hash.Hash32, out var tex))
+        if (!_globalTextureCache.TryGetValue(texture.Hash.Hash32, out var tex))
         {
             tex = new TextureAsset(texture.Hash.Hash32, CreateTexture(GPU.Instance.ImmediateContext, texture));
-            _globalCache[texture.Hash.Hash32] = tex;
+            _globalTextureCache[texture.Hash.Hash32] = tex;
         }
 
         tex.AddRef();
@@ -472,13 +488,13 @@ public class AssetManager : IDisposable
 
         uint outHash = Helpers.HashCombine(hashes);
 
-        if (!_cache.TryGetValue(outHash, out var tex))
+        if (!_textureCache.TryGetValue(outHash, out var tex))
         {
             tex = new(outHash, CreateFromScratchImage(GPU.Instance.ImmediateContext, plate.MakePlatedTexture()));
             if (tex.SRV is not null)
                 tex.SRV.DebugName = $"Gear Plate {plate.Hash}";
 
-            _cache[outHash] = tex;
+            _textureCache[outHash] = tex;
         }
         tex.RefCount++;
         return tex;
@@ -540,12 +556,12 @@ public class AssetManager : IDisposable
 
     public void ReleaseTexture(uint hash)
     {
-        if (_cache.TryGetValue(hash, out var tex))
+        if (_textureCache.TryGetValue(hash, out var tex))
         {
             if (tex.Release())
             {
                 tex.Dispose();
-                _cache.Remove(hash);
+                _textureCache.Remove(hash);
             }
         }
     }
@@ -596,12 +612,12 @@ public class AssetManager : IDisposable
     /// </summary>
     public void DisposeTextures()
     {
-        Log.Debug($"{_cache.Count} Textures still registered.");
-        foreach (var srv in _cache.Values)
+        Log.Debug($"{_textureCache.Count} Textures still registered.");
+        foreach (var srv in _textureCache.Values)
         {
             srv?.Dispose();
         }
-        _cache.Clear();
+        _textureCache.Clear();
     }
 
     /// <summary>
@@ -610,12 +626,12 @@ public class AssetManager : IDisposable
     /// </summary>
     public void DisposeGlobalTextures()
     {
-        Log.Debug($"{_globalCache.Count} Global Textures still registered.");
-        foreach (var srv in _globalCache.Values)
+        Log.Debug($"{_globalTextureCache.Count} Global Textures still registered.");
+        foreach (var srv in _globalTextureCache.Values)
         {
             srv?.Dispose();
         }
-        _globalCache.Clear();
+        _globalTextureCache.Clear();
     }
 
     /// <summary>
@@ -657,7 +673,8 @@ public class AssetManager : IDisposable
         Utilities.Dispose(ref EntityOverrideVS_NoVC);
         Utilities.Dispose(ref InvestmentOverrideVS_NoVC);
         Utilities.Dispose(ref InvestmentOverrideVS_VC);
-
+        Utilities.Dispose(ref ShadowMapVS);
+        Utilities.Dispose(ref ShadowMapPS);
 
         _instance = null;
     }

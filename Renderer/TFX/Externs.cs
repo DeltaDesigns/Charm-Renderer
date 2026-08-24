@@ -41,6 +41,7 @@ public class Externs : IDisposable
     public ExternUberDepth UberDepth;
     public ExternDownsampleTextureGeneric DownsampleTextureGeneric;
     public ExternDecalSetTransform DecalSetTransform;
+    public ExternDebugShadingOutput DebugShadingOutput;
 
     public Externs(CharmRenderer renderer)
     {
@@ -60,6 +61,7 @@ public class Externs : IDisposable
         UberDepth = Track(new ExternUberDepth());
         DownsampleTextureGeneric = Track(new ExternDownsampleTextureGeneric());
         DecalSetTransform = Track(new ExternDecalSetTransform());
+        DebugShadingOutput = Track(new ExternDebugShadingOutput());
     }
 
     public class ExternFrame : IExtern
@@ -387,6 +389,8 @@ public class Externs : IDisposable
 
         public void Update(GBuffer buffers)
         {
+            Unk00 = buffers.ShadowMask.SRV;
+            Unk20 = buffers.ShadowMask.GetResolutionInverse();
         }
 
         public void Dispose()
@@ -689,6 +693,27 @@ public class Externs : IDisposable
         }
     }
 
+    public class ExternDebugShadingOutput : IExtern
+    {
+        [ExternField(0x0)] public float Unk00 { get; set; }
+        [ExternField(0x20)] public Vector4 Unk20 { get; set; }
+        [ExternField(0x30)] public Vector4 Unk30 { get; set; }
+        [ExternField(0x80)] public Vector4 Unk80 { get; set; }
+        [ExternField(0x90)] public Vector4 Unk90 { get; set; }
+
+        public ExternDebugShadingOutput()
+        {
+        }
+
+        public void Update()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     public void Update(CharmRenderer renderer)
     {
         if (renderer is null)
@@ -752,11 +777,16 @@ public class Externs : IDisposable
             TfxExtern.DownsampleTextureGeneric => DownsampleTextureGeneric,
             TfxExtern.PostprocessInitialDownsample => PostprocessInitialDownsample,
             TfxExtern.DecalSetTransform => DecalSetTransform,
+            TfxExtern.DebugShadingOutput => DebugShadingOutput,
             _ => null
         };
 
 #if DEBUG
-        if (target == null) Debug.Assert(false, $"Unimplemented Extern: {tfxExtern}");
+        if (target == null)
+        {
+            Debug.Assert(false, $"Unimplemented Extern: {tfxExtern}");
+            return default;
+        }
 #else
         if (target == null) return default;
 #endif

@@ -91,7 +91,8 @@ public class RenderWorld : IDisposable
 
                     switch (entry.DataResource.GetValue(dataTable.MapDataTable.GetReader()))
                     {
-                        // just a test, Tower Hangar ran like ass (barely 30fps)
+                        // just a test, Tower Courtyard runs terrible.
+                        // 8fps with sun shadows, 20 without. Needs culling and parallel gbuffer submitting
                         //case SStaticMapDataResource staticMapResource:
                         //	staticMapResource.StaticMapParent?.Load();
                         //	if (staticMapResource.StaticMapParent is null)

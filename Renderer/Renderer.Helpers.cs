@@ -74,6 +74,18 @@ public partial class CharmRenderer
             IsFrontCounterClockwise = false,
         });
 
+        _linearSampler ??= new SamplerState(Device, new SamplerStateDescription
+        {
+            Filter = Filter.MinMagMipLinear,
+            AddressU = TextureAddressMode.Clamp,
+            AddressV = TextureAddressMode.Clamp,
+            AddressW = TextureAddressMode.Clamp,
+            ComparisonFunction = Comparison.Never,
+            BorderColor = new(0.0f, 0.0f, 0.0f, 1.0f),
+            MinimumLod = 0,
+            MaximumLod = float.MaxValue,
+        });
+
         _pointSampler ??= new SamplerState(Device, new SamplerStateDescription
         {
             Filter = Filter.MinMagMipPoint,
@@ -170,10 +182,17 @@ public partial class CharmRenderer
 
     public void BlitOverlayTexture(RenderTarget2D parentRT, RenderTarget2D overlayRT,
         float scale = 1, float xOffset = 0, float yOffset = 0)
+
+    {
+        BlitOverlayTexture(parentRT, overlayRT.Width, overlayRT.Height, overlayRT.SRV, scale, xOffset, yOffset);
+    }
+
+    public void BlitOverlayTexture(RenderTarget2D parentRT, int w, int h, ShaderResourceView srv,
+        float scale = 1, float xOffset = 0, float yOffset = 0)
     {
         CMD.States.SetState(Context, new(0, 0, 0, 0));
-        var scaleX = overlayRT.Width / scale;
-        var scaleY = overlayRT.Height / scale;
+        var scaleX = w / scale;
+        var scaleY = h / scale;
         var pixelX = xOffset * (parentRT.Width - scaleX);
         var pixelY = yOffset * (parentRT.Height - scaleY);
 
@@ -190,7 +209,7 @@ public partial class CharmRenderer
         Context.VertexShader.Set(_blitVS);
         Context.PixelShader.Set(_blitPS);
         Context.PixelShader.SetSampler(0, _pointSampler);
-        Context.PixelShader.SetShaderResource(0, overlayRT.SRV);
+        Context.PixelShader.SetShaderResource(0, srv);
 
         DrawScreenQuad();
         parentRT.SetViewport(Context);

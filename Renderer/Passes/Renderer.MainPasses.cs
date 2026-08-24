@@ -8,6 +8,8 @@ public partial class CharmRenderer
 {
     private void RenderPasses()
     {
+        PrepareRenderObjects();
+        PrepareSunShadows();
         RenderGBuffer();
         RenderAtmosphere();
         RenderHDAO();
@@ -42,6 +44,18 @@ public partial class CharmRenderer
                     RenderBoundingBox(World.OverrideMainBB.Value, new(1, 0, 0, 1));
             }
         }
+
+        //{
+        //    var overlay = GBuffers.ShadowMask;
+        //    BlitOverlayTexture(blitRT, overlay.Width, overlay.Height, overlay.SRV, 2, 1, 0);
+
+        //    int i = 0;
+        //    foreach (var cascade in GBuffers.SunShadowCascades)
+        //    {
+        //        BlitOverlayTexture(blitRT, cascade.Width, cascade.Height, cascade.DepthSRV, 8, i / 8f, 0);
+        //        i++;
+        //    }
+        //}
     }
 
     private void RenderGBuffer()
@@ -136,6 +150,8 @@ public partial class CharmRenderer
         RenderHelpers.Profile("Render Lighting");
         Annotation.BeginEvent("Lighting");
 
+        RenderShadowMask();
+
         Context.ClearRenderTargetView(GBuffers.LightDiffuse.RTV, new RawColor4(0, 0, 0, 1));
         Context.ClearRenderTargetView(GBuffers.LightSpecular.RTV, new RawColor4(0, 0, 0, 1));
         Context.ClearRenderTargetView(GBuffers.LightIBL.RTV, new RawColor4(0, 0, 0, 1));
@@ -144,7 +160,6 @@ public partial class CharmRenderer
         if (Viewport.RenderSky)
         {
             CMD.States.SetStencilRef(Context, 0);
-            // Supposed to be Diffuse and IBL but swapping IBL with Specular instead cus it just looks better with this setup
             Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightIBL.RTV);
             RenderGlobalPipeline("cubemap_apply_sky_copy_ao");
 

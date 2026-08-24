@@ -18,9 +18,8 @@ public partial class CharmRenderer
     private int _renderObjectsCount;
     private int _renderPersistentObjectsCount;
 
-    private void RenderMesh(TfxRenderStage renderStage, string passName)
+    private void PrepareRenderObjects()
     {
-        Annotation.BeginEvent(passName);
         lock (World.WorldLock)
         {
             _renderObjectsCount = World.RenderObjects.Count;
@@ -33,7 +32,11 @@ public partial class CharmRenderer
                 _renderPersistentObjectsSnapshot = new RenderObject[_renderPersistentObjectsCount];
             World.PersistantRenderObjects.CopyTo(_renderPersistentObjectsSnapshot, 0);
         }
+    }
 
+    private void RenderMesh(TfxRenderStage renderStage, string passName)
+    {
+        Annotation.BeginEvent(passName);
         foreach (var renderable in _renderObjectsSnapshot.AsSpan(0, _renderObjectsCount))
         {
             renderable?.Bind(this, renderStage);
@@ -43,7 +46,6 @@ public partial class CharmRenderer
         {
             renderable?.Bind(this, renderStage);
         }
-
         Annotation.EndEvent();
     }
 

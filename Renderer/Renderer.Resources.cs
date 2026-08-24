@@ -35,6 +35,7 @@ public partial class CharmRenderer
 
     public Buffer _bboxVB;
 
+    private SamplerState _linearSampler;
     private SamplerState _pointSampler;
     private SamplerState _pointBorderSampler;
 
