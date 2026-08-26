@@ -42,6 +42,7 @@ public class Externs : IDisposable
     public ExternDownsampleTextureGeneric DownsampleTextureGeneric;
     public ExternDecalSetTransform DecalSetTransform;
     public ExternDebugShadingOutput DebugShadingOutput;
+    public ExternPatternBlending PatternBlending;
 
     public Externs(CharmRenderer renderer)
     {
@@ -62,6 +63,7 @@ public class Externs : IDisposable
         DownsampleTextureGeneric = Track(new ExternDownsampleTextureGeneric());
         DecalSetTransform = Track(new ExternDecalSetTransform());
         DebugShadingOutput = Track(new ExternDebugShadingOutput());
+        PatternBlending = Track(new ExternPatternBlending());
     }
 
     public class ExternFrame : IExtern
@@ -526,9 +528,6 @@ public class Externs : IDisposable
         public void Update(DeviceContext context, GBuffer gbuffer)
         {
             Unk00 = gbuffer.PostProcessResult.SRV;
-            Unk50 = 0.75f;
-            Unk54 = 0.166f;
-            Unk58 = 0.0833f;
         }
 
         public void Dispose()
@@ -714,6 +713,23 @@ public class Externs : IDisposable
         }
     }
 
+    public class ExternPatternBlending : IExtern
+    {
+        // empty cus idk what any of them do
+
+        public ExternPatternBlending()
+        {
+        }
+
+        public void Update()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     public void Update(CharmRenderer renderer)
     {
         if (renderer is null)
@@ -778,6 +794,7 @@ public class Externs : IDisposable
             TfxExtern.PostprocessInitialDownsample => PostprocessInitialDownsample,
             TfxExtern.DecalSetTransform => DecalSetTransform,
             TfxExtern.DebugShadingOutput => DebugShadingOutput,
+            TfxExtern.PatternBlending => PatternBlending,
             _ => null
         };
 
