@@ -8,7 +8,7 @@ A custom render engine made for use in [Charm](https://github.com/MontagueM/Char
 - Investment Gear
 
 ## Includes
-- Mostly game accurate global lighting (sky lighting, no shadows atm)
+- Mostly game accurate global lighting (sky lighting with sun shadows
 - Atmosphere/Sky objects (Scene world)
 - Gear shader viewing
 - Entity object channel editing
