@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Charm.Shared;
 using HelixToolkit.Maths;
@@ -676,6 +677,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
 
         if (dialog.ShowDialog() == true)
             Renderer.RequestScreenshot(dialog.FileName, Math.Clamp(ScreenshotScale / RenderScale, 0.25f, 4f));
+    }
+
+    public void RequestThumbnail(FileHash hash, TfxFeatureRenderer type, CancellationToken token, Action<BitmapSource> onComplete)
+    {
+        Renderer.RequestThumbnail(hash, type, token, onComplete);
     }
 
     public static Grid FindParentGridByName(DependencyObject start, string gridName)

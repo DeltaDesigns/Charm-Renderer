@@ -7,7 +7,7 @@ public partial class CharmRenderer
 {
     private void RenderAtmosphere()
     {
-        if (!Viewport.RenderSky)
+        if (!Viewport.RenderSky || RenderType == RenderType.Minimal)
         {
             CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             Externs.Atmosphere.RTDimensions = Camera.GetResolutionInverse();

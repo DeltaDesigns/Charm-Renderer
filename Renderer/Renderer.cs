@@ -26,6 +26,7 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer : IDisposable
 {
+    public RenderType RenderType = RenderType.Full;
     public FirstPersonCamera Camera;
     public Externs Externs;
 
@@ -35,6 +36,7 @@ public partial class CharmRenderer : IDisposable
     public RendererViewport Viewport;
     public MatCap MatCapRenderer;
     public RenderWorld World = new();
+    public RenderWorld DefaultWorld = new();
     public GroupVisibility GroupVisibility { get; } = new(64);
 
     public GPU _GPU { get; set; }
@@ -61,8 +63,6 @@ public partial class CharmRenderer : IDisposable
             Stop();
             //Dispose();
         };
-
-
     }
 
     public void Initialize(int width, int height)
@@ -93,6 +93,7 @@ public partial class CharmRenderer : IDisposable
 
 
         World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
+        DefaultWorld.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
 
         Camera = new(new HelixToolkit.Maths.Viewport(0, 0, width, height)); // Should be last
         Camera.ResetCameraTransform();
@@ -196,6 +197,7 @@ public partial class CharmRenderer : IDisposable
 
             Render();
             CheckScreenshot();
+            CheckThumbnailRequest();
 
             fpsFrames++;
             fpsTimer += delta;
@@ -237,7 +239,7 @@ public partial class CharmRenderer : IDisposable
         UpdateGlobalChannels();
         UpdateScopes(); // Again, only Frame and View scopes here
 
-        RenderPasses();
+        RenderPasses(World);
 
         // Blits to final RT/Correct format for WPF cus it hates everything
         var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
@@ -368,6 +370,7 @@ public partial class CharmRenderer : IDisposable
     public void DisposeMesh()
     {
         World?.DisposeAll();
+        DefaultWorld?.DisposeAll();
         //AssetManager?.DisposeTextures();
     }
 

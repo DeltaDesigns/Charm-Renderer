@@ -38,6 +38,7 @@ public class ObjectChannels
         {
             case 0x80A817B5: // Koregos
             case 0x80A80BD8: // Koregos
+            case 0x80E367F2: // Koregos
             case 0x80E28227: // Mega Witness
             case 0x80E2589D: // Mega Witness
                 ResetAllChannels(Vector4.Zero);

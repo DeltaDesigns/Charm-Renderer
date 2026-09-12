@@ -6,9 +6,9 @@ namespace Charm.Renderer;
 // Main Deferred Passes
 public partial class CharmRenderer
 {
-    private void RenderPasses()
+    private void RenderPasses(RenderWorld world)
     {
-        PrepareRenderObjects();
+        PrepareRenderObjects(world);
         PrepareSunShadows();
         RenderGBuffer();
         RenderAtmosphere();
@@ -18,20 +18,20 @@ public partial class CharmRenderer
         RenderTransparent();
         RenderPostProcess();
 
-        if (Viewport.DisplayPass > RenderPass.final_color_grade)
+        if (Viewport.DisplayPass > RenderPass.final_color_grade && RenderType == RenderType.Full)
         {
             CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
             RenderGlobalPipeline(Viewport.DisplayPass.ToString());
         }
 
         var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
-        if (Viewport.ShowGrid)
+        if (Viewport.ShowGrid && RenderType == RenderType.Full)
         {
             Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);
             RenderGrid();
         }
 
-        if (Viewport.ShowSkele || Viewport.ShowBB)
+        if ((Viewport.ShowSkele || Viewport.ShowBB) && RenderType == RenderType.Full)
         {
             Context.OutputMerger.SetTargets(blitRT.RTV);
             if (Viewport.ShowSkele)
@@ -63,6 +63,9 @@ public partial class CharmRenderer
         RenderHelpers.Profile("Render GBuffer");
 
         GBuffers.SetRenderTargets(Context);
+        if (RenderType == RenderType.Minimal) // meh
+            Context.ClearRenderTargetView(GBuffers.RT0.RTV, new RawColor4(0.02f, 0.02f, 0.02f, 0f));
+
         Context.Rasterizer.SetViewport(GBuffers.RT0.GetViewport());
 
         CMD.States.SetStencilRef(Context, 7);
@@ -157,7 +160,7 @@ public partial class CharmRenderer
         Context.ClearRenderTargetView(GBuffers.LightIBL.RTV, new RawColor4(0, 0, 0, 1));
         Context.Rasterizer.SetViewport(GBuffers.LightDiffuse.GetViewport());
 
-        if (Viewport.RenderSky)
+        if (Viewport.RenderSky && RenderType == RenderType.Full)
         {
             CMD.States.SetStencilRef(Context, 0);
             Context.OutputMerger.SetRenderTargets(null, GBuffers.LightDiffuse.RTV, GBuffers.LightIBL.RTV);
@@ -201,7 +204,7 @@ public partial class CharmRenderer
         Context.OutputMerger.SetRenderTargets(GBuffers.Depth.DSV, GBuffers.Shading.RTV);
 
         // Sky
-        if (Viewport.RenderSky)
+        if (Viewport.RenderSky && RenderType == RenderType.Full)
         {
             CMD.States.SetStencilRef(Context, 0x10);
             CMD.States.SetState(Context, new(0, 77, 0, 0));

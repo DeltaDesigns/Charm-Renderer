@@ -9,7 +9,7 @@ public partial class CharmRenderer
         Annotation.BeginEvent("Post Process");
 
         RenderBloom();
-        bool colorGrade = Viewport.DisplayPass == RenderPass.final_color_grade;
+        bool colorGrade = Viewport.DisplayPass == RenderPass.final_color_grade && RenderType == RenderType.Full;
 
         // TODO, compute dispatching in MaterialData binding
         {
@@ -146,7 +146,7 @@ public partial class CharmRenderer
 
     private void RenderHDAO()
     {
-        if (!Viewport.HDAO)
+        if (!Viewport.HDAO || RenderType == RenderType.Minimal)
         {
             //GBuffers.HDAO.Clear(Context, new(1, 1, 1, 1));
             Externs.ShadowMask.Unk08 = AssetManager.WhiteTexture;

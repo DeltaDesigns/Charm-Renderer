@@ -205,3 +205,9 @@ public enum RenderPass
 
     //[Description("test")] autoexposure_display,
 }
+
+public enum RenderType
+{
+    Full,
+    Minimal
+}

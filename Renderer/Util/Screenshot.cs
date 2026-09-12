@@ -64,7 +64,7 @@ public partial class CharmRenderer
             UpdateExterns(scale);
             UpdateGlobalChannels();
             UpdateScopes();
-            RenderPasses();
+            RenderPasses(World);
 
             var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
             BlitTo(blitRT, capFinal);

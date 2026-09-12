@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
@@ -798,15 +797,11 @@ public class Externs : IDisposable
             _ => null
         };
 
-#if DEBUG
         if (target == null)
         {
-            Debug.Assert(false, $"Unimplemented Extern: {tfxExtern}");
+            //Debug.Assert(false, $"Unimplemented Extern: {tfxExtern}");
             return default;
         }
-#else
-        if (target == null) return default;
-#endif
 
         var key = (target.GetType(), element, typeof(T));
         var getter = (Func<object, T>)_typedGetters.GetOrAdd(key, _ => BuildTypedGetter<T>(target.GetType(), element));

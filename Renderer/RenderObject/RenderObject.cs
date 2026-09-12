@@ -60,7 +60,7 @@ public class RenderObject : GpuResource
         CreateMesh(context, parts.Cast<MeshPart>().ToList(), type);
     }
 
-    public void Create(DeviceContext context, RenderWorld world, Entity entity, InventoryItem inventoryItem = null)
+    public void Create(DeviceContext context, RenderWorld world, Entity entity, InventoryItem inventoryItem = null, RenderType renderType = RenderType.Full)
     {
         Hash = entity.Hash;
         Entity = entity;
@@ -78,10 +78,13 @@ public class RenderObject : GpuResource
             var parts = entity.LoadModel(ExportDetailLevel.MostDetailed, LoadLevel.Full);
             CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 
-            using TigerReader reader = entity.ModelParent.GetReader();
-            Permutations = entity.ModelParent.MaterialPermutations;
-            MaterialMap = entity.ModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
-            MaterialRangeMap = entity.ModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
+            if (renderType == RenderType.Full)
+            {
+                using TigerReader reader = entity.ModelParent.GetReader();
+                Permutations = entity.ModelParent.MaterialPermutations;
+                MaterialMap = entity.ModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
+                MaterialRangeMap = entity.ModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
+            }
 
             lock (world.WorldLock)
                 world.RenderObjects.Enqueue(this);
@@ -102,10 +105,13 @@ public class RenderObject : GpuResource
             var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed, LoadLevel.Full);
             obj.CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 
-            using TigerReader reader = entity.PhysicsModelParent.GetReader();
-            obj.Permutations = entity.PhysicsModelParent.MaterialPermutations;
-            obj.MaterialMap = entity.PhysicsModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
-            obj.MaterialRangeMap = entity.PhysicsModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
+            if (renderType == RenderType.Full)
+            {
+                using TigerReader reader = entity.PhysicsModelParent.GetReader();
+                obj.Permutations = entity.PhysicsModelParent.MaterialPermutations;
+                obj.MaterialMap = entity.PhysicsModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
+                obj.MaterialRangeMap = entity.PhysicsModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
+            }
 
             lock (world.WorldLock)
                 world.RenderObjects.Enqueue(obj);

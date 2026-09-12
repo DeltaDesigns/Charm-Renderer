@@ -76,7 +76,7 @@ public partial class CharmRenderer
 
     private void PrepareSunShadows()
     {
-        if (!Viewport.SunShadows)
+        if (!Viewport.SunShadows || RenderType == RenderType.Minimal)
             return;
 
         RenderHelpers.Profile("Prepare Sun Shadow Cascades");
@@ -117,6 +117,7 @@ public partial class CharmRenderer
             TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
         }
 
+        Annotation.EndEvent();
         RenderHelpers.EndProfile();
     }
 

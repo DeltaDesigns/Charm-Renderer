@@ -16,7 +16,7 @@ public partial class CharmRenderer
     public void RenderBloom()
     {
         var buffers = GBuffers.Bloom;
-        if (!Viewport.AutoExposure && !Viewport.Bloom)
+        if ((!Viewport.AutoExposure && !Viewport.Bloom) || RenderType == RenderType.Minimal)
         {
             Externs.ScreenArea.Unk40 = AssetManager.Get().BlackTextureWAlpha;
             buffers.BloomFinal.Clear(Context, new RawColor4(0, 0, 0, 1));

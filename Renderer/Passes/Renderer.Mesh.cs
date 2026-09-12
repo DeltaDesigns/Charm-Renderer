@@ -18,19 +18,19 @@ public partial class CharmRenderer
     private int _renderObjectsCount;
     private int _renderPersistentObjectsCount;
 
-    private void PrepareRenderObjects()
+    private void PrepareRenderObjects(RenderWorld world)
     {
-        lock (World.WorldLock)
+        lock (world.WorldLock)
         {
-            _renderObjectsCount = World.RenderObjects.Count;
+            _renderObjectsCount = world.RenderObjects.Count;
             if (_renderObjectsSnapshot.Length < _renderObjectsCount)
                 _renderObjectsSnapshot = new RenderObject[_renderObjectsCount];
-            World.RenderObjects.CopyTo(_renderObjectsSnapshot, 0);
+            world.RenderObjects.CopyTo(_renderObjectsSnapshot, 0);
 
-            _renderPersistentObjectsCount = World.PersistantRenderObjects.Count;
+            _renderPersistentObjectsCount = world.PersistantRenderObjects.Count;
             if (_renderPersistentObjectsSnapshot.Length < _renderPersistentObjectsCount)
                 _renderPersistentObjectsSnapshot = new RenderObject[_renderPersistentObjectsCount];
-            World.PersistantRenderObjects.CopyTo(_renderPersistentObjectsSnapshot, 0);
+            world.PersistantRenderObjects.CopyTo(_renderPersistentObjectsSnapshot, 0);
         }
     }
 
@@ -52,16 +52,8 @@ public partial class CharmRenderer
     private void RenderMesh(TfxRenderStage renderStage, FeatureRendererSubscription features, string passName)
     {
         Annotation.BeginEvent(passName);
-        RenderObject[] renderObjects;
-        RenderObject[] persistentObjects;
 
-        lock (World.WorldLock)
-        {
-            renderObjects = World.RenderObjects.ToArray();
-            persistentObjects = World.PersistantRenderObjects.ToArray();
-        }
-
-        foreach (var renderable in renderObjects)
+        foreach (var renderable in _renderObjectsSnapshot.AsSpan(0, _renderObjectsCount))
         {
             if (!features.IsSubscribed(renderable.Feature))
                 continue;
@@ -69,7 +61,7 @@ public partial class CharmRenderer
             renderable?.Bind(this, renderStage);
         }
 
-        foreach (var renderable in persistentObjects)
+        foreach (var renderable in _renderPersistentObjectsSnapshot.AsSpan(0, _renderPersistentObjectsCount))
         {
             if (!features.IsSubscribed(renderable.Feature))
                 continue;
