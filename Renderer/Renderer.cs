@@ -37,7 +37,7 @@ public partial class CharmRenderer : IDisposable
     public MatCap MatCapRenderer;
     public RenderWorld World = new();
     public RenderWorld DefaultWorld = new();
-    public GroupVisibility GroupVisibility { get; } = new(64);
+    public GroupVisibility GroupVisibility { get; } = new(256);
 
     public GPU _GPU { get; set; }
     public Device Device => _GPU?.Device;

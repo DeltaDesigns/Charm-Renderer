@@ -32,7 +32,7 @@ public class RenderObject : GpuResource
 
     // todo, seperate different types (static, entity, etc) into own RenderObject type class
     public Entity Entity;
-    public ModelPermutation Permutations;
+    public MaterialPermutation Permutations;
     public List<Material> MaterialMap;
     public List<SExternalMaterialMapEntry> MaterialRangeMap;
 
@@ -203,7 +203,7 @@ public class RenderObject : GpuResource
 
         foreach (var mesh in meshes)
         {
-            if (mesh.RenderStage != renderStage || !renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex))
+            if (mesh.RenderStage != renderStage || (!renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex) && !IsChild))
                 continue;
 
             if (Feature == TfxFeatureRenderer.StaticObjects)

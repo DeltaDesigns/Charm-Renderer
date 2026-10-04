@@ -667,6 +667,15 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         }
     }
 
+    private void ResetRegionOverrides_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var item in PermutationOverridePanel.Children)
+        {
+            if (item is ComboBoxControl combo)
+                combo.Box.SelectedIndex = 0;
+        }
+    }
+
     private void ScreenshotButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog

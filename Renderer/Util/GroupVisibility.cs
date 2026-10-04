@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Tiger.Schema.Entity;
 
 namespace Charm.Renderer;
 
@@ -36,5 +37,19 @@ public sealed class GroupVisibility
     {
         if ((uint)groupIndex < _visible.Length)
             _visible[groupIndex] = visible;
+    }
+
+    public void SetVisible(Entity ent, int groupIndex, bool visible)
+    {
+        if ((uint)groupIndex < _visible.Length)
+            _visible[groupIndex] = visible;
+
+        if (ent.ModelParent != null)
+        {
+            if (visible)
+                ent.ModelParent.AppliedMeshGroups.Add(groupIndex);
+            else
+                ent.ModelParent.AppliedMeshGroups.Remove(groupIndex);
+        }
     }
 }

@@ -624,7 +624,7 @@
 
                                 <Expander
                                     x:Name="MeshGroupsExpander"
-                                    MaxHeight="650"
+                                    MaxHeight="450"
                                     Margin="0,5,0,5"
                                     HorizontalAlignment="Stretch"
                                     Background="#75000000"
@@ -712,7 +712,7 @@
 
                                 <Expander
                                     x:Name="ObjectChannelsExpander"
-                                    MaxHeight="500"
+                                    MaxHeight="400"
                                     Margin="0,5,0,5"
                                     HorizontalAlignment="Stretch"
                                     Background="#75000000"
@@ -773,7 +773,7 @@
                                 </Expander>
 
                                 <Expander
-                                    x:Name="MaterialPermutationsExpander"
+                                    x:Name="PermutationsExpander"
                                     Margin="0,5,0,5"
                                     HorizontalAlignment="Stretch"
                                     Background="#75000000"
@@ -784,27 +784,82 @@
                                             <TextBlock
                                                 HorizontalAlignment="Left"
                                                 VerticalAlignment="Center"
-                                                Text="Material Permutations" />
+                                                Text="Permutations" />
                                         </StackPanel>
                                     </Expander.Header>
 
-                                    <StackPanel HorizontalAlignment="Stretch" Orientation="Vertical">
-                                        <TextBlock
-                                            x:Name="PermIndexDebug"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Top"
-                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                            FontSize="11"
-                                            TextWrapping="Wrap" />
-
-                                        <ContentControl x:Name="PermIndexOverride" Margin="5,0,5,0" />
+                                    <StackPanel Orientation="Vertical">
+                                        <ContentControl x:Name="PermIndexOverride" Margin="15,0,15,0" />
 
                                         <StackPanel
-                                            x:Name="MaterialVariantPanel"
+                                            MinWidth="400"
                                             HorizontalAlignment="Stretch"
-                                            VerticalAlignment="Stretch" />
+                                            Orientation="Horizontal">
+                                            <Expander
+                                                Margin="0,5,0,5"
+                                                HorizontalAlignment="Stretch"
+                                                Background="Transparent"
+                                                KeyboardNavigation.DirectionalNavigation="None"
+                                                Visibility="Visible">
+                                                <Expander.Header>
+                                                    <TextBlock
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Center"
+                                                        Text="States" />
+                                                </Expander.Header>
 
+                                                <StackPanel
+                                                    x:Name="PermutationPanel"
+                                                    MinWidth="400"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Stretch" />
+                                            </Expander>
+
+                                            <Expander
+                                                Margin="0,5,0,5"
+                                                HorizontalAlignment="Stretch"
+                                                Background="Transparent"
+                                                KeyboardNavigation.DirectionalNavigation="None"
+                                                Visibility="Visible">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Center"
+                                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                            Text="Overrides" />
+
+                                                        <Button
+                                                            Margin="10,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            Panel.ZIndex="1"
+                                                            Click="ResetRegionOverrides_Click"
+                                                            Focusable="False"
+                                                            Style="{StaticResource D2StyleButtonNoOverlay}"
+                                                            ToolTip="Resets all regions to inherit selected states"
+                                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <TextBlock
+                                                                Margin="0"
+                                                                VerticalAlignment="Top"
+                                                                FontSize="18"
+                                                                Foreground="White"
+                                                                Text="⟳" />
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Expander.Header>
+
+                                                <StackPanel Orientation="Vertical">
+                                                    <StackPanel
+                                                        x:Name="PermutationOverridePanel"
+                                                        MinWidth="300"
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Stretch" />
+                                                </StackPanel>
+                                            </Expander>
+                                        </StackPanel>
                                     </StackPanel>
+
+
                                 </Expander>
 
                                 <Expander

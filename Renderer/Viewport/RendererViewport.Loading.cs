@@ -35,7 +35,7 @@ public partial class RendererViewport
         {
             Dispatcher.Invoke(() =>
             {
-                CreateMaterialVariants(entity);
+                CreatePermutationsPanel(entity);
             });
         });
 
@@ -65,7 +65,7 @@ public partial class RendererViewport
         foreach (int idx in groupIndices)
         {
             var vm = new GroupToggleVM(idx);
-            vm.VisibilityChanged += (i, visible) => Renderer.GroupVisibility.SetVisible(i, visible);
+            vm.VisibilityChanged += (i, visible) => Renderer.GroupVisibility.SetVisible(_currentEntity, i, visible);
 
             GroupToggles.Add(vm);
         }
@@ -73,134 +73,166 @@ public partial class RendererViewport
     }
 
     // TODO move into own control? also support physics model? though idk if those would be the same as their regular model
-    private void CreateMaterialVariants(Entity entity)
+    private const uint AllValue = 0xFFFFFFFF;
+    private const uint InheritValue = 0xFFFFFFFE;
+    private void CreatePermutationsPanel(Entity entity)
     {
-        MaterialPermutationsExpander.Visibility = Visibility.Collapsed;
-        MaterialVariantPanel.Children.Clear();
-        //UsedMaterialsList.ItemsSource = null;
+        PermutationsExpander.Visibility = Visibility.Collapsed;
+        PermutationPanel.Children.Clear();
 
-        if (entity.ModelParent is null || entity.ModelParent.Reader.ExternalMaterialsMap.Count == 0)
+        if (entity.ModelParent is null)
             return;
-
-        int variantCount = entity.ModelParent.Reader.ExternalMaterialsMap
-                        .Enumerate(entity.ModelParent.GetReader())
-                        //.Where(m => m.Unk08 != 0)
-                        .Select(m => (int)m.MaterialCount)
-                        .Max();
 
         var permutations = entity.ModelParent.MaterialPermutations;
-        if (permutations is null && variantCount == 0)
-            return;
 
-        if (permutations is null && variantCount != 0) // ehhh
+        int variantCount = 0;
+        if (entity.ModelParent.Reader.ExternalMaterialsMap.Count != 0)
+        {
+            variantCount = entity.ModelParent.Reader.ExternalMaterialsMap
+                .Enumerate(entity.ModelParent.GetReader())
+                .Select(m => (int)m.MaterialCount)
+                .Max();
+        }
+
+        if (permutations is null && variantCount != 0)
         {
             entity.ModelParent.MaterialPermutations = new();
             permutations = entity.ModelParent.MaterialPermutations;
-            MaterialPermutationsExpander.Visibility = Visibility.Visible;
         }
 
-        // Makes some objects and combatants look like their "default" appearance, but messes with others so idk
-        //if (permutations.Keys.Count != 0)
-        //permutations.OverrideIndex = variantCount - 1;
-
-        MaterialPermutationOverride = new SliderSetting()
+        if (variantCount != 0)
         {
-            Max = variantCount,
-            Min = -1,
-            Text = "Override Index",
-            GetValue = () => permutations?.OverrideIndex ?? -1,
-            SetValue = v =>
+            MaterialPermutationOverride = new SliderSetting()
             {
-                if (permutations is not null)
+                Max = variantCount,
+                Min = -1,
+                Text = "Material Index",
+                GetValue = () => permutations?.OverrideIndex ?? -1,
+                SetValue = v =>
                 {
-                    permutations.OverrideIndex = (int)Math.Floor(v);
-                    MaterialPermutationOverride.NotifyValueChanged();
-                    PermIndexDebug.Text = $"Permutation Index: {Math.Max(0, permutations.OverrideIndex)}";
+                    if (permutations is not null)
+                    {
+                        permutations.OverrideIndex = (int)Math.Floor(v);
+                        MaterialPermutationOverride.NotifyValueChanged();
+                    }
                 }
-            }
-        };
-        PermIndexDebug.Text = "Permutation Index: 0";
-        PermIndexOverride.Content = MaterialPermutationOverride;
-
-        foreach (var permutation in permutations.Keys)
-        {
-            ComboBoxControl matVariants = new();
-            matVariants.Text = GlobalStrings.Get().GetString(permutation.Key);
-            matVariants.TextFontSize = 16;
-            matVariants.Margin = new Thickness(5);
-
-            matVariants.Box.Tag = permutation.Key;
-
-            var entries = new List<ComboBoxItem>();
-            foreach (var value in permutation.Value)
-            {
-                if (value == 0x871AC0EA)
-                    continue;
-
-                entries.Add(new ComboBoxItem()
-                {
-                    Content = $"{GlobalStrings.Get().GetString(value)}",
-                    Tag = value
-                });
-            }
-
-            //entries.Insert(0, new()
-            //{
-            //    Content = "Default",
-            //    Tag = (uint)0,
-            //});
-
-            //if (entries.Count != 0 && matVariants.Box.SelectedIndex == -1)
-            //{
-            //    matVariants.Box.SelectedIndex = 0;
-            //}
-
-            matVariants.Box.ItemsSource = entries;
-            matVariants.Box.SelectionChanged += MaterialVariant_OnSelectionChanged;
-
-            MaterialVariantPanel.Children.Add(matVariants);
+            };
+            PermIndexOverride.Content = MaterialPermutationOverride;
         }
 
-        if (MaterialVariantPanel.Children.Count > 0)
-            MaterialPermutationsExpander.Visibility = Visibility.Visible;
+        var distinctValues = entity.ModelParent.GetDistinctKeyValues();
+        foreach (var kv in distinctValues.Where(kv => kv.Value.Count > 0))
+        {
+            ComboBoxControl switchCombo = new();
+            switchCombo.Text = GlobalStrings.Get().GetString(kv.Key);
+            switchCombo.TextFontSize = 16;
+            switchCombo.Margin = new Thickness(5);
+            switchCombo.Box.Tag = kv.Key;
+
+            var entries = new List<ComboBoxItem>
+            {
+                new() { Content = "All/Default", Tag = AllValue }
+            };
+            entries.AddRange(kv.Value
+                .Where(v => v != 0x871AC0EA)
+                .Select(v => new ComboBoxItem { Content = GlobalStrings.Get().GetString(v), Tag = v }));
+
+            switchCombo.Box.ItemsSource = entries;
+            switchCombo.Box.SelectedIndex = 0;
+            switchCombo.Box.SelectionChanged += Switch_OnSelectionChanged;
+
+            PermutationPanel.Children.Add(switchCombo);
+        }
+        CreatePermutationOverrides();
+
+        if (PermutationPanel.Children.Count > 0)
+            PermutationsExpander.Visibility = Visibility.Visible;
     }
 
-    private void MaterialVariant_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void CreatePermutationOverrides()
     {
-        var permutations = _currentEntity.ModelParent.MaterialPermutations;
-        var selection = (sender as ComboBox);
-        var newConfig = new Dictionary<uint, uint>();
-        foreach (var child in MaterialVariantPanel.Children)
+        PermutationOverridePanel.Children.Clear();
+
+        var modelParent = _currentEntity.ModelParent;
+        uint regionKey = EntityModelParent.RegionKey;
+        uint permutationKey = EntityModelParent.PermutationKey;
+
+        var distinctValues = modelParent.GetDistinctKeyValues();
+        if (!distinctValues.TryGetValue(regionKey, out var regions) ||
+            !distinctValues.TryGetValue(permutationKey, out var permutations))
+            return;
+
+        foreach (uint region in regions)
         {
-            if (child is ComboBoxControl comboBoxControl)
+            ComboBoxControl regionCombo = new();
+            regionCombo.Text = GlobalStrings.Get().GetString(region);
+            regionCombo.TextFontSize = 16;
+            regionCombo.Margin = new Thickness(5);
+            regionCombo.Box.Tag = region;
+
+            var entries = new List<ComboBoxItem> { new() { Content = "Inherit", Tag = InheritValue } };
+            entries.AddRange(permutations
+                .Where(v => v != 0x871AC0EA)
+                .Select(v => new ComboBoxItem { Content = GlobalStrings.Get().GetString(v), Tag = v }));
+
+            regionCombo.Box.ItemsSource = entries;
+            regionCombo.Box.SelectedIndex = 0; // Inherit by default
+            regionCombo.Box.SelectionChanged += Switch_OnSelectionChanged;
+
+            PermutationOverridePanel.Children.Add(regionCombo);
+        }
+    }
+
+    private void Switch_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var modelParent = _currentEntity.ModelParent;
+        if (modelParent is null)
+            return;
+
+        var query = new Dictionary<uint, uint>();
+        foreach (var child in PermutationPanel.Children)
+        {
+            if (child is ComboBoxControl comboBoxControl &&
+                comboBoxControl.Box.SelectedItem is ComboBoxItem selectedItem &&
+                (uint)selectedItem.Tag != AllValue)
             {
-                var comboBox = comboBoxControl.Box;
-                if (comboBox.SelectedItem is ComboBoxItem selectedItem)
-                {
-                    newConfig.TryAdd((uint)comboBox.Tag, (uint)selectedItem.Tag);
-                }
+                query.TryAdd((uint)comboBoxControl.Box.Tag, (uint)selectedItem.Tag);
             }
         }
 
-        ModelPermutation.UpdateConfiguration(permutations, newConfig);
-        var permIndex = permutations.CalculatePermutationIndex();
-        PermIndexDebug.Text = permIndex.HasValue ? $"Permutation Index: {permIndex}" : "Permutation Index: N/A";
-        if (permIndex.HasValue)
+        // materials
+        var permutations = modelParent.MaterialPermutations;
+        if (permutations is not null)
         {
-            MaterialPermutationOverride.Value = permIndex.Value;
-            MaterialPermutationOverride.NotifyValueChanged();
+            permutations.Configuration = new Dictionary<uint, uint>();
+            MaterialPermutation.UpdateConfiguration(permutations, query);
+
+            var permIndex = permutations.CalculatePermutationIndex();
+            if (permIndex.HasValue)
+            {
+                MaterialPermutationOverride.Value = permIndex.Value;
+                MaterialPermutationOverride.NotifyValueChanged();
+            }
         }
 
-        //Console.WriteLine($"\nUpdated Configuration:");
-        //Console.WriteLine($"Permutation Index: {permIndex}");
-        //foreach (var kvp in permutations.Configuration)
-        //{
-        //    var k = GlobalStrings.Get().GetString(kvp.Key);
-        //    var v = GlobalStrings.Get().GetString(kvp.Value);
-        //    Console.WriteLine($"Key: {k}, Value: {v}");
-        //}
+        // mesh
+        var regionOverrides = new Dictionary<uint, uint>();
+        foreach (var child in PermutationOverridePanel.Children)
+        {
+            if (child is ComboBoxControl regionCombo &&
+                regionCombo.Box.SelectedItem is ComboBoxItem selected &&
+                (uint)selected.Tag != InheritValue)
+            {
+                regionOverrides[(uint)regionCombo.Box.Tag] = (uint)selected.Tag;
+            }
+        }
 
-        //ReloadEntity();
+        uint? defaultPermutation = query.TryGetValue(EntityModelParent.PermutationKey, out uint p) ? p : null;
+        var baseState = query.Where(kv => kv.Key != EntityModelParent.PermutationKey).ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        var activeGroups = modelParent.GetMeshGroupsWithOverrides(baseState, defaultPermutation, regionOverrides);
+        foreach (GroupToggleVM toggle in GroupToggles)
+            toggle.IsChecked = activeGroups.MeshGroups.Contains(toggle.GroupIndex);
     }
 
     #region Investment
