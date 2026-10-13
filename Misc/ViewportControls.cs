@@ -125,7 +125,7 @@ public class GroupToggleVM : SettingItem, INotifyPropertyChanged
 public class VectorSetting : SettingItem
 {
     public string Text { get; set; }
-
+    public int TextBlockWidth { get; set; } = 100;
     public Func<EditableVector4> GetValue { get; set; }
     public Action<EditableVector4> SetValue { get; set; }
 

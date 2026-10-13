@@ -47,6 +47,8 @@ public partial class CharmRenderer
 
             childObj.Create(Context, World, child);
             childObj.IsChild = true;
+            childObj.AttachParent = obj;
+            childObj.AttachBone = child.Model.BoneAttachIndex;
 
             GroupVisibility.AddObject(childObj);
         }

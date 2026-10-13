@@ -41,8 +41,8 @@
                 Margin="4"
                 Orientation="Horizontal">
                 <TextBlock
-                    Width="100"
-                    Margin="0"
+                    Width="{Binding TextBlockWidth}"
+                    Margin="0,0,5,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
@@ -604,6 +604,7 @@
                                 <Setter Property="Width" Value="7" />
                             </Style>
                         </ScrollViewer.Resources>
+
                         <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
                             <StackPanel Margin="5">
                                 <ItemsControl x:Name="ObjectTransforms">
@@ -621,6 +622,336 @@
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                 </ItemsControl>
+
+                                <Expander
+                                    x:Name="AnimationExpander"
+                                    Margin="0,5,0,5"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#75000000"
+                                    KeyboardNavigation.DirectionalNavigation="None"
+                                    Visibility="Collapsed">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Text="Animation" />
+
+                                            <Button
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Panel.ZIndex="1"
+                                                Click="ResetAnimation_Click"
+                                                Focusable="False"
+                                                Style="{StaticResource D2StyleButtonNoOverlay}"
+                                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock
+                                                    Margin="0"
+                                                    VerticalAlignment="Top"
+                                                    FontSize="18"
+                                                    Foreground="White"
+                                                    Text="⟳" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Expander.Header>
+
+                                    <StackPanel MinWidth="360" Margin="15,5,15,10">
+                                        <Grid
+                                            Margin="0,0,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Background="#75000000">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="25*" />
+                                                <ColumnDefinition Width="50*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Margin="24,10,10,10"
+                                                Padding="0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                FontSize="16"
+                                                Text="Animation"
+                                                TextWrapping="Wrap" />
+
+                                            <ComboBox
+                                                x:Name="AnimationCombo"
+                                                Grid.Column="1"
+                                                Margin="5"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
+                                                Focusable="False"
+                                                IsReadOnly="False"
+                                                SelectionChanged="AnimationCombo_SelectionChanged"
+                                                Style="{DynamicResource D2StyleComboBox}" />
+                                        </Grid>
+
+                                        <Grid
+                                            Margin="0,5,0,5"
+                                            HorizontalAlignment="Stretch"
+                                            Background="#75000000">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="25*" />
+                                                <ColumnDefinition Width="50*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Margin="24,10,10,10"
+                                                Padding="0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                FontSize="16"
+                                                Text="Evaluation"
+                                                TextWrapping="Wrap" />
+
+                                            <ComboBox
+                                                x:Name="AnimationModeCombo"
+                                                Grid.Column="1"
+                                                Margin="5"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
+                                                Focusable="False"
+                                                IsReadOnly="False"
+                                                SelectedIndex="0"
+                                                SelectionChanged="AnimationModeCombo_SelectionChanged"
+                                                Style="{DynamicResource D2StyleComboBox}"
+                                                ToolTip="Auto detects offset layers. Use Absolute or Rest relative if a clip looks collapsed or deformed.">
+                                                <ComboBoxItem Content="Auto" Tag="Auto" />
+                                                <ComboBoxItem Content="Absolute" Tag="Absolute" />
+                                                <ComboBoxItem Content="Rest Relative" Tag="RestRelative" />
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <StackPanel
+                                            Margin="0,0,0,0"
+                                            HorizontalAlignment="Center"
+                                            Orientation="Horizontal">
+                                            <Button
+                                                Width="25"
+                                                Height="25"
+                                                charm:StyleHelper.BorderThickness="0.5"
+                                                Click="AnimationPlayPrevious"
+                                                Style="{StaticResource D2StyleButton}">
+                                                <TextBlock
+                                                    Width="25"
+                                                    Height="25"
+                                                    Margin="0"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Segoe UI Symbol"
+                                                    FontSize="16"
+                                                    Foreground="White"
+                                                    Text="⏮️"
+                                                    TextAlignment="Center" />
+                                            </Button>
+
+                                            <ToggleButton
+                                                x:Name="AnimationPlayToggle"
+                                                Width="25"
+                                                Height="25"
+                                                Margin="5,0,5,0"
+                                                Checked="AnimationPlayToggle_Changed"
+                                                IsChecked="True"
+                                                Unchecked="AnimationPlayToggle_Changed">
+                                                <ToggleButton.Content>
+                                                    <TextBlock
+                                                        Width="25"
+                                                        Height="25"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontFamily="Segoe UI Symbol"
+                                                        FontSize="16"
+                                                        Foreground="White"
+                                                        TextAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text" Value="▶" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                                                        <Setter Property="Text" Value="⏸" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </ToggleButton.Content>
+
+                                                <ToggleButton.Style>
+                                                    <Style BasedOn="{StaticResource D2StyleTagListButton}" TargetType="ToggleButton" />
+                                                </ToggleButton.Style>
+                                            </ToggleButton>
+
+                                            <Button
+                                                Width="25"
+                                                Height="25"
+                                                charm:StyleHelper.BorderThickness="0.5"
+                                                Click="AnimationPlayNext"
+                                                Style="{StaticResource D2StyleButton}">
+                                                <TextBlock
+                                                    Width="25"
+                                                    Height="25"
+                                                    Margin="0"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Segoe UI Symbol"
+                                                    FontSize="16"
+                                                    Foreground="White"
+                                                    Text="⏭️"
+                                                    TextAlignment="Center" />
+                                            </Button>
+
+                                            <ToggleButton
+                                                x:Name="AnimationLoopToggle"
+                                                Width="25"
+                                                Height="25"
+                                                Margin="5,0,0,0"
+                                                Checked="AnimationLoopToggle_Changed"
+                                                IsChecked="True"
+                                                ToolTip="Loop"
+                                                Unchecked="AnimationLoopToggle_Changed">
+
+                                                <ToggleButton.Content>
+                                                    <TextBlock
+                                                        Width="25"
+                                                        Height="25"
+                                                        Margin="0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Bottom"
+                                                        FontFamily="Segoe UI Symbol"
+                                                        FontSize="18"
+                                                        Foreground="White"
+                                                        Text="⟳"
+                                                        TextAlignment="Center" />
+                                                </ToggleButton.Content>
+                                            </ToggleButton>
+
+                                            <ContentControl
+                                                x:Name="AnimationSpeedControl"
+                                                Margin="10,0,0,0"
+                                                HorizontalAlignment="Right" />
+
+                                        </StackPanel>
+
+                                        <Grid Margin="0,5,0,0" HorizontalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="250" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                x:Name="AnimationCurTimeText"
+                                                Grid.Column="0"
+                                                Margin="0,0,5,0"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Opacity="0.7" />
+
+                                            <Slider
+                                                x:Name="AnimationTimeSlider"
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                IsEnabled="False"
+                                                Maximum="1"
+                                                Minimum="0"
+                                                ValueChanged="AnimationTimeSlider_ValueChanged">
+                                                <Slider.LayoutTransform>
+                                                    <ScaleTransform ScaleX="1" ScaleY=".75" />
+                                                </Slider.LayoutTransform>
+                                            </Slider>
+
+                                            <TextBlock
+                                                x:Name="AnimationDurationText"
+                                                Grid.Column="2"
+                                                Margin="5,0,0,0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Opacity="0.7" />
+                                        </Grid>
+
+                                        <TextBlock
+                                            x:Name="AnimationStatusText"
+                                            Margin="0,0,0,0"
+                                            HorizontalAlignment="Center"
+                                            FontSize="12"
+                                            Opacity="0.5"
+                                            TextWrapping="Wrap" />
+
+                                        <Border
+                                            Height="1"
+                                            Margin="0,0,0,10"
+                                            Background="{DynamicResource ForegroundColour50}" />
+
+                                        <Grid
+                                            Margin="0,0,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Background="#75000000">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="25*" />
+                                                <ColumnDefinition Width="50*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Margin="24,10,10,10"
+                                                Padding="0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                FontSize="16"
+                                                Text="Layer"
+                                                TextWrapping="Wrap" />
+
+                                            <ComboBox
+                                                x:Name="AnimationLayerCombo"
+                                                Grid.Column="1"
+                                                Margin="5"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
+                                                Focusable="False"
+                                                IsReadOnly="False"
+                                                SelectionChanged="AnimationLayerCombo_SelectionChanged"
+                                                Style="{DynamicResource D2StyleComboBox}" />
+                                        </Grid>
+
+                                        <Grid Margin="5,5,0,0" HorizontalAlignment="Left">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="150" />
+                                                <ColumnDefinition Width="110" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                FontSize="14"
+                                                Text="Weight" />
+
+                                            <Slider
+                                                x:Name="AnimationLayerWeightSlider"
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                IsEnabled="False"
+                                                Maximum="1"
+                                                Minimum="0"
+                                                ValueChanged="AnimationLayerWeightSlider_ValueChanged"
+                                                Value="0.5">
+                                                <Slider.LayoutTransform>
+                                                    <ScaleTransform ScaleX="1" ScaleY=".75" />
+                                                </Slider.LayoutTransform>
+                                            </Slider>
+
+                                            <TextBlock
+                                                x:Name="AnimationLayerWeightText"
+                                                Grid.Column="2"
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Opacity="0.7"
+                                                Text="0.50" />
+                                        </Grid>
+
+                                    </StackPanel>
+                                </Expander>
 
                                 <Expander
                                     x:Name="MeshGroupsExpander"

@@ -134,6 +134,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                                       $"Camera Angels: {cam.Yaw:F2}, {cam.Pitch:F2}, {cam.Roll:F2}";
                 FPSCounter.Text = $"FPS: {Math.Floor(Renderer.FPS)}";
 
+                UpdateAnimationPanel();
+
                 if (AutoExposure)
                 {
                     Exposure = Renderer.Externs.Frame.ExposureScale;
@@ -452,6 +454,15 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             },
         };
         ObjectTransforms.ItemsSource = transforms;
+
+        AnimationSpeedControl.Content = new VectorSetting
+        {
+            Text = "Speed",
+            TextBlockWidth = 50,
+            DragSpeed = 0.01f,
+            Value = new EditableVector4(Vector4.One, EditableVector4.VectorInputType.Float, Vector4.One, min: 0f, max: 10f),
+            SetValue = v => UpdateAnimationSpeed(v.Vec4)
+        };
     }
 
     private void UpdateTranslation(Vector4 loc)

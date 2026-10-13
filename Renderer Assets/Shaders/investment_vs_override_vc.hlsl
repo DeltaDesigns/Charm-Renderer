@@ -18,6 +18,46 @@ cbuffer cb1 : register(b1)
 // 3Dmigoto declarations
 #define cmp -
 
+struct SkinVertex
+{
+  uint4 indices;
+  float4 weights;
+};
+
+StructuredBuffer<SkinVertex> skin_vertices : register(t20);
+StructuredBuffer<float4> skin_bone_rows : register(t21); // 3 rows (affine) per bone
+
+void ApplySkinning(uint vertex, inout float3 pos, inout float3 nrm, inout float3 tan)
+{
+  SkinVertex sv = skin_vertices[vertex];
+  float weight_sum = sv.weights.x + sv.weights.y + sv.weights.z + sv.weights.w;
+  if (weight_sum <= 0.0001)
+    return;
+
+  float4 p4 = float4(pos, 1);
+  float3 p = 0, n = 0, t = 0;
+  [unroll]
+  for (int i = 0; i < 4; i++)
+  {
+    float w = sv.weights[i] / weight_sum;
+    if (w <= 0)
+      continue;
+
+    uint b = sv.indices[i] * 3;
+    float4 row0 = skin_bone_rows[b];
+    float4 row1 = skin_bone_rows[b + 1];
+    float4 row2 = skin_bone_rows[b + 2];
+
+    p += w * float3(dot(row0, p4), dot(row1, p4), dot(row2, p4));
+    n += w * float3(dot(row0.xyz, nrm), dot(row1.xyz, nrm), dot(row2.xyz, nrm));
+    t += w * float3(dot(row0.xyz, tan), dot(row1.xyz, tan), dot(row2.xyz, tan));
+  }
+
+  pos = p;
+  nrm = n;
+  tan = t;
+}
+// -----------------------------------------------------------------------------------------------------------
 
 void VSMain(
   float4 v0 : POSITION0,
@@ -39,7 +79,14 @@ void VSMain(
   uint4 bitmask, uiDest;
   float4 fDest;
 
-  r0.xyz = v0.xyz * cb1[5].www + cb1[5].xyz;
+  float3 skinned_pos = v0.xyz * cb1[5].www + cb1[5].xyz;
+  float3 skinned_nrm = v1.xyz;
+  float3 skinned_tan = v2.xyz;
+  ApplySkinning(v4, skinned_pos, skinned_nrm, skinned_tan);
+  v1.xyz = skinned_nrm;
+  v2.xyz = skinned_tan;
+
+  r0.xyz = skinned_pos;
   r0.w = 1;
   r1.xyz = cb1[3].xyz + -cb12[7].xyz;
   

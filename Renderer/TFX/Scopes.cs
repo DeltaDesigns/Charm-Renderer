@@ -77,7 +77,7 @@ public class TempScopes : GpuResource
     }
 
     private ScopeRigidModelTemp _cachedRigidModel = new ScopeRigidModelTemp();
-    public void UpdateRigidModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms, Transform offset)
+    public void UpdateRigidModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms, Transform offset, Matrix4x4? attachment = null)
     {
         if (_disposed)
             return;
@@ -100,10 +100,24 @@ public class TempScopes : GpuResource
         Debug.Assert(transforms.Length == 1, "Rigid models should only have one global transform.");
 
         var t = transforms[0];
-        Matrix4x4ButGood transform =
-            Matrix4x4.CreateScale(!mesh.Material.Skinned ? (t.Scale * offset.Scale) : t.Scale) *
-            Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
-            Matrix4x4.CreateTranslation(t.Position + offset.Position);
+        Matrix4x4ButGood transform;
+        if (attachment != null)
+        {
+            transform =
+                Matrix4x4.CreateScale(!mesh.Material.Skinned ? (t.Scale * offset.Scale) : t.Scale) *
+                Matrix4x4.CreateFromQuaternion(offset.Quaternion.ToQuat()) *
+                Matrix4x4.CreateTranslation(offset.Position) *
+                (Matrix4x4)attachment *
+                Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat()) *
+                Matrix4x4.CreateTranslation(t.Position);
+        }
+        else
+        {
+            transform =
+                Matrix4x4.CreateScale(!mesh.Material.Skinned ? (t.Scale * offset.Scale) : t.Scale) *
+                Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
+                Matrix4x4.CreateTranslation(t.Position + offset.Position);
+        }
 
         ref var cb1_data = ref _cachedRigidModel;
 
@@ -124,7 +138,7 @@ public class TempScopes : GpuResource
     {
         UpdateRigidModelScopeCustom(context, mapTrans, new Transform());
     }
-    public void UpdateRigidModelScopeCustom(DeviceContext context, Transform mapTrans, Transform offset)
+    public void UpdateRigidModelScopeCustom(DeviceContext context, Transform mapTrans, Transform offset, Matrix4x4? attachment = null)
     {
         if (_disposed)
             return;
@@ -145,10 +159,24 @@ public class TempScopes : GpuResource
         }
 
 
-        Matrix4x4ButGood transform =
-            Matrix4x4.CreateScale(mapTrans.Scale * offset.Scale) *
-            Matrix4x4.CreateFromQuaternion(mapTrans.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
-            Matrix4x4.CreateTranslation(mapTrans.Position + offset.Position);
+        Matrix4x4ButGood transform;
+        if (attachment != null)
+        {
+            transform =
+                Matrix4x4.CreateScale(mapTrans.Scale * offset.Scale) *
+                Matrix4x4.CreateFromQuaternion(offset.Quaternion.ToQuat()) *
+                Matrix4x4.CreateTranslation(offset.Position) *
+                (Matrix4x4)attachment *
+                Matrix4x4.CreateFromQuaternion(mapTrans.Quaternion.ToQuat()) *
+                Matrix4x4.CreateTranslation(mapTrans.Position);
+        }
+        else
+        {
+            transform =
+                Matrix4x4.CreateScale(mapTrans.Scale * offset.Scale) *
+                Matrix4x4.CreateFromQuaternion(mapTrans.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
+                Matrix4x4.CreateTranslation(mapTrans.Position + offset.Position);
+        }
 
         ref var cb1_data = ref _cachedRigidModelCustom;
 

@@ -147,9 +147,11 @@ public class EditableVector4 : INotifyPropertyChanged
     public Vector4 DefaultVec { get; set; }
     private float x, y, z, w;
 
-    public EditableVector4(Vector4 value, VectorInputType type, Vector4? defaultVec = null)
+    public EditableVector4(Vector4 value, VectorInputType type, Vector4? defaultVec = null, float? min = null, float? max = null)
     {
         DefaultVec = defaultVec ?? Vector4.Zero;
+        Min = min;
+        Max = max;
         X = value.X;
         Y = value.Y;
         Z = value.Z;
@@ -173,10 +175,22 @@ public class EditableVector4 : INotifyPropertyChanged
         }
     }
 
-    public float X { get => x; set { x = value; OnPropertyChanged(nameof(X)); } }
-    public float Y { get => y; set { y = value; OnPropertyChanged(nameof(Y)); } }
-    public float Z { get => z; set { z = value; OnPropertyChanged(nameof(Z)); } }
-    public float W { get => w; set { w = value; OnPropertyChanged(nameof(W)); } }
+    public float X { get => x; set { x = Clamp(value); OnPropertyChanged(nameof(X)); } }
+    public float Y { get => y; set { y = Clamp(value); OnPropertyChanged(nameof(Y)); } }
+    public float Z { get => z; set { z = Clamp(value); OnPropertyChanged(nameof(Z)); } }
+    public float W { get => w; set { w = Clamp(value); OnPropertyChanged(nameof(W)); } }
+
+    public float? Min { get; set; }
+    public float? Max { get; set; }
+
+    private float Clamp(float value)
+    {
+        if (Min.HasValue)
+            value = MathF.Max(Min.Value, value);
+        if (Max.HasValue)
+            value = MathF.Min(Max.Value, value);
+        return value;
+    }
 
     public event PropertyChangedEventHandler PropertyChanged;
     private void OnPropertyChanged(string propertyName)
