@@ -53,11 +53,6 @@ public partial class CharmRenderer
             GroupVisibility.AddObject(childObj);
         }
 
-        if (entity.Skeleton != null)
-            Viewport.OverrideWarning.Visibility = Visibility.Visible;
-        else
-            Viewport.OverrideWarning.Visibility = Visibility.Collapsed;
-
         CreateObjectChannels(entity);
         LookAtMesh(obj); // base ent, no children
     }
@@ -96,7 +91,6 @@ public partial class CharmRenderer
         LoadPlayerSkeleton(item);
 
         ShouldShowObjectChannels();
-        Viewport.OverrideWarning.Visibility = Visibility.Visible;
 
         if (isWeapon)
         {
@@ -142,7 +136,6 @@ public partial class CharmRenderer
         if (items.Where(x => x.IsArmor || x.IsArmorOrnament).Any()) // meh
             LoadPlayerSkeleton(items.First());
 
-        Viewport.OverrideWarning.Visibility = Visibility.Visible;
         ShouldShowObjectChannels();
     }
 

@@ -22,6 +22,8 @@ public class MaterialData : GpuResource
 
     // temp, for vs override
     public bool Skinned = false;
+    public bool GameSkinningForPart;
+
     public bool UsesVertexColor = false;
     public bool UsesGearDye = false;
 
@@ -83,7 +85,7 @@ public class MaterialData : GpuResource
 
     private void SetVSOverride(CharmRenderer renderer)
     {
-        if (Skinned)
+        if (Skinned && !(renderer.Viewport.UseGameSkinning && GameSkinningForPart))
         {
             if (UsesGearDye)
             {

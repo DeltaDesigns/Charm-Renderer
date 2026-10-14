@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using HelixToolkit.Maths;
 using SharpDX;
 using SharpDX.Direct3D11;
 using Tiger.Schema;
@@ -349,6 +350,179 @@ public class TempScopes : GpuResource
         RenderHelpers.EndProfile();
     }
 
+    public const int SkinnedScopeRows = 1024;
+    public const int SkinnedPaletteRow = 8;
+    public const int SkinnedMaxBones = (SkinnedScopeRows - SkinnedPaletteRow) / 2;
+    private readonly Vector4[] _skinnedScope = new Vector4[SkinnedScopeRows];
+    private readonly Dictionary<int, Buffer> _skinnedBuffers = new();
+    private readonly Dictionary<object, SkinnedPalette> _skinnedPalettes = new();
+    public void UpdateSkinnedModelScope(DeviceContext context, MeshPartData mesh, Transform[] transforms, Transform offset,
+        Matrix4x4? attachment, float[]? boneRows, int boneFloats, System.Numerics.Vector4 cameraOffset, SkinningType skinningType,
+        int poseVersion = 0)
+    {
+        if (_disposed)
+            return;
+
+        var t = transforms[0];
+        int rowsPerBone = RowsPerBone(skinningType);
+
+        object key = (object?)boneRows ?? transforms;
+        if (!_skinnedPalettes.TryGetValue(key, out SkinnedPalette? palette))
+        {
+            palette = new SkinnedPalette();
+            _skinnedPalettes[key] = palette;
+            if (_skinnedPalettes.Count > 256)
+            {
+                _skinnedPalettes.Clear();
+                _skinnedPalettes[key] = palette;
+            }
+        }
+
+        bool valid = palette.PoseVersion == poseVersion && palette.Type == (int)skinningType && palette.Camera == cameraOffset &&
+                     palette.Attachment.Equals(attachment) && SameTransform(palette.Transform, t) && SameTransform(palette.Offset, offset);
+        if (!valid)
+        {
+            BuildSkinnedPalette(palette, t, offset, attachment, boneRows, boneFloats, cameraOffset, rowsPerBone);
+            palette.PoseVersion = poseVersion;
+            palette.Type = (int)skinningType;
+            palette.Camera = cameraOffset;
+            palette.Attachment = attachment;
+            palette.Transform = t;
+            palette.Offset = offset;
+        }
+
+        Vector4[] cb = _skinnedScope;
+        cb[0] = new Vector4(t.Scale.X, 0, 0, 0);
+        cb[1] = new Vector4(0, t.Scale.Y, 0, 0);
+        cb[2] = new Vector4(0, 0, t.Scale.Z, 0);
+        cb[3] = new Vector4(0, 0, 0, 1);
+        cb[4] = mesh.MeshScale;
+        cb[5] = mesh.MeshTransform;
+        cb[6] = mesh.MeshUVTransform;
+        cb[7] = Vector4.UnitW;
+        Array.Copy(palette.Rows, 0, cb, SkinnedPaletteRow, palette.RowCount);
+
+        int rows = Math.Min(SkinnedScopeRows, (SkinnedPaletteRow + palette.RowCount + 63) & ~63);
+        if (!_skinnedBuffers.TryGetValue(rows, out Buffer? buffer))
+        {
+            buffer = new Buffer(context.Device, new BufferDescription
+            {
+                SizeInBytes = Utilities.SizeOf<Vector4>() * rows,
+                Usage = ResourceUsage.Default,
+                BindFlags = BindFlags.ConstantBuffer,
+                CpuAccessFlags = CpuAccessFlags.None,
+                OptionFlags = ResourceOptionFlags.None,
+                StructureByteStride = 0
+            });
+            buffer.DebugName = $"SkinnedModelScopeBuffer {rows} rows";
+            _skinnedBuffers[rows] = buffer;
+        }
+
+        context.UpdateSubresource(cb, buffer);
+        context.VertexShader.SetConstantBuffer(1, buffer);
+        context.PixelShader.SetConstantBuffer(1, buffer);
+    }
+
+    private static void BuildSkinnedPalette(SkinnedPalette palette, Transform t, Transform offset, Matrix4x4? attachment,
+        float[]? boneRows, int boneFloats, System.Numerics.Vector4 cameraOffset, int rowsPerBone)
+    {
+        Matrix4x4 placement = attachment != null
+            ? Matrix4x4.CreateFromQuaternion(offset.Quaternion.ToQuat()) * Matrix4x4.CreateTranslation(offset.Position) *
+              attachment.Value * Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat()) * Matrix4x4.CreateTranslation(t.Position)
+            : Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat() * offset.Quaternion.ToQuat()) *
+              Matrix4x4.CreateTranslation(t.Position + offset.Position);
+
+        placement *= Matrix4x4.CreateTranslation(-cameraOffset.ToVector3());
+
+        int capacity = (SkinnedScopeRows - SkinnedPaletteRow) / rowsPerBone;
+        int animated = boneRows != null ? Math.Min(boneFloats / 12, capacity) : 0;
+        int bones = boneRows != null ? Math.Min(animated + 16, capacity) : Math.Min(256, capacity);
+
+        palette.RowCount = bones * rowsPerBone;
+        if (palette.Rows.Length < palette.RowCount)
+            palette.Rows = new Vector4[palette.RowCount];
+        Vector4[] rows = palette.Rows;
+
+        Matrix4x4 scale = Matrix4x4.CreateScale(t.Scale);
+        for (int i = 0; i < bones; i++)
+        {
+            Matrix4x4 skin = Matrix4x4.Identity;
+            if (i < animated)
+            {
+                int o = i * 12;
+                skin = new Matrix4x4(
+                    boneRows![o + 0], boneRows[o + 4], boneRows[o + 8], 0,
+                    boneRows[o + 1], boneRows[o + 5], boneRows[o + 9], 0,
+                    boneRows[o + 2], boneRows[o + 6], boneRows[o + 10], 0,
+                    boneRows[o + 3], boneRows[o + 7], boneRows[o + 11], 1);
+            }
+
+            int row = i * rowsPerBone;
+            if (rowsPerBone >= 3)
+            {
+                Matrix4x4 m = skin * scale * placement;
+                rows[row] = new Vector4(m.M11, m.M21, m.M31, m.M41);
+                rows[row + 1] = new Vector4(m.M12, m.M22, m.M32, m.M42);
+                rows[row + 2] = new Vector4(m.M13, m.M23, m.M33, m.M43);
+                if (rowsPerBone > 3)
+                    rows[row + 3] = Vector4.UnitW;
+                continue;
+            }
+
+            Matrix4x4 full = skin * placement;
+            var x = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3(full.M11, full.M12, full.M13));
+            var y = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3(full.M21, full.M22, full.M23));
+            var z = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3(full.M31, full.M32, full.M33));
+            var rot = new Matrix4x4(x.X, x.Y, x.Z, 0, y.X, y.Y, y.Z, 0, z.X, z.Y, z.Z, 0, 0, 0, 0, 1);
+            var q = System.Numerics.Quaternion.Normalize(System.Numerics.Quaternion.CreateFromRotationMatrix(rot));
+
+            // dual = 0.5 * (0, t) * q
+            var tr = full.Translation;
+            float dx = 0.5f * (tr.X * q.W + tr.Y * q.Z - tr.Z * q.Y);
+            float dy = 0.5f * (-tr.X * q.Z + tr.Y * q.W + tr.Z * q.X);
+            float dz = 0.5f * (tr.X * q.Y - tr.Y * q.X + tr.Z * q.W);
+            float dw = 0.5f * (-tr.X * q.X - tr.Y * q.Y - tr.Z * q.Z);
+
+            rows[row] = new Vector4(q.X, q.Y, q.Z, q.W);
+            rows[row + 1] = new Vector4(dx, dy, dz, dw);
+        }
+    }
+
+    public int RowsPerBone(SkinningType palette)
+    {
+        if ((int)palette > 3)
+            throw new NotImplementedException($"SkinningType {palette} not implemented");
+
+        switch (palette)
+        {
+            case SkinningType.Matrix3x4:
+                return 3;
+            case SkinningType.Matrix3x4Padded:
+                return 4;
+            default:
+                return 2;
+        }
+    }
+
+    private static bool SameTransform(Transform a, Transform b)
+    {
+        return a.Position.X == b.Position.X && a.Position.Y == b.Position.Y && a.Position.Z == b.Position.Z &&
+               a.Quaternion.X == b.Quaternion.X && a.Quaternion.Y == b.Quaternion.Y && a.Quaternion.Z == b.Quaternion.Z && a.Quaternion.W == b.Quaternion.W &&
+               a.Scale.X == b.Scale.X && a.Scale.Y == b.Scale.Y && a.Scale.Z == b.Scale.Z;
+    }
+
+    private sealed class SkinnedPalette
+    {
+        public Vector4[] Rows = Array.Empty<Vector4>();
+        public int RowCount;
+        public int PoseVersion = -1;
+        public int Type = -1;
+        public Vector4 Camera;
+        public Matrix4x4? Attachment;
+        public Transform Transform;
+        public Transform Offset;
+    }
+
     private bool _disposed;
     public override void Dispose()
     {
@@ -363,6 +537,12 @@ public class TempScopes : GpuResource
         ColorGradingScopeBuffer?.Dispose();
         PostProcessScopeBuffer?.Dispose();
         CascadeScopeBuffer?.Dispose();
+
+        foreach (var buffer in _skinnedBuffers.Values)
+            buffer.Dispose();
+
+        _skinnedBuffers.Clear();
+        _skinnedPalettes.Clear();
 
         base.Dispose();
     }

@@ -152,7 +152,6 @@ public partial class CharmRenderer : IDisposable
     private const float MaxDeltaTime = 0.1f;
 
     private int _frameCounter = 0;
-    /// <summary>Number of frames rendered so far.</summary>
     public int FrameIndex => _frameCounter;
     public float FPS { get; private set; } = 0;
     private float TargetFPS = 200f;
@@ -237,7 +236,6 @@ public partial class CharmRenderer : IDisposable
 
         UpdateAutoexposure(DeltaTime);
         UpdateCamera();
-        UpdateAnimationInput();
         UpdateExterns(Viewport.RenderScale); // Only Frame and View externs here
         UpdateGlobalChannels();
         UpdateScopes(); // Again, only Frame and View scopes here

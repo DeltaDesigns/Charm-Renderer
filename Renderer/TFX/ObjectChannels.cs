@@ -131,6 +131,7 @@ public class ObjectChannels
 
     public void SetChannelDefaults()
     {
+        SetObjectChannel(Helpers.Fnv1a32("is_garbage"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("damage_reaction"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("dissolve"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("blink"), 0f);
@@ -167,6 +168,22 @@ public class ObjectChannels
         SetObjectChannel(Helpers.Fnv1a32("firing_ramp"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("weapon_firing"), 0f);
         SetObjectChannel(Helpers.Fnv1a32("perk_fire"), 0f);
+
+        // hair related
+        SetObjectChannel(Helpers.Fnv1a32("head_acceleration"), 0f);
+        SetObjectChannel(0x18FBF98E, 0f);
+        SetObjectChannel(0xB15C7521, 0f);
+        SetObjectChannel(0xCD6FA091, 0f);
+
+        // touch of malice
+        SetObjectChannel(Helpers.Fnv1a32("cloth_movement"), 0f);
+        SetObjectChannel(Helpers.Fnv1a32("cloth_lr"), 0f);
+        SetObjectChannel(0x69DF07E0, 0f);
+        SetObjectChannel(0xABAE71E1, 0f);
+        SetObjectChannel(0xA13F8670, 0f);
+        SetObjectChannel(0x1FE35734, 0f);
+        SetObjectChannel(0xB098C0D1, 0f);
+        SetObjectChannel(0x2EBE1155, 0f);
     }
 
     public void ResetAllChannels()

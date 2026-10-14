@@ -175,7 +175,8 @@ public class Externs : IDisposable
 
             Unk240 = ProjToWorld * UNormToSNorm;
             Unk2C0 = ptow_no_proj_w * UNormToSNorm;
-            Unk30 = Vector4.UnitZ * WorldToProj.W;
+            Unk30 = Vector4.Zero;
+            //Unk30 = Vector4.UnitZ * WorldToProj.W; // dont know if actually used on anything, always 0?
         }
 
         public void Dispose()

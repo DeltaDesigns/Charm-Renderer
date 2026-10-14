@@ -9,7 +9,7 @@ using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
 
-// One vertex of the animation skinning buffer, matches SkinVertex in the entity/investment override shaders
+// for override vs
 [StructLayout(LayoutKind.Sequential)]
 public struct SkinVertex
 {
@@ -19,7 +19,7 @@ public struct SkinVertex
 
 public class MeshPartData : GpuResource
 {
-    // Vertex shader SRV slots the override shaders read the skinning data from
+    // for override vs
     public const int SkinWeightsSlot = 20;
     public const int SkinBonesSlot = 21;
 
@@ -34,15 +34,13 @@ public class MeshPartData : GpuResource
     public VertexBuffer? VertexSkinningBuffer;
     public VertexBuffer? VertexOldWeightsBuffer;
 
-    // Per-vertex bone indices and weights for animation, indexed by the raw vertex index. Only present for entity
-    // parts whose weights could be decoded.
+
     private Buffer? _skinWeightsBuffer;
     private ShaderResourceView? _skinWeightsSRV;
-
-    // The owning RenderObject's bone rows. Null while it is not animating, which makes the shader skip skinning.
     public ShaderResourceView? BoneRowsSRV;
-
     public bool HasSkinWeights => _skinWeightsSRV != null;
+    public bool UsesGameSkinning = false;
+
     public int IndexCount;
     public int IndexOffset;
 
@@ -83,9 +81,10 @@ public class MeshPartData : GpuResource
         if (Material.Skinned)
             VertexSkinningBuffer?.Bind(renderer.Context, -1, 1);
 
+        UpdateGameSkinning(renderer);
+
         Material?.Bind(renderer);
 
-        // after the material, as its own bind can overwrite vertex shader resources
         if (Material.Skinned)
         {
             bool animating = BoneRowsSRV != null && _skinWeightsSRV != null;
@@ -93,11 +92,15 @@ public class MeshPartData : GpuResource
             renderer.Context.VertexShader.SetShaderResource(SkinBonesSlot, animating ? BoneRowsSRV : null);
         }
     }
+    public void UpdateGameSkinning(CharmRenderer renderer)
+    {
+        if (Material == null)
+            return;
 
-    /// <summary>
-    /// Builds the animation weights buffer from the CPU decoded weights. The weights are stored per unique vertex,
-    /// while the GPU draws with raw vertex indices, so they are expanded through the part's index list.
-    /// </summary>
+        UsesGameSkinning = renderer.Viewport.UseGameSkinning && Material.Skinned && VertexSkinningBuffer != null;
+        Material.GameSkinningForPart = UsesGameSkinning;
+    }
+
     public void CreateSkinWeights(Device device, DynamicMeshPart part, int vertexCount)
     {
         if (part.VertexWeights.Count == 0 || part.VertexWeights.Count != part.VertexIndices.Count || vertexCount <= 0)
@@ -132,6 +135,7 @@ public class MeshPartData : GpuResource
         _skinWeightsBuffer = Buffer.Create(device, BindFlags.ShaderResource, vertices,
             stride * vertices.Length, ResourceUsage.Immutable, CpuAccessFlags.None,
             ResourceOptionFlags.BufferStructured, stride);
+
         _skinWeightsSRV = new ShaderResourceView(device, _skinWeightsBuffer);
     }
 
@@ -146,9 +150,6 @@ public class MeshPartData : GpuResource
         InputLayout?.Dispose();
         _skinWeightsSRV?.Dispose();
         _skinWeightsBuffer?.Dispose();
-        _skinWeightsSRV = null;
-        _skinWeightsBuffer = null;
-        BoneRowsSRV = null;
 
         AssetManager.Get().ReleaseMaterial(Material.Hash.Hash32);
         Material = null;
@@ -160,6 +161,10 @@ public class MeshPartData : GpuResource
         VertexSkinningBuffer = null;
         VertexOldWeightsBuffer = null;
         InputLayout = null;
+        BoneRowsSRV = null;
+        _skinWeightsSRV = null;
+        _skinWeightsBuffer = null;
+
 
         base.Dispose();
     }
@@ -170,4 +175,12 @@ public enum MeshType
 {
     Normal,
     Physics
+}
+
+public enum SkinningType
+{
+    None,
+    DualQuaternion,   // 2 float4 per bone
+    Matrix3x4,        // 3 float4 per bone
+    Matrix3x4Padded,  // 4 float4 per bone, the last one unused
 }

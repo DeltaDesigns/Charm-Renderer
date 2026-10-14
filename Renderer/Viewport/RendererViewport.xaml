@@ -835,7 +835,7 @@
                                         <Grid Margin="0,5,0,0" HorizontalAlignment="Center">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="250" />
+                                                <ColumnDefinition Width="275" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
 
@@ -881,7 +881,7 @@
 
                                         <Border
                                             Height="1"
-                                            Margin="0,0,0,10"
+                                            Margin="0,5,0,10"
                                             Background="{DynamicResource ForegroundColour50}" />
 
                                         <Grid
@@ -1472,7 +1472,7 @@
                     Foreground="Red"
                     IsHitTestVisible="False"
                     Opacity="0.75"
-                    Text="⚠ Mesh contains a skeleton. Final result may be inaccurate!"
+                    Text="⚠ Using override vertex shader. Final result may be inaccurate!"
                     TextAlignment="Center"
                     TextOptions.TextFormattingMode="Display"
                     Visibility="Hidden" />

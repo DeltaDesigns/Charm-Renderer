@@ -27,6 +27,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public ObservableCollection<SettingItem> DebugSettings { get; set; }
     public bool CapFPS { get; set; } = true;
     public bool UseSkyCopyTint_Debug { get; set; } = false;
+    public bool UseGameSkinning { get; set; } = true;
     public int ScreenshotScale { get; set; } = 1;
     public float RenderScale { get; set; } = 1f;
     #endregion
@@ -403,6 +404,19 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 Text = "Use Sky Copy Tint",
                 GetValue = () => UseSkyCopyTint_Debug,
                 SetValue = v => UseSkyCopyTint_Debug = v
+            },
+            new ToggleSetting
+            {
+                Text = "Use Game Skinning",
+                GetValue = () => UseGameSkinning,
+                SetValue = v =>
+                {
+                    UseGameSkinning = v;
+                    if (!UseGameSkinning)
+                        OverrideWarning.Visibility = Visibility.Visible;
+                    else
+                        OverrideWarning.Visibility = Visibility.Hidden;
+                }
             }
         };
         DebugOptions.ItemsSource = DebugSettings;

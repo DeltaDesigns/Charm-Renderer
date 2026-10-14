@@ -42,6 +42,11 @@ public partial class RendererViewport
         Renderer.Stop();
         Renderer.LoadEntity(_currentEntity);
         Renderer.Start();
+
+        if (entity.Skeleton != null && !UseGameSkinning)
+            OverrideWarning.Visibility = Visibility.Visible;
+        else
+            OverrideWarning.Visibility = Visibility.Collapsed;
     }
 
     public void CreateMeshGroups(Entity entity)

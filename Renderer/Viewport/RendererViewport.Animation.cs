@@ -48,7 +48,7 @@ public partial class RendererViewport
             FillAnimationLists();
         }
 
-        AnimationExpander.Visibility = target is null ? Visibility.Collapsed : Visibility.Visible;
+        AnimationExpander.Visibility = target is null || target.GetAvailableAnimations().Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         if (target is null || !AnimationExpander.IsExpanded)
             return;
 
@@ -97,7 +97,7 @@ public partial class RendererViewport
 
         var animations = _animationObject.GetAvailableAnimations();
         for (int i = 0; i < animations.Count; i++)
-            items.Add(new ComboBoxItem { Content = $"{i + 1}: {animations[i].Hash}", Tag = animations[i] });
+            items.Add(new ComboBoxItem { Content = $"{i + 1}: {animations[i].Hash}-{animations[i].TagData.LayerType}", Tag = animations[i] });
 
         return items;
     }
@@ -142,20 +142,17 @@ public partial class RendererViewport
             return;
         }
 
-        var (frames, error) = await Task.Run(() =>
+        var frames = await Task.Run(() =>
         {
-            SkinningFrames? built = target.BuildAnimation(animation, out string? message, mode);
-            return (built, message);
+            SkinningFrames? built = target.BuildAnimation(animation, mode);
+            return built;
         });
 
         if (request != _animationRequest)
             return;
 
         if (frames is null)
-        {
-            AnimationStatusText.Text = $"Could not play this animation: {error}";
             return;
-        }
 
         target.SetAnimation(frames);
         AnimationStatusText.Text = $"{frames.FrameCount} frames, {frames.Duration:0.00} s";
@@ -175,10 +172,10 @@ public partial class RendererViewport
             return;
         }
 
-        var (frames, error) = await Task.Run(() =>
+        var frames = await Task.Run(() =>
         {
-            SkinningFrames? built = target.BuildAnimation(animation, out string? message, mode);
-            return (built, message);
+            SkinningFrames? built = target.BuildAnimation(animation, mode);
+            return built;
         });
 
         if (request != _layerRequest)
