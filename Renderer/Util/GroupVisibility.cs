@@ -8,6 +8,9 @@ public sealed class GroupVisibility
     private readonly bool[] _visible;
     private readonly HashSet<RenderObject> _affectedObjects = new();
 
+    // bumped on every change so render objects know when to redo their material variants
+    public int Version { get; private set; }
+
     public GroupVisibility(int maxGroupIndex)
     {
         _visible = new bool[maxGroupIndex + 1];
@@ -22,6 +25,7 @@ public sealed class GroupVisibility
     {
         _affectedObjects.Clear();
         Array.Fill(_visible, true);
+        Version++;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,12 +41,14 @@ public sealed class GroupVisibility
     {
         if ((uint)groupIndex < _visible.Length)
             _visible[groupIndex] = visible;
+        Version++;
     }
 
     public void SetVisible(Entity ent, int groupIndex, bool visible)
     {
         if ((uint)groupIndex < _visible.Length)
             _visible[groupIndex] = visible;
+        Version++;
 
         if (ent.ModelParent != null)
         {

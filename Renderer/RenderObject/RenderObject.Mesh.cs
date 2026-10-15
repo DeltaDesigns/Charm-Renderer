@@ -55,7 +55,7 @@ public class MeshPartData : GpuResource
     public int MaxColorIndex;
     public int GroupIndex;
     public int VariantMaterialIndex;
-    public int PermutationMaterialIndex = -1;
+    public Tiger.Schema.Shaders.Material? VariantMaterial;
 
     public void Draw(CharmRenderer renderer)
     {

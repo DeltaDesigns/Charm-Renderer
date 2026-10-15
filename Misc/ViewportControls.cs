@@ -34,6 +34,7 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
     public double Min { get; set; } = 0;
     public double Max { get; set; } = 1;
     public bool IsInt { get; set; } = false;
+    public bool IsResetable { get; set; } = false;
 
     public Func<float> GetValue { get; set; }
     public Action<float> SetValue { get; set; }
@@ -41,7 +42,12 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
     private float _value;
     public float Value
     {
-        get => GetValue != null ? GetValue() : _value;
+        get
+        {
+            float value = GetValue != null ? GetValue() : _value;
+            _startValue ??= value;
+            return value;
+        }
         set
         {
             if (IsInt)
@@ -54,6 +60,19 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
 
             OnPropertyChanged(nameof(Value));
         }
+    }
+
+    private float? _defaultValue;
+    private float? _startValue;
+    public float DefaultValue
+    {
+        get => _defaultValue ?? _startValue ?? 0;
+        set => _defaultValue = value;
+    }
+
+    public void Reset()
+    {
+        Value = DefaultValue;
     }
 
     public bool IsLockable => SetLockState != null;

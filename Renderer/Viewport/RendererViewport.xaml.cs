@@ -683,6 +683,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         }
     }
 
+    private void ResetSliderSetting_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is SliderSetting slider)
+            slider.Reset();
+    }
+
     private void ResetMeshGroups_Click(object sender, RoutedEventArgs e)
     {
         foreach (var item in GroupToggles)

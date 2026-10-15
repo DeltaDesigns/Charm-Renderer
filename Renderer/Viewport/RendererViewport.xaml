@@ -79,6 +79,7 @@
                     <ColumnDefinition Width="30" />
                     <ColumnDefinition Width="175" />
                     <ColumnDefinition Width="25*" />
+                    <ColumnDefinition Width="25*" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
@@ -149,6 +150,24 @@
                     VerticalContentAlignment="Center"
                     FontSize="14"
                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" />
+
+                <Button
+                    Grid.Column="4"
+                    Margin="5,0,0,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Panel.ZIndex="1"
+                    Click="ResetSliderSetting_Click"
+                    Focusable="False"
+                    Style="{StaticResource D2StyleButtonNoOverlay}"
+                    Visibility="{Binding IsResetable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock
+                        Margin="0"
+                        VerticalAlignment="Top"
+                        FontSize="18"
+                        Foreground="White"
+                        Text="⟳" />
+                </Button>
             </Grid>
         </DataTemplate>
 
@@ -1120,7 +1139,10 @@
                                     </Expander.Header>
 
                                     <StackPanel Orientation="Vertical">
-                                        <ContentControl x:Name="PermIndexOverride" Margin="15,0,15,0" />
+                                        <ContentControl
+                                            x:Name="PermIndexOverride"
+                                            Margin="15,0,15,0"
+                                            HorizontalAlignment="Left" />
 
                                         <StackPanel
                                             MinWidth="400"

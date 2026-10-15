@@ -6,7 +6,6 @@ using Tiger.Schema;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
 using Buffer = SharpDX.Direct3D11.Buffer;
-using Material = Tiger.Schema.Shaders.Material;
 using Vector4 = System.Numerics.Vector4;
 
 namespace Charm.Renderer;
@@ -36,9 +35,10 @@ public partial class RenderObject : GpuResource
 
     // todo, seperate different types (static, entity, etc) into own RenderObject type class
     public Entity Entity;
-    public MaterialPermutation Permutations;
-    public List<Material> MaterialMap;
-    public List<SExternalMaterialMapEntry> MaterialRangeMap;
+    public EntityMaterialVariants MaterialVariants;
+    private int _materialVersion = -1;
+    private int _materialStateVersion = -1;
+    private int _materialOverride = -1;
 
     public Transform[] GlobalTransforms = new Transform[]
     {
@@ -85,12 +85,7 @@ public partial class RenderObject : GpuResource
             CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 
             if (renderType == RenderType.Full)
-            {
-                using TigerReader reader = entity.ModelParent.GetReader();
-                Permutations = entity.ModelParent.MaterialPermutations;
-                MaterialMap = entity.ModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
-                MaterialRangeMap = entity.ModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
-            }
+                MaterialVariants = entity.ModelParent.MaterialVariants;
 
             lock (world.WorldLock)
                 world.RenderObjects.Enqueue(this);
@@ -112,12 +107,7 @@ public partial class RenderObject : GpuResource
             obj.CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
 
             if (renderType == RenderType.Full)
-            {
-                using TigerReader reader = entity.PhysicsModelParent.GetReader();
-                obj.Permutations = entity.PhysicsModelParent.MaterialPermutations;
-                obj.MaterialMap = entity.PhysicsModelParent.Reader.ExternalMaterials.Enumerate(reader).Select(x => x.Material).ToList();
-                obj.MaterialRangeMap = entity.PhysicsModelParent.Reader.ExternalMaterialsMap.Enumerate(reader).ToList();
-            }
+                obj.MaterialVariants = entity.PhysicsModelParent.MaterialVariants;
 
             lock (world.WorldLock)
                 world.RenderObjects.Enqueue(obj);
@@ -216,6 +206,8 @@ public partial class RenderObject : GpuResource
         lock (renderer.World.WorldLock)
             meshes = Meshes.ToArray();
 
+        UpdateMaterialVariants(renderer, meshes);
+
         foreach (var mesh in meshes)
         {
             if (mesh.RenderStage != renderStage || (!renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex) && !IsChild))
@@ -248,31 +240,54 @@ public partial class RenderObject : GpuResource
                 if (Investment is not null)
                     Investment.Bind(renderer);
 
-                // This is bad and stupid and sucks
-                if (Permutations is not null && mesh.VariantMaterialIndex != -1)
-                {
-                    RenderHelpers.Profile($"{Feature} {Hash} Permutations");
-
-                    var index = Permutations.CalculatePermutationIndexFast();
-                    var overrideIndex = Permutations.OverrideIndex;
-
-                    var newIndex = overrideIndex != -1 ? overrideIndex : (index != null ? index.Value : 0);
-                    if (mesh.PermutationMaterialIndex != newIndex)
-                    {
-                        mesh.PermutationMaterialIndex = newIndex;
-                        var mapEntry = MaterialRangeMap[mesh.VariantMaterialIndex];
-                        var mat = MaterialMap[mapEntry.MaterialStartIndex + (mesh.PermutationMaterialIndex % mapEntry.MaterialCount)];
-                        mesh.Material = AssetManager.Get().GetOrCreateMaterial(mat);
-
-                        renderer.EntityObjectChannels?.UpdateChannels(mat);
-                    }
-                    RenderHelpers.EndProfile();
-                }
-
-
                 mesh.Draw(renderer);
             }
 
+        }
+        RenderHelpers.EndProfile();
+    }
+
+    // only redo the materials when the visible parts or the override change
+    private void UpdateMaterialVariants(CharmRenderer renderer, MeshPartData[] meshes)
+    {
+        if (MaterialVariants is null)
+            return;
+
+        // physics models have their own parts, the applied state only covers the normal model
+        var modelParent = MeshType == MeshType.Normal ? Entity?.ModelParent : null;
+
+        int version = renderer.GroupVisibility.Version;
+        int stateVersion = modelParent?.UpdateMeshGroups ?? 0;
+        if (_materialVersion == version && _materialStateVersion == stateVersion && _materialOverride == MaterialVariants.OverrideIndex)
+            return;
+
+        _materialVersion = version;
+        _materialStateVersion = stateVersion;
+        _materialOverride = MaterialVariants.OverrideIndex;
+
+        // most material conditions point at parts with no mesh (and no toggle), so those come from the applied state.
+        // children dont use the group toggles so only the applied state counts for them
+        Func<int, bool>? isEnabled;
+        if (IsChild)
+            isEnabled = modelParent is null ? null : modelParent.IsPartEnabled;
+        else if (modelParent is null)
+            isEnabled = x => renderer.GroupVisibility.IsVisible(this, x);
+        else
+            isEnabled = x => modelParent.IsPartEnabled(x) && renderer.GroupVisibility.IsVisible(this, x);
+
+        RenderHelpers.Profile($"{Feature} {Hash} Material Variants");
+        foreach (var mesh in meshes)
+        {
+            if (mesh.VariantMaterialIndex == -1)
+                continue;
+
+            var material = MaterialVariants.GetMaterial(mesh.VariantMaterialIndex, isEnabled);
+            if (material is null || material.Hash == mesh.VariantMaterial?.Hash)
+                continue;
+
+            mesh.VariantMaterial = material;
+            mesh.Material = AssetManager.Get().GetOrCreateMaterial(material);
+            renderer.EntityObjectChannels?.UpdateChannels(material);
         }
         RenderHelpers.EndProfile();
     }
