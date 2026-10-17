@@ -419,6 +419,7 @@
 
                             <!--  Atmosphere options  -->
                             <Border
+                                x:Name="AtmosOptionsPanel"
                                 Margin="0,5,0,5"
                                 Background="#75000000"
                                 BorderBrush="#759D9D9D"

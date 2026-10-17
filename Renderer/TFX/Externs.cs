@@ -86,6 +86,9 @@ public class Externs : IDisposable
 
         public ExternFrame()
         {
+            if (CharmRenderer.IsBasic)
+                return;
+
             var textures = Globals.Get().RenderGlobals.TagData.Textures.TagData;
             var speclobe = textures.SpecularLobeLookup;
             var speclobe3d = textures.SpecularLobeLookup3D;

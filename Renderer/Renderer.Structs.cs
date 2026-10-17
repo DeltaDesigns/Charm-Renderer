@@ -8,6 +8,44 @@ using Vector4 = System.Numerics.Vector4;
 namespace Charm.Renderer;
 
 [StructLayout(LayoutKind.Sequential)]
+public struct BasicViewConstants
+{
+    public Matrix4x4ButGood WorldToProjective;
+    public Matrix4x4ButGood CameraToWorld;
+    public Vector4 Target;
+    public Vector4 ViewMisc;
+    public Vector4 Unk20;
+    public Matrix4x4ButGood CameraToProjective;
+    public Vector4 Unk15;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct BasicObjectConstants
+{
+    public Matrix4x4 MeshToWorld;
+    public Vector4 Color;
+    public uint Skinning;
+    public uint HasNormals;
+}
+
+// for override vs/basic renderer
+[StructLayout(LayoutKind.Sequential)]
+public struct SkinVertex
+{
+    public uint Index0, Index1, Index2, Index3;
+    public float Weight0, Weight1, Weight2, Weight3;
+}
+
+// for the basic renderer
+[StructLayout(LayoutKind.Sequential)]
+public struct BasicVertex
+{
+    public Vector4 Position;
+    public Vector4 Normal;
+}
+
+
+[StructLayout(LayoutKind.Sequential)]
 public struct Matrix4x4ButGood
 {
     public Vector4 X;

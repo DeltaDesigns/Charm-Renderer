@@ -51,7 +51,7 @@ public partial class CharmRenderer
         {
             var ent = FileResourcer.Get().GetFile<Entity>(hash, shouldCache: false);
             obj.Create(Context, DefaultWorld, ent, renderType: RenderType.Minimal);
-            channels = new(ent);
+            channels = IsBasic ? new() : new(ent);
         }
 
 

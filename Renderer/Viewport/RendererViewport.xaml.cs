@@ -90,6 +90,8 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         CreateRenderPassOptions();
         CreateSceneWorldOptions();
         CreateViewportControls();
+        if (CharmRenderer.IsBasic)
+            HideFullRendererControls();
 
         Unloaded += OnUnloaded;
         SizeChanged += OnSizeChanged;
@@ -477,6 +479,21 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             Value = new EditableVector4(Vector4.One, EditableVector4.VectorInputType.Float, Vector4.One, min: 0f, max: 10f),
             SetValue = v => UpdateAnimationSpeed(v.Vec4)
         };
+    }
+
+    private void HideFullRendererControls()
+    {
+        RenderSky = false;
+        ShowAtmosSettings.Visibility = Visibility.Collapsed;
+        ((FrameworkElement)SceneWorldCombobox.Parent).Visibility = Visibility.Collapsed;
+        ((FrameworkElement)RenderPassCombobox.Parent).Visibility = Visibility.Collapsed;
+        AtmosOptionsPanel.Visibility = Visibility.Collapsed;
+
+        RenderSettings = new ObservableCollection<SettingItem>(RenderSettings.OfType<SliderSetting>().Where(x => x.Text == "FOV"));
+        RenderOptions.ItemsSource = RenderSettings;
+
+        foreach (var setting in DebugSettings.OfType<ToggleSetting>().Where(x => x.Text is "Use Sky Copy Tint" or "Use Game Skinning").ToList())
+            DebugSettings.Remove(setting);
     }
 
     private void UpdateTranslation(Vector4 loc)

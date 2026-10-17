@@ -158,10 +158,9 @@ public partial class CharmRenderer
         }
     }
 
-
     public void CreateObjectChannels(Entity entity)
     {
-        EntityObjectChannels = new(entity);
+        EntityObjectChannels = IsBasic ? new() : new(entity);
         ShouldShowObjectChannels();
     }
 

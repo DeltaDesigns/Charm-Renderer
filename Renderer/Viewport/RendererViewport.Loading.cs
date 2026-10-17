@@ -87,8 +87,8 @@ public partial class RendererViewport
         if (entity.ModelParent is null)
             return;
 
-        var variants = entity.ModelParent.MaterialVariants;
-        int variantCount = variants.Max;
+        var variants = CharmRenderer.IsBasic ? null : entity.ModelParent.MaterialVariants;
+        int variantCount = variants?.Max ?? 0;
         if (variantCount != 0)
         {
             MaterialPermutationOverride = new SliderSetting()

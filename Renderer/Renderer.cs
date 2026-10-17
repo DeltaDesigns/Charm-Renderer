@@ -92,8 +92,15 @@ public partial class CharmRenderer : IDisposable
         Externs = new(this);
 
 
-        World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
-        DefaultWorld.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
+        if (IsBasic)
+        {
+            CreateBasicResources();
+        }
+        else
+        {
+            World.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
+            DefaultWorld.CreateWorld(this, FileResourcer.Get().GetSchemaTag<SBubbleParent>(new(0x81141169)));
+        }
 
         Camera = new(new HelixToolkit.Maths.Viewport(0, 0, width, height)); // Should be last
         Camera.ResetCameraTransform();
@@ -243,8 +250,7 @@ public partial class CharmRenderer : IDisposable
         RenderPasses(World);
 
         // Blits to final RT/Correct format for WPF cus it hates everything
-        var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
-        BlitToWPF(blitRT);
+        BlitToWPF(FinalColor);
 
         //if (MouseState.Buttons[1])
         //	Camera.Pick(Camera.GetMouseRay(Camera.Viewport, Externs.View), World);
@@ -271,6 +277,9 @@ public partial class CharmRenderer : IDisposable
 
     private void UpdateGlobalChannels()
     {
+        if (IsBasic)
+            return;
+
         World.EvaluateGlobalChannels(Externs);
         World.GlobalChannels.Set("sky_snapshot_rotation", new(Viewport.AtmosRotation * 360f));
         World.GlobalChannels.Set("sky_snapshot_intensity", new(Viewport.AtmosIntensity));
@@ -278,6 +287,9 @@ public partial class CharmRenderer : IDisposable
 
     private void UpdateScopes()
     {
+        if (IsBasic)
+            return;
+
         TfxScopes[Tiger.TfxScope.VIEW].Bind(this);
         TfxScopes[Tiger.TfxScope.FRAME].Bind(this);
         TempScopes.UpdateFrameScope(this);
@@ -398,6 +410,7 @@ public partial class CharmRenderer : IDisposable
         Utilities.Dispose(ref _fullHemiSkyTempVS);
         Utilities.Dispose(ref _fullHemiSkyTempPS);
         Utilities.Dispose(ref Annotation);
+        DisposeBasicResources();
 
 #if DEBUG
         _renderDoc = null;

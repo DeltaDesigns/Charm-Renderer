@@ -76,15 +76,24 @@ public partial class RenderObject : GpuResource
 
         if (entity.Model is not null)
         {
-            SkinningType = (SkinningType)entity.ModelParent.Reader.UnkFlag;
+            List<MeshPart> parts;
+            if (CharmRenderer.IsBasic)
+            {
+                parts = entity.LoadModel(ExportDetailLevel.MostDetailed, LoadLevel.Default).Cast<MeshPart>().ToList();
+                LocalBoundingBox = RenderHelpers.ComputeBoundingBox(parts.SelectMany(x => x.VertexPositions).ToList());
+            }
+            else
+            {
+                SkinningType = (SkinningType)entity.ModelParent.Reader.UnkFlag;
 
-            // This works fine but some entity bounding boxes just dont feel good to orbit around
-            LocalBoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
+                // This works fine but some entity bounding boxes just dont feel good to orbit around
+                LocalBoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
+                parts = entity.LoadModel(ExportDetailLevel.MostDetailed, LoadLevel.Full).Cast<MeshPart>().ToList();
+            }
 
-            var parts = entity.LoadModel(ExportDetailLevel.MostDetailed, LoadLevel.Full);
-            CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
+            CreateMesh(context, parts, TfxFeatureRenderer.DynamicObjects);
 
-            if (renderType == RenderType.Full)
+            if (renderType == RenderType.Full && !CharmRenderer.IsBasic)
                 MaterialVariants = entity.ModelParent.MaterialVariants;
 
             lock (world.WorldLock)
@@ -95,18 +104,20 @@ public partial class RenderObject : GpuResource
         if (entity.PhysicsModel is not null)
         {
             RenderObject obj = new();
-            obj.LocalBoundingBox = entity.PhysicsModelParent.GetBoundingBox().CreateFrom();
-
             obj.Hash = entity.Hash;
             obj.Entity = entity;
             obj.MeshType = MeshType.Physics;
             if (inventoryItem is not null)
                 obj.Investment = new(context, entity, inventoryItem);
 
-            var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed, LoadLevel.Full);
-            obj.CreateMesh(context, parts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.DynamicObjects);
+            var parts = entity.LoadPhysicsModel(ExportDetailLevel.MostDetailed, CharmRenderer.IsBasic ? LoadLevel.Default : LoadLevel.Full).Cast<MeshPart>().ToList();
+            obj.LocalBoundingBox = CharmRenderer.IsBasic
+                ? RenderHelpers.ComputeBoundingBox(parts.SelectMany(x => x.VertexPositions).ToList())
+                : entity.PhysicsModelParent.GetBoundingBox().CreateFrom();
 
-            if (renderType == RenderType.Full)
+            obj.CreateMesh(context, parts, TfxFeatureRenderer.DynamicObjects);
+
+            if (renderType == RenderType.Full && !CharmRenderer.IsBasic)
                 obj.MaterialVariants = entity.PhysicsModelParent.MaterialVariants;
 
             lock (world.WorldLock)
@@ -118,14 +129,12 @@ public partial class RenderObject : GpuResource
     {
         Hash = staticMesh.Hash;
         var staticParts = staticMesh.LoadAllParts(ExportDetailLevel.MostDetailed);
-        //var staticDecals = staticMesh.LoadDecals(ExportDetailLevel.MostDetailed);
         LocalBoundingBox = RenderHelpers.ComputeBoundingBox(staticParts.SelectMany(x => x.VertexPositions).ToList());
 
         CreateMesh(context, staticParts.Cast<MeshPart>().ToList(), TfxFeatureRenderer.StaticObjects);
 
         lock (world.WorldLock)
             world.RenderObjects.Enqueue(this);
-        //CreateMesh(context, staticDecals.Cast<MeshPart>().ToList(), TfxFeatureRenderer.Decals);
     }
 
     private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
@@ -141,6 +150,14 @@ public partial class RenderObject : GpuResource
 
         foreach (var part in parts)
         {
+            if (CharmRenderer.IsBasic)
+            {
+                var basicMesh = MeshPartData.CreateBasic(context.Device, part);
+                if (basicMesh != null)
+                    AddMesh(basicMesh);
+                continue;
+            }
+
             if (part.Material == null || part.Material.Vertex.Shader == null)
                 continue;
 
@@ -247,13 +264,71 @@ public partial class RenderObject : GpuResource
         RenderHelpers.EndProfile();
     }
 
+    public void BindBasic(CharmRenderer renderer)
+    {
+        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
+            return;
+
+        UpdateAnimation(renderer);
+
+        System.Numerics.Matrix4x4? attachment = null;
+        if (AttachParent != null && AttachParent.TryGetBoneMotion(renderer, AttachBone, out System.Numerics.Matrix4x4 boneMotion))
+            attachment = boneMotion;
+
+        RenderHelpers.Profile($"{Feature} {Hash} Bind Basic");
+
+        MeshPartData[] meshes;
+        lock (renderer.World.WorldLock)
+            meshes = Meshes.ToArray();
+
+        foreach (var mesh in meshes)
+        {
+            if (!renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex) && !IsChild)
+                continue;
+
+            if (MeshType == MeshType.Physics && !mesh.HasSkinWeights)
+                continue;
+
+            bool skinning = mesh.HasSkinWeights && mesh.BoneRowsSRV != null;
+            renderer.UpdateBasicObject(GetMeshToWorld(mesh.HasSkinWeights, attachment), CharmRenderer.BasicMeshColor, skinning, mesh.BasicHasNormals);
+            mesh.DrawBasic(renderer, skinning);
+        }
+        RenderHelpers.EndProfile();
+    }
+
+    private System.Numerics.Matrix4x4 GetMeshToWorld(bool skinned, System.Numerics.Matrix4x4? attachment)
+    {
+        var t = GlobalTransforms[0];
+        if (Feature == TfxFeatureRenderer.StaticObjects)
+        {
+            return System.Numerics.Matrix4x4.CreateScale(t.Scale)
+                * System.Numerics.Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat())
+                * System.Numerics.Matrix4x4.CreateTranslation(t.Position);
+        }
+
+        var offset = TransformOffset;
+        var scale = System.Numerics.Matrix4x4.CreateScale(!skinned ? (t.Scale * offset.Scale) : t.Scale);
+        if (attachment is System.Numerics.Matrix4x4 motion)
+        {
+            return scale
+                * System.Numerics.Matrix4x4.CreateFromQuaternion(offset.Quaternion.ToQuat())
+                * System.Numerics.Matrix4x4.CreateTranslation(offset.Position)
+                * motion
+                * System.Numerics.Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat())
+                * System.Numerics.Matrix4x4.CreateTranslation(t.Position);
+        }
+
+        return scale
+            * System.Numerics.Matrix4x4.CreateFromQuaternion(t.Quaternion.ToQuat() * offset.Quaternion.ToQuat())
+            * System.Numerics.Matrix4x4.CreateTranslation(t.Position + offset.Position);
+    }
+
     // only redo the materials when the visible parts or the override change
     private void UpdateMaterialVariants(CharmRenderer renderer, MeshPartData[] meshes)
     {
         if (MaterialVariants is null)
             return;
 
-        // physics models have their own parts, the applied state only covers the normal model
         var modelParent = MeshType == MeshType.Normal ? Entity?.ModelParent : null;
 
         int version = renderer.GroupVisibility.Version;
@@ -265,8 +340,6 @@ public partial class RenderObject : GpuResource
         _materialStateVersion = stateVersion;
         _materialOverride = MaterialVariants.OverrideIndex;
 
-        // most material conditions point at parts with no mesh (and no toggle), so those come from the applied state.
-        // children dont use the group toggles so only the applied state counts for them
         Func<int, bool>? isEnabled;
         if (IsChild)
             isEnabled = modelParent is null ? null : modelParent.IsPartEnabled;

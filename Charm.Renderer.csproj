@@ -14,6 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Renderer Assets\Shaders\basic_mesh.hlsl" />
     <None Remove="Renderer Assets\Shaders\blit.hlsl" />
     <None Remove="Renderer Assets\Shaders\blit_linear.hlsl" />
     <None Remove="Renderer Assets\Shaders\blit_srgb.hlsl" />
@@ -46,6 +47,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Renderer Assets\Shaders\basic_mesh.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Renderer Assets\Shaders\blit.hlsl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

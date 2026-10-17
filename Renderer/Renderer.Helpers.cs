@@ -114,6 +114,9 @@ public partial class CharmRenderer
     private void CreateScopes()
     {
         TfxScopes = new();
+        if (IsBasic)
+            return;
+
         foreach (var scope_global in Globals.Get().GetScopes())
         {
             TfxScopes.TryAdd(scope_global.Key, new TfxScope(scope_global.Value, Context));

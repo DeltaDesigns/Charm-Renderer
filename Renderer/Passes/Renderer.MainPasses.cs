@@ -8,6 +8,12 @@ public partial class CharmRenderer
 {
     private void RenderPasses(RenderWorld world)
     {
+        if (IsBasic)
+        {
+            RenderBasicPasses(world);
+            return;
+        }
+
         PrepareRenderObjects(world);
         PrepareSunShadows();
         RenderGBuffer();
@@ -24,7 +30,7 @@ public partial class CharmRenderer
             RenderGlobalPipeline(Viewport.DisplayPass.ToString());
         }
 
-        var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
+        var blitRT = FinalColor;
         if (Viewport.ShowGrid && RenderType == RenderType.Full)
         {
             Context.OutputMerger.SetTargets(GBuffers.Depth.DSV, blitRT.RTV);

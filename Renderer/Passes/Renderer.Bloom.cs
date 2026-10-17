@@ -261,6 +261,9 @@ public partial class CharmRenderer
     private int _exposureFramesWritten = 0;
     public void UpdateAutoexposure(float deltaTime)
     {
+        if (IsBasic)
+            return;
+
         if (_frameCounter > 0 && Viewport.AutoExposure && Viewport.RenderSky)
         {
             _addedDeltaTime += deltaTime;

@@ -66,8 +66,7 @@ public partial class CharmRenderer
             UpdateScopes();
             RenderPasses(World);
 
-            var blitRT = Viewport.FXAA ? GBuffers.FXAA : GBuffers.PostProcessResult;
-            BlitTo(blitRT, capFinal);
+            BlitTo(FinalColor, capFinal);
 
             Submit();
             SaveRenderTargetToPng(capFinal, path);
