@@ -179,6 +179,32 @@ public class MeshPartData : GpuResource
         CreateSkinWeights(device, vertices);
     }
 
+    public void CreateRigidSkinWeights(Device device, DynamicMeshPart part, int vertexCount, int boneCount)
+    {
+        if (part.VertexPositions.Count != part.VertexIndices.Count || vertexCount <= 0)
+            return;
+
+        var vertices = new SkinVertex[vertexCount];
+        for (int i = 0; i < part.VertexIndices.Count; i++)
+        {
+            uint raw = part.VertexIndices[i];
+            if (raw >= vertexCount)
+                continue;
+
+            int bone = (int)(part.VertexPositions[i].W * 32767f + 0.1f);
+            if (bone < 0 || bone >= boneCount)
+                return;
+
+            vertices[raw] = new SkinVertex
+            {
+                Index0 = (uint)bone,
+                Weight0 = 1
+            };
+        }
+
+        CreateSkinWeights(device, vertices);
+    }
+
     private static SkinVertex ToSkinVertex(VertexWeight vw)
     {
         float sum = vw.WeightValues.X + vw.WeightValues.Y + vw.WeightValues.Z + vw.WeightValues.W;

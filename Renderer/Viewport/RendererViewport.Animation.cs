@@ -97,7 +97,11 @@ public partial class RendererViewport
 
         var animations = _animationObject.GetAvailableAnimations();
         for (int i = 0; i < animations.Count; i++)
-            items.Add(new ComboBoxItem { Content = $"{i + 1}: {animations[i].Hash}-{animations[i].TagData.LayerType}", Tag = animations[i] });
+        {
+            string? name = _animationObject.GetAnimationName(animations[i]);
+            string label = name != null ? $"{name}" : animations[i].Hash.ToString();
+            items.Add(new ComboBoxItem { Content = $"{i + 1}: {label}-{animations[i].TagData.LayerType}", Tag = animations[i] });
+        }
 
         return items;
     }

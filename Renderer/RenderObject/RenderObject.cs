@@ -32,6 +32,7 @@ public partial class RenderObject : GpuResource
     public IReadOnlyList<BoneNode> Bones;
 
     public InvestmentData Investment { get; set; }
+    public int RigidBoneCount; // position.w weights
 
     // todo, seperate different types (static, entity, etc) into own RenderObject type class
     public Entity Entity;
@@ -193,7 +194,11 @@ public partial class RenderObject : GpuResource
                 VariantMaterialIndex = part.VariantShaderIndex,
             };
             if (part is DynamicMeshPart dynamicPart && meshData.VertexBuffer0 != null)
+            {
                 meshData.CreateSkinWeights(context.Device, dynamicPart, meshData.VertexBuffer0.Length);
+                if (!meshData.HasSkinWeights && RigidBoneCount > 0 && meshData.Material.Skinned)
+                    meshData.CreateRigidSkinWeights(context.Device, dynamicPart, meshData.VertexBuffer0.Length, RigidBoneCount);
+            }
 
             meshData.Material.UsesVertexColor = meshData.VertexColorBuffer != null && part.Material.Vertex.Shader.OutputSignatures.Any(x => x.RegisterIndex == 5 && x.SemanticIndex == 8);
             meshData.InputLayout = new InputLayout(context.Device, part.Material.Vertex.Shader.GetBytecode(), RenderHelpers.GetInputLayout(part.VertexLayoutIndex).ToArray());
@@ -248,7 +253,7 @@ public partial class RenderObject : GpuResource
                 if (mesh.UsesGameSkinning)
                 {
                     var cam = renderer.Externs.View.Position;
-                    renderer.TempScopes.UpdateSkinnedModelScope(renderer.Context, mesh, GlobalTransforms, TransformOffset, attachment, _boneRows, _boneRows?.Length ?? 0, cam, SkinningType, _poseVersion);
+                    renderer.TempScopes.UpdateSkinnedModelScope(renderer.Context, mesh, GlobalTransforms, TransformOffset, attachment, BoneRows, BoneRows?.Length ?? 0, cam, SkinningType, PoseVersion);
                 }
 
                 else

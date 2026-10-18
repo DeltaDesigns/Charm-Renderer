@@ -25,7 +25,7 @@ public struct BasicObjectConstants
     public Matrix4x4 MeshToWorld;
     public Vector4 Color;
     public uint Skinning;
-    public uint HasNormals;
+    public uint HasNormals, Padding1, Padding2;
 }
 
 // for override vs/basic renderer

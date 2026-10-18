@@ -30,7 +30,28 @@ public partial class RenderObject
         }
     }
 
-    public bool CanAnimate => Entity?.Skeleton != null && Entity.RuntimeRig != null && _meshes.Any(x => x.HasSkinWeights);
+    // weapons are animated by a separate entity
+    public Entity? AnimationEntity;
+    // other parts of the same weapon use the bones of this object
+    public RenderObject? AnimationSource;
+    public TigerHash? AnimationID;
+
+    public bool CanAnimate
+    {
+        get
+        {
+            if (AnimationSource != null)
+                return false;
+
+            if (AnimationEntity != null)
+                return AnimationEntity.Skeleton != null && AnimationEntity.RuntimeRig != null && Entity?.Skeleton != null && _meshes.Any(x => x.HasSkinWeights || x.Material?.Skinned == true);
+
+            return Entity?.Skeleton != null && Entity.RuntimeRig != null && _meshes.Any(x => x.HasSkinWeights);
+        }
+    }
+
+    private float[]? BoneRows => AnimationSource != null ? AnimationSource._boneRows : _boneRows;
+    private int PoseVersion => AnimationSource != null ? AnimationSource._poseVersion : _poseVersion;
 
     private SkinningFrames? _skinning;   // the clip that is playing
     private SkinningFrames? _layer;      // optional clip blended over it
@@ -49,25 +70,57 @@ public partial class RenderObject
     private SkinningFrames? _baseRequest, _layerRequest;
 
 
+    private readonly Dictionary<FileHash, string> _animationNames = new();
+
+    public string? GetAnimationName(Tiger.Schema.Animation.Animation animation)
+    {
+        GetAvailableAnimations();
+        return _animationNames.GetValueOrDefault(animation.Hash);
+    }
+
     public IReadOnlyList<Tiger.Schema.Animation.Animation> GetAvailableAnimations()
     {
         if (_animations != null)
             return _animations;
 
-        Log.Debug($"Entity {Entity.Hash}, Rig {Entity.RuntimeRig?.Hash}, Skele {Entity.Skeleton?.Hash}");
+        Entity? owner = AnimationEntity ?? Entity;
+        Log.Debug($"Entity {owner?.Hash}, Rig {owner?.RuntimeRig?.Hash}, Skele {owner?.Skeleton?.Hash}");
 
         var animations = new List<Tiger.Schema.Animation.Animation>();
-        if (Entity?.Animations != null)
+        if (owner?.Animations != null)
         {
             HashSet<FileHash> seen = new();
-            foreach (EntityAnimations entityAnimations in Entity.Animations)
+            foreach (EntityAnimations entityAnimations in owner.Animations)
             {
                 entityAnimations.GetAllAnimations();
+
+                Dictionary<FileHash, List<string>>? used = null;
+                if (AnimationEntity != null && AnimationID != null)
+                {
+                    try
+                    {
+                        used = entityAnimations.GetWeaponAnimations(AnimationID);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warning($"Couldnt read the weapon animation selector: {e.Message}");
+                    }
+                }
+
                 foreach (var animation in entityAnimations.AnimationTags)
                 {
+                    if (used != null && !used.ContainsKey(animation.Hash))
+                        continue;
+
                     if (seen.Add(animation.Hash))
                         animations.Add(animation);
+
+                    if (used != null && used[animation.Hash].Count > 0)
+                        _animationNames[animation.Hash] = used[animation.Hash][0];
                 }
+
+                if (used != null)
+                    Log.Debug($"Weapon tag {AnimationID} uses {used.Count} of {entityAnimations.AnimationTags.Count} animations");
             }
         }
 
@@ -85,7 +138,9 @@ public partial class RenderObject
         }
 
         animation.LoadAnimation();
-        var frames = AnimationSkinning.Build(animation, Entity.RuntimeRig!, Entity.Skeleton!, mode: mode);
+        var frames = AnimationEntity != null
+            ? AnimationSkinning.BuildWeapon(animation, AnimationEntity.RuntimeRig!, AnimationEntity.Skeleton!, Entity.Skeleton!, mode: mode)
+            : AnimationSkinning.Build(animation, Entity.RuntimeRig!, Entity.Skeleton!, mode: mode);
         Log.Info($"Playing animation {animation.Hash}, {frames.FrameCount} frames");
         return frames;
     }
@@ -238,6 +293,14 @@ public partial class RenderObject
 
     private void UpdateAnimation(CharmRenderer renderer)
     {
+        if (AnimationSource != null)
+        {
+            AnimationSource.UpdateAnimation(renderer);
+            foreach (var mesh in _meshes)
+                mesh.BoneRowsSRV = AnimationSource._boneSRV;
+            return;
+        }
+
         ApplyAnimationRequests(renderer);
 
         if (_skinning == null || _boneBuffer == null || _boneRows == null)

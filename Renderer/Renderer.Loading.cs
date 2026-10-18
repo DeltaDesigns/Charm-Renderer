@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using Arithmic;
 using Tiger;
 using Tiger.Schema;
 using Tiger.Schema.Entity;
@@ -67,18 +68,51 @@ public partial class CharmRenderer
         if (skele != null && skele.Skeleton != null && entities.Any())
             entities[0].Skeleton = skele.Skeleton;
 
+        bool isArmor = item.Parent != null ? item.Parent.IsArmor : item.IsArmor;
+        bool isWeapon = item.Parent != null ? item.Parent.IsWeapon : item.IsWeapon;
+
+        // weapons are animated by their first person rig
+        Entity? weaponAnimations = null;
+        TigerHash? weaponAnimationTag = null;
+        if (isWeapon && entities.Any() && entities[0].Skeleton != null)
+        {
+            try
+            {
+                weaponAnimations = Investment.Get().GetWeaponAnimationEntity(item, out weaponAnimationTag);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Couldnt get weapon animation entity: {e.Message}");
+            }
+        }
+
+        int weaponBones = weaponAnimations != null ? entities[0].Skeleton!.GetBoneNodes().Count : 0;
+        RenderObject? animationSource = null;
         foreach (var ent in entities)
         {
             RenderObject obj = new();
+            obj.RigidBoneCount = weaponBones;
             obj.Create(Context, World, ent, item);
+
+            if (weaponAnimations == null)
+                continue;
+
+            if (animationSource == null)
+            {
+                obj.AnimationEntity = weaponAnimations;
+                obj.AnimationID = weaponAnimationTag;
+                animationSource = obj;
+            }
+            else
+            {
+                obj.AnimationSource = animationSource;
+            }
         }
 
         var combinedBB = RenderHelpers.CombineBBs(World.RenderObjects.Select(x => x.BoundingBox).ToList());
         World.LocalOverrideMainBB = combinedBB;
         World.OverrideMainBB = combinedBB;
 
-        bool isArmor = item.Parent != null ? item.Parent.IsArmor : item.IsArmor;
-        bool isWeapon = item.Parent != null ? item.Parent.IsWeapon : item.IsWeapon;
         bool isSword = (item.Parent != null ? item.Parent.ItemTraits : item.ItemTraits).Any(x => x == DestinyTraitID.item_weapon_sword);
         bool isShip = item.IsShip || item.IsSparrow;
         LookAtBoundingBox(
