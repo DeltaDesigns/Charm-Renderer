@@ -736,9 +736,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             Renderer.RequestScreenshot(dialog.FileName, Math.Clamp(ScreenshotScale / RenderScale, 0.25f, 4f));
     }
 
-    public void RequestThumbnail(FileHash hash, TfxFeatureRenderer type, CancellationToken token, Action<BitmapSource> onComplete)
+    public void RequestThumbnail(FileHash hash, TfxFeatureRenderer type, CancellationToken token, Action<BitmapSource> onComplete, Dictionary<uint, uint>? state = null)
     {
-        Renderer.RequestThumbnail(hash, type, token, onComplete);
+        Renderer.RequestThumbnail(hash, type, token, onComplete, state);
     }
 
     public static Grid FindParentGridByName(DependencyObject start, string gridName)

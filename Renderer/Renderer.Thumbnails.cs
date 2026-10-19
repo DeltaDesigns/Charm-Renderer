@@ -20,8 +20,12 @@ public partial class CharmRenderer
     private static string ThumbnailCacheDirectory =>
        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Charm", "ThumbnailCache");
 
-    private static string GetThumbnailCachePath(FileHash hash) =>
-       Path.Combine(ThumbnailCacheDirectory, $"{Strategy.CurrentStrategy}_{hash}.png");
+    private static string GetThumbnailCachePath(FileHash hash, Dictionary<uint, uint>? state = null)
+    {
+        string? stateKey = EntityModelParent.GetStateKey(state);
+        string name = stateKey is null ? $"{Strategy.CurrentStrategy}_{hash}" : $"{Strategy.CurrentStrategy}_{hash}_{stateKey}";
+        return Path.Combine(ThumbnailCacheDirectory, $"{name}.png");
+    }
 
     private void CreateThumbnailGBuffers()
     {
@@ -35,7 +39,7 @@ public partial class CharmRenderer
     }
 
     // reusing TfxFeatureRenderer cus i dont wanna make a new enum just for this
-    public BitmapSource GenerateThumbnail(FileHash hash, TfxFeatureRenderer type)
+    public BitmapSource GenerateThumbnail(FileHash hash, TfxFeatureRenderer type, Dictionary<uint, uint>? state = null)
     {
         CreateThumbnailGBuffers();
         DefaultWorld.DisposeAll();
@@ -52,6 +56,15 @@ public partial class CharmRenderer
             var ent = FileResourcer.Get().GetFile<Entity>(hash, shouldCache: false);
             obj.Create(Context, DefaultWorld, ent, renderType: RenderType.Minimal);
             channels = IsBasic ? new() : new(ent);
+
+            if (state != null && state.Count > 0 && ent.ModelParent is not null)
+            {
+                int variant = ent.VariantMap?.FindVariantIndex(state) ?? -1;
+                obj.StateGroups = ent.ModelParent.EvaluateState(state, variant == -1 ? null : ent.VariantMap!.Variants[variant]);
+
+                if (!IsBasic)
+                    obj.MaterialVariants = ent.ModelParent.MaterialVariants;
+            }
         }
 
 
@@ -106,7 +119,7 @@ public partial class CharmRenderer
             GPU.Instance.ImmediateContext.ExecuteCommandList(commandList, true);
 
             var bitmap = RtToBitmap(_thumbnailFinal);
-            Task.Run(() => SaveThumbnailToCache(bitmap, hash));
+            Task.Run(() => SaveThumbnailToCache(bitmap, hash, state));
 
             return bitmap;
         }
@@ -171,10 +184,10 @@ public partial class CharmRenderer
         }
     }
 
-    private readonly ConcurrentQueue<(FileHash hash, TfxFeatureRenderer type, CancellationToken token, Action<BitmapSource> callback)> _pendingThumbnails = new();
-    public void RequestThumbnail(FileHash hash, TfxFeatureRenderer type, CancellationToken token, Action<BitmapSource> onComplete)
+    private readonly ConcurrentQueue<(FileHash hash, TfxFeatureRenderer type, Dictionary<uint, uint>? state, CancellationToken token, Action<BitmapSource> callback)> _pendingThumbnails = new();
+    public void RequestThumbnail(FileHash hash, TfxFeatureRenderer type, CancellationToken token, Action<BitmapSource> onComplete, Dictionary<uint, uint>? state = null)
     {
-        _pendingThumbnails.Enqueue((hash, type, token, onComplete));
+        _pendingThumbnails.Enqueue((hash, type, state, token, onComplete));
     }
 
     private void CheckThumbnailRequest()
@@ -184,19 +197,19 @@ public partial class CharmRenderer
             if (request.token.IsCancellationRequested)
                 continue;
 
-            var bitmap = GenerateThumbnail(request.hash, request.type);
+            var bitmap = GenerateThumbnail(request.hash, request.type, request.state);
             var callback = request.callback;
             Viewport.Dispatcher.InvokeAsync(() => callback?.Invoke(bitmap));
             break;
         }
     }
 
-    private static void SaveThumbnailToCache(BitmapSource bitmap, FileHash hash)
+    private static void SaveThumbnailToCache(BitmapSource bitmap, FileHash hash, Dictionary<uint, uint>? state)
     {
         try
         {
             Directory.CreateDirectory(ThumbnailCacheDirectory);
-            var path = GetThumbnailCachePath(hash);
+            var path = GetThumbnailCachePath(hash, state);
 
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));

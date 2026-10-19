@@ -23,7 +23,7 @@ public partial class RendererViewport
     }
 
     private Entity _currentEntity; // temp
-    public async void LoadEntity(Entity entity)
+    public async void LoadEntity(Entity entity, Dictionary<uint, uint>? state = null)
     {
         if (Renderer is null)
             Initialize();
@@ -40,6 +40,7 @@ public partial class RendererViewport
 
         Renderer.Stop();
         Renderer.LoadEntity(_currentEntity);
+        ApplyEntityState(state);
         Renderer.Start();
 
         if (entity.Skeleton != null && !UseGameSkinning)
@@ -203,8 +204,58 @@ public partial class RendererViewport
         }
     }
 
+    private bool _applyingState;
+    private void ApplyEntityState(Dictionary<uint, uint>? state)
+    {
+        var modelParent = _currentEntity.ModelParent;
+        if (modelParent is null)
+            return;
+
+        if (modelParent.AppliedMeshGroups.Count != 0)
+        {
+            modelParent.AppliedMeshGroups = new();
+            modelParent.UpdateMeshGroups++;
+        }
+
+        if (state is null || state.Count == 0)
+            return;
+
+        _applyingState = true;
+        try
+        {
+            int variant = _currentEntity.VariantMap?.FindVariantIndex(state) ?? -1;
+            if (_variantCombo is not null && variant != -1)
+                _variantCombo.Box.SelectedItem = ((List<ComboBoxItem>)_variantCombo.Box.ItemsSource).FirstOrDefault(x => (uint)x.Tag == (uint)variant);
+
+            foreach (var child in PermutationPanel.Children)
+            {
+                if (child is not ComboBoxControl combo || combo == _variantCombo || !state.TryGetValue((uint)combo.Box.Tag, out uint value))
+                    continue;
+
+                var entries = (List<ComboBoxItem>)combo.Box.ItemsSource;
+                var entry = entries.FirstOrDefault(x => (uint)x.Tag == value);
+                if (entry is null)
+                {
+                    entry = new ComboBoxItem { Content = GlobalStrings.Get().GetString(value), Tag = value };
+                    entries.Add(entry);
+                    combo.Box.Items.Refresh();
+                }
+                combo.Box.SelectedItem = entry;
+            }
+        }
+        finally
+        {
+            _applyingState = false;
+        }
+
+        Switch_OnSelectionChanged(this, null);
+    }
+
     private void Switch_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_applyingState)
+            return;
+
         var modelParent = _currentEntity.ModelParent;
         if (modelParent is null)
             return;

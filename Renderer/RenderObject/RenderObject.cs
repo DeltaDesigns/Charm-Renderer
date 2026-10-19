@@ -232,7 +232,7 @@ public partial class RenderObject : GpuResource
 
         foreach (var mesh in meshes)
         {
-            if (mesh.RenderStage != renderStage || (!renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex) && !IsChild))
+            if (mesh.RenderStage != renderStage || (!IsGroupVisible(renderer, mesh.GroupIndex) && !IsChild))
                 continue;
 
             if (Feature == TfxFeatureRenderer.StaticObjects)
@@ -288,7 +288,7 @@ public partial class RenderObject : GpuResource
 
         foreach (var mesh in meshes)
         {
-            if (!renderer.GroupVisibility.IsVisible(this, mesh.GroupIndex) && !IsChild)
+            if (!IsGroupVisible(renderer, mesh.GroupIndex) && !IsChild)
                 continue;
 
             if (MeshType == MeshType.Physics && !mesh.HasSkinWeights)
@@ -328,6 +328,14 @@ public partial class RenderObject : GpuResource
             * System.Numerics.Matrix4x4.CreateTranslation(t.Position + offset.Position);
     }
 
+    // mesh groups enabled by an entity state for just this object (thumbnails), null shows everything
+    public HashSet<int>? StateGroups;
+
+    private bool IsGroupVisible(CharmRenderer renderer, int groupIndex)
+    {
+        return (StateGroups is null || StateGroups.Contains(groupIndex)) && renderer.GroupVisibility.IsVisible(this, groupIndex);
+    }
+
     // only redo the materials when the visible parts or the override change
     private void UpdateMaterialVariants(CharmRenderer renderer, MeshPartData[] meshes)
     {
@@ -349,9 +357,11 @@ public partial class RenderObject : GpuResource
         if (IsChild)
             isEnabled = modelParent is null ? null : modelParent.IsPartEnabled;
         else if (modelParent is null)
-            isEnabled = x => renderer.GroupVisibility.IsVisible(this, x);
+            isEnabled = x => IsGroupVisible(renderer, x);
+        else if (StateGroups is not null)
+            isEnabled = x => IsGroupVisible(renderer, x);
         else
-            isEnabled = x => modelParent.IsPartEnabled(x) && renderer.GroupVisibility.IsVisible(this, x);
+            isEnabled = x => modelParent.IsPartEnabled(x) && IsGroupVisible(renderer, x);
 
         RenderHelpers.Profile($"{Feature} {Hash} Material Variants");
         foreach (var mesh in meshes)
