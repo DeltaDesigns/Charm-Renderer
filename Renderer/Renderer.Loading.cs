@@ -2,6 +2,7 @@
 using Arithmic;
 using Tiger;
 using Tiger.Schema;
+using Tiger.Schema.Animation;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
 
@@ -62,6 +63,12 @@ public partial class CharmRenderer
     {
         World?.Dispose();
         EntityObjectChannels = new(item);
+
+        if (item.IsEmote || item.IsFinisher)
+        {
+            LoadEmote(item);
+            return;
+        }
 
         List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);
         Entity? skele = Investment.Get().GetPatternEntityFromHash(item.Parent != null ? item.Parent.TagData.InventoryItemHash : item.TagData.InventoryItemHash);
@@ -136,6 +143,31 @@ public partial class CharmRenderer
             Viewport.AtmosRotation = 0.17f;
             Viewport.TimeOfDay = 0.635f;
         }
+    }
+
+    private void LoadEmote(InventoryItem item)
+    {
+        List<Animation>? emote = null;
+        emote = Investment.Get().GetEmote(item, item.IsFinisher);
+
+        if (emote == null || emote.Count == 0)
+        {
+            Log.Error($"{item.Name} has no animations.");
+            return;
+        }
+
+        var playerHash = 0xD9378260016E0000;
+        Entity player = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(playerHash)));
+
+        RenderObject obj = new();
+        obj.OverrideAnimations = emote;
+        obj.Create(Context, World, player);
+
+        LookAtMesh(obj);
+        ShouldShowObjectChannels();
+
+        Viewport.AtmosRotation = 0.17f;
+        Viewport.TimeOfDay = 0.635f;
     }
 
     public void LoadInvestmentItems(IEnumerable<InventoryItem> items)

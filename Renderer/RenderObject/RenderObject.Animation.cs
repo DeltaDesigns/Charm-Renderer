@@ -35,6 +35,7 @@ public partial class RenderObject
     // other parts of the same weapon use the bones of this object
     public RenderObject? AnimationSource;
     public TigerHash? AnimationID;
+    public List<Animation>? OverrideAnimations;
 
     public bool CanAnimate
     {
@@ -82,6 +83,12 @@ public partial class RenderObject
     {
         if (_animations != null)
             return _animations;
+
+        if (OverrideAnimations != null)
+        {
+            _animations = OverrideAnimations.Where(x => x != null && x.Hash.IsValid()).DistinctBy(x => x.Hash).ToList();
+            return _animations;
+        }
 
         Entity? owner = AnimationEntity ?? Entity;
         Log.Debug($"Entity {owner?.Hash}, Rig {owner?.RuntimeRig?.Hash}, Skele {owner?.Skeleton?.Hash}");
