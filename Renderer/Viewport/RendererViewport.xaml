@@ -677,7 +677,7 @@
 
                                     <StackPanel MinWidth="400" Margin="15,5,15,10">
                                         <Grid
-                                            Margin="0,0,0,0"
+                                            Margin="0,0,0,10"
                                             HorizontalAlignment="Stretch"
                                             Background="#75000000">
                                             <Grid.ColumnDefinitions>
@@ -704,42 +704,6 @@
                                                 IsReadOnly="False"
                                                 SelectionChanged="AnimationCombo_SelectionChanged"
                                                 Style="{DynamicResource D2StyleComboBox}" />
-                                        </Grid>
-
-                                        <Grid
-                                            Margin="0,5,0,5"
-                                            HorizontalAlignment="Stretch"
-                                            Background="#75000000">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="25*" />
-                                                <ColumnDefinition Width="50*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock
-                                                Margin="24,10,10,10"
-                                                Padding="0"
-                                                VerticalAlignment="Center"
-                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
-                                                FontSize="16"
-                                                Text="Evaluation"
-                                                TextWrapping="Wrap" />
-
-                                            <ComboBox
-                                                x:Name="AnimationModeCombo"
-                                                Grid.Column="1"
-                                                Margin="5"
-                                                BorderBrush="Transparent"
-                                                BorderThickness="1"
-                                                Focusable="False"
-                                                IsReadOnly="False"
-                                                SelectedIndex="0"
-                                                SelectionChanged="AnimationModeCombo_SelectionChanged"
-                                                Style="{DynamicResource D2StyleComboBox}"
-                                                ToolTip="Auto detects offset layers. Use Absolute or Rest relative if a clip looks collapsed or deformed.">
-                                                <ComboBoxItem Content="Auto" Tag="Auto" />
-                                                <ComboBoxItem Content="Absolute" Tag="Absolute" />
-                                                <ComboBoxItem Content="Rest Relative" Tag="RestRelative" />
-                                            </ComboBox>
                                         </Grid>
 
                                         <StackPanel

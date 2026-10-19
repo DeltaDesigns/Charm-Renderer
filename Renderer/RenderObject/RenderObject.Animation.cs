@@ -160,7 +160,7 @@ public partial class RenderObject
     }
 
     public SkinningFrames? BuildAnimation(
-        Tiger.Schema.Animation.Animation animation, RetargetMode mode = RetargetMode.Auto)
+        Tiger.Schema.Animation.Animation animation)
     {
         if (!CanAnimate)
         {
@@ -171,8 +171,8 @@ public partial class RenderObject
         animation.LoadAnimation();
         Entity owner = AnimationOwner!;
         var frames = AnimatesSubset
-            ? AnimationSkinning.BuildWeapon(animation, owner.RuntimeRig!, owner.Skeleton!, Entity.Skeleton!, mode: mode)
-            : AnimationSkinning.Build(animation, owner.RuntimeRig!, owner.Skeleton!, mode: mode);
+            ? AnimationSkinning.BuildWeapon(animation, owner.RuntimeRig!, owner.Skeleton!, Entity.Skeleton!)
+            : AnimationSkinning.Build(animation, owner.RuntimeRig!, owner.Skeleton!);
         Log.Info($"Playing animation {animation.Hash}, {frames.FrameCount} frames");
         return frames;
     }

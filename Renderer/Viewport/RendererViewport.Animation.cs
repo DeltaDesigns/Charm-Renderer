@@ -14,14 +14,6 @@ public partial class RendererViewport
     private int _animationRequest;
     private int _layerRequest;
 
-    private RetargetMode AnimationMode
-    {
-        get
-        {
-            return AnimationModeCombo.SelectedItem is ComboBoxItem { Tag: string tag } && Enum.TryParse(tag, out RetargetMode mode) ? mode : RetargetMode.Auto;
-        }
-    }
-
     private RenderObject? FindAnimatableObject()
     {
         if (Renderer?.World is null)
@@ -122,22 +114,12 @@ public partial class RendererViewport
         LoadSelectedLayer();
     }
 
-    private void AnimationModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_updatingAnimationUI || _animationObject is null)
-            return;
-
-        LoadSelectedAnimation();
-        LoadSelectedLayer();
-    }
-
     private async void LoadSelectedAnimation()
     {
         RenderObject? target = _animationObject;
         if (target is null)
             return;
 
-        RetargetMode mode = AnimationMode;
         int request = ++_animationRequest;
         if (AnimationCombo.SelectedItem is not ComboBoxItem { Tag: Animation animation })
         {
@@ -148,7 +130,7 @@ public partial class RendererViewport
 
         var frames = await Task.Run(() =>
         {
-            SkinningFrames? built = target.BuildAnimation(animation, mode);
+            SkinningFrames? built = target.BuildAnimation(animation);
             return built;
         });
 
@@ -168,7 +150,6 @@ public partial class RendererViewport
         if (target is null)
             return;
 
-        RetargetMode mode = AnimationMode;
         int request = ++_layerRequest;
         if (AnimationLayerCombo.SelectedItem is not ComboBoxItem { Tag: Animation animation })
         {
@@ -178,7 +159,7 @@ public partial class RendererViewport
 
         var frames = await Task.Run(() =>
         {
-            SkinningFrames? built = target.BuildAnimation(animation, mode);
+            SkinningFrames? built = target.BuildAnimation(animation);
             return built;
         });
 
