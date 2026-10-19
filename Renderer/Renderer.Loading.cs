@@ -72,13 +72,19 @@ public partial class CharmRenderer
 
         List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);
         Entity? skele = Investment.Get().GetPatternEntityFromHash(item.Parent != null ? item.Parent.TagData.InventoryItemHash : item.TagData.InventoryItemHash);
+        if (item.IsGhost)
+        {
+            var skeleHash = 0xDF3F359A2E9E0000;
+            skele = new Entity(new FileHash(Hash64Map.Get().GetHash32Checked(skeleHash))); // 64 bit more permanent
+        }
+
         if (skele != null && skele.Skeleton != null && entities.Any())
             entities[0].Skeleton = skele.Skeleton;
 
         bool isArmor = item.Parent != null ? item.Parent.IsArmor : item.IsArmor;
         bool isWeapon = item.Parent != null ? item.Parent.IsWeapon : item.IsWeapon;
 
-        // weapons are animated by their first person rig
+        // weapons are animated by their first person rig, other items like sparrows by their pattern entity
         Entity? weaponAnimations = null;
         TigerHash? weaponAnimationTag = null;
         if (isWeapon && entities.Any() && entities[0].Skeleton != null)
@@ -93,6 +99,10 @@ public partial class CharmRenderer
             }
         }
 
+        Entity? animationEntity = weaponAnimations;
+        if (animationEntity == null && !isWeapon && skele?.Skeleton != null && skele.RuntimeRig != null && skele.Animations?.Count > 0)
+            animationEntity = skele;
+
         int weaponBones = weaponAnimations != null ? entities[0].Skeleton!.GetBoneNodes().Count : 0;
         RenderObject? animationSource = null;
         foreach (var ent in entities)
@@ -101,13 +111,13 @@ public partial class CharmRenderer
             obj.RigidBoneCount = weaponBones;
             obj.Create(Context, World, ent, item);
 
-            if (weaponAnimations == null)
+            if (animationEntity == null)
                 continue;
 
             if (animationSource == null)
             {
-                obj.AnimationEntity = weaponAnimations;
-                obj.AnimationID = weaponAnimationTag;
+                obj.AnimationEntity = animationEntity;
+                obj.WeaponAnimID = weaponAnimationTag;
                 animationSource = obj;
             }
             else
@@ -200,7 +210,7 @@ public partial class CharmRenderer
         LookAtBoundingBox(combinedBB, 160f, 15f, 0.85f);
 
         if (items.Where(x => x.IsArmor || x.IsArmorOrnament).Any()) // meh
-            LoadPlayerSkeleton(items.First());
+            LoadPlayerSkeleton(items.Where(x => x.IsArmor || x.IsArmorOrnament).First());
 
         ShouldShowObjectChannels();
     }
@@ -210,8 +220,10 @@ public partial class CharmRenderer
         if (!item.IsGhost && !item.IsArmor && !item.IsArmorOrnament)
             return;
 
-        var skeleHash = item.IsGhost ? 0x681CD34630600000 : 0x95952E340F670000;
-        Entity skele = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(skeleHash))); // 64 bit more permanent
+        var skeleHash = item.IsGhost ? 0xDF3F359A2E9E0000 : 0x95952E340F670000;
+        Entity skele = new Entity(new FileHash(Hash64Map.Get().GetHash32Checked(skeleHash))); // 64 bit more permanent
+        skele.Skeleton = null; // gets set earlier
+
         EntityObjectChannels.AddObjectChannels(skele);
 
         RenderObject obj = new();

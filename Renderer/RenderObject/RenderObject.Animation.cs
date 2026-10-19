@@ -30,12 +30,17 @@ public partial class RenderObject
         }
     }
 
-    // weapons are animated by a separate entity
+
     public Entity? AnimationEntity;
-    // other parts of the same weapon use the bones of this object
     public RenderObject? AnimationSource;
-    public TigerHash? AnimationID;
     public List<Animation>? OverrideAnimations;
+    public TigerHash? WeaponAnimID;
+
+    private Entity? AnimationOwner => AnimationEntity ?? Entity;
+
+    // the animation rig holds more bones than this object, the object's bones are the last ones (first person rig + weapon)
+    private bool AnimatesSubset => AnimationEntity?.Skeleton != null && Entity?.Skeleton != null
+        && AnimationEntity.Skeleton.GetBoneNodes().Count != Entity.Skeleton.GetBoneNodes().Count;
 
     public bool CanAnimate
     {
@@ -44,10 +49,11 @@ public partial class RenderObject
             if (AnimationSource != null)
                 return false;
 
-            if (AnimationEntity != null)
-                return AnimationEntity.Skeleton != null && AnimationEntity.RuntimeRig != null && Entity?.Skeleton != null && _meshes.Any(x => x.HasSkinWeights || x.Material?.Skinned == true);
+            Entity? owner = AnimationOwner;
+            if (owner?.Skeleton == null || owner.RuntimeRig == null || Entity?.Skeleton == null)
+                return false;
 
-            return Entity?.Skeleton != null && Entity.RuntimeRig != null && _meshes.Any(x => x.HasSkinWeights);
+            return _meshes.Any(x => x.HasSkinWeights || (AnimatesSubset && x.Material?.Skinned == true));
         }
     }
 
@@ -90,7 +96,7 @@ public partial class RenderObject
             return _animations;
         }
 
-        Entity? owner = AnimationEntity ?? Entity;
+        Entity? owner = AnimationOwner;
         Log.Debug($"Entity {owner?.Hash}, Rig {owner?.RuntimeRig?.Hash}, Skele {owner?.Skeleton?.Hash}");
 
         var animations = new List<Tiger.Schema.Animation.Animation>();
@@ -102,11 +108,11 @@ public partial class RenderObject
                 entityAnimations.GetAllAnimations();
 
                 Dictionary<FileHash, List<string>>? used = null;
-                if (AnimationEntity != null && AnimationID != null)
+                if (AnimatesSubset && WeaponAnimID != null)
                 {
                     try
                     {
-                        used = entityAnimations.GetWeaponAnimations(AnimationID);
+                        used = entityAnimations.GetWeaponAnimations(WeaponAnimID);
                     }
                     catch (Exception e)
                     {
@@ -127,7 +133,7 @@ public partial class RenderObject
                 }
 
                 if (used != null)
-                    Log.Debug($"Weapon tag {AnimationID} uses {used.Count} of {entityAnimations.AnimationTags.Count} animations");
+                    Log.Debug($"Weapon tag {WeaponAnimID} uses {used.Count} of {entityAnimations.AnimationTags.Count} animations");
             }
         }
 
@@ -145,9 +151,10 @@ public partial class RenderObject
         }
 
         animation.LoadAnimation();
-        var frames = AnimationEntity != null
-            ? AnimationSkinning.BuildWeapon(animation, AnimationEntity.RuntimeRig!, AnimationEntity.Skeleton!, Entity.Skeleton!, mode: mode)
-            : AnimationSkinning.Build(animation, Entity.RuntimeRig!, Entity.Skeleton!, mode: mode);
+        Entity owner = AnimationOwner!;
+        var frames = AnimatesSubset
+            ? AnimationSkinning.BuildWeapon(animation, owner.RuntimeRig!, owner.Skeleton!, Entity.Skeleton!, mode: mode)
+            : AnimationSkinning.Build(animation, owner.RuntimeRig!, owner.Skeleton!, mode: mode);
         Log.Info($"Playing animation {animation.Hash}, {frames.FrameCount} frames");
         return frames;
     }
