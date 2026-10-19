@@ -99,7 +99,14 @@ public partial class RenderObject
         Entity? owner = AnimationOwner;
         Log.Debug($"Entity {owner?.Hash}, Rig {owner?.RuntimeRig?.Hash}, Skele {owner?.Skeleton?.Hash}");
 
+        // animations with no matching control groups cant play
+        RigProgram? program = null;
+        if (owner?.RuntimeRig != null && owner.Skeleton != null)
+            program = new RigProgram(owner.RuntimeRig, owner.Skeleton);
+
+
         var animations = new List<Tiger.Schema.Animation.Animation>();
+        int unplayable = 0;
         if (owner?.Animations != null)
         {
             HashSet<FileHash> seen = new();
@@ -125,8 +132,16 @@ public partial class RenderObject
                     if (used != null && !used.ContainsKey(animation.Hash))
                         continue;
 
-                    if (seen.Add(animation.Hash))
-                        animations.Add(animation);
+                    if (!seen.Add(animation.Hash))
+                        continue;
+
+                    if (program != null && program.CompatibleControlCount(animation.TagData.RigComponents) == 0)
+                    {
+                        unplayable++;
+                        continue;
+                    }
+
+                    animations.Add(animation);
 
                     if (used != null && used[animation.Hash].Count > 0)
                         _animationNames[animation.Hash] = used[animation.Hash][0];
@@ -136,6 +151,9 @@ public partial class RenderObject
                     Log.Debug($"Weapon tag {WeaponAnimID} uses {used.Count} of {entityAnimations.AnimationTags.Count} animations");
             }
         }
+
+        if (unplayable > 0)
+            Log.Info($"Skipped {unplayable} animations with no control groups matching rig {owner?.RuntimeRig?.Hash}");
 
         _animations = animations.OrderBy(x => x.TagData.LayerType).ThenBy(x => x.Hash).ToList();
         return _animations;
