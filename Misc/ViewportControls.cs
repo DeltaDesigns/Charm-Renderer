@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using Tiger;
 
 namespace Charm.Renderer;
 
@@ -139,6 +140,37 @@ public class GroupToggleVM : SettingItem, INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
     }
+}
+
+public class AnimationToggleVM : SettingItem, INotifyPropertyChanged
+{
+    public AnimationToggleVM(FileHash hash, string text, bool isChecked)
+    {
+        Hash = hash;
+        Text = text;
+        _isChecked = isChecked;
+    }
+
+    public FileHash Hash { get; }
+    public string Text { get; }
+
+    private bool _isChecked;
+    public bool IsChecked
+    {
+        get => _isChecked;
+        set
+        {
+            if (_isChecked == value)
+                return;
+
+            _isChecked = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsChecked)));
+            CheckedChanged?.Invoke();
+        }
+    }
+
+    public event Action? CheckedChanged;
+    public event PropertyChangedEventHandler PropertyChanged;
 }
 
 public class VectorSetting : SettingItem

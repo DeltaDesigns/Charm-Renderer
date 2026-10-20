@@ -41,6 +41,7 @@ public partial class RendererViewport
         }
 
         AnimationExpander.Visibility = target is null || target.GetAvailableAnimations().Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        ExportAnimationsExpander.Visibility = _exportAnimationsAvailable ? AnimationExpander.Visibility : Visibility.Collapsed;
         if (target is null || !AnimationExpander.IsExpanded)
             return;
 
@@ -74,12 +75,100 @@ public partial class RendererViewport
             AnimationLayerCombo.ItemsSource = CreateAnimationItems();
             AnimationLayerCombo.SelectedIndex = 0;
             AnimationStatusText.Text = "";
+            FillExportAnimations();
         }
         finally
         {
             _updatingAnimationUI = false;
         }
     }
+
+    #region Export animations
+    private bool _exportAnimationsAvailable;
+    private readonly List<AnimationToggleVM> _exportAnimationToggles = new();
+    private bool _updatingExportAnimations;
+
+    private void FillExportAnimations()
+    {
+        _exportAnimationToggles.Clear();
+        if (_animationObject?.AnimationOwner is { } owner)
+        {
+            var animations = _animationObject.GetAvailableAnimations();
+            animations = animations.OrderBy(x => x.TagData.LayerType).ThenBy(x => x.Hash).ToList();
+            for (int i = 0; i < animations.Count; i++)
+            {
+                var anim = animations[i];
+                string label = _animationObject.GetAnimationName(anim) ?? anim.Hash.ToString();
+                var toggle = new AnimationToggleVM(anim.Hash, $"{i + 1}: {label} - {anim.TagData.LayerType}", !Tiger.Exporters.AnimationExportSelection.IsExcluded(owner.Hash, anim.Hash));
+                toggle.CheckedChanged += () => Tiger.Exporters.AnimationExportSelection.SetExcluded(owner.Hash, toggle.Hash, !toggle.IsChecked);
+                toggle.CheckedChanged += UpdateExportAnimationsCount;
+                _exportAnimationToggles.Add(toggle);
+            }
+        }
+
+        ExportAnimations.ItemsSource = null;
+        ExportAnimations.ItemsSource = _exportAnimationToggles;
+        UpdateExportAnimationsCount();
+    }
+
+    private void UpdateExportAnimationsCount()
+    {
+        if (_updatingExportAnimations)
+            return;
+
+        ExportAnimationsCountText.Text = $"{_exportAnimationToggles.Count(x => x.IsChecked)}/{_exportAnimationToggles.Count}";
+    }
+
+    private void SetAllExportAnimations(Func<AnimationToggleVM, bool> isChecked)
+    {
+        _updatingExportAnimations = true;
+        try
+        {
+            foreach (var toggle in _exportAnimationToggles)
+                toggle.IsChecked = isChecked(toggle);
+        }
+        finally
+        {
+            _updatingExportAnimations = false;
+        }
+        UpdateExportAnimationsCount();
+    }
+
+    private void ExportAnimation_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == 0)
+            return;
+
+        if (sender is System.Windows.Controls.Primitives.ToggleButton { DataContext: AnimationToggleVM selected })
+        {
+            SetAllExportAnimations(toggle => ReferenceEquals(toggle, selected));
+            e.Handled = true;
+        }
+    }
+
+    private void PreviewExportAnimation_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not AnimationToggleVM toggle || _animationObject is null)
+            return;
+
+        _animationObject.IsPlaying = true;
+        foreach (var item in AnimationCombo.Items)
+        {
+            if (item is ComboBoxItem { Tag: Animation animation } && animation.Hash == toggle.Hash)
+            {
+                if (ReferenceEquals(AnimationCombo.SelectedItem, item))
+                    LoadSelectedAnimation();
+                else
+                    AnimationCombo.SelectedItem = item;
+                return;
+            }
+        }
+    }
+
+    private void SelectAllExportAnimations_Click(object sender, RoutedEventArgs e) => SetAllExportAnimations(_ => true);
+
+    private void SelectNoExportAnimations_Click(object sender, RoutedEventArgs e) => SetAllExportAnimations(_ => false);
+    #endregion
 
     private List<ComboBoxItem> CreateAnimationItems()
     {

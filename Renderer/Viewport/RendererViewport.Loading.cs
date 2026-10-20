@@ -17,6 +17,7 @@ public partial class RendererViewport
         if (Renderer is null)
             Initialize();
 
+        _exportAnimationsAvailable = false;
         Renderer.Stop();
         Renderer.LoadStatic(hash);
         Renderer.Start();
@@ -38,6 +39,7 @@ public partial class RendererViewport
             });
         });
 
+        _exportAnimationsAvailable = true;
         Renderer.Stop();
         Renderer.LoadEntity(_currentEntity);
         ApplyEntityState(state);
@@ -63,10 +65,12 @@ public partial class RendererViewport
         if (groupIndices.Count() <= 1)
         {
             MeshGroupsExpander.Visibility = Visibility.Collapsed;
+            UpdatePartsVisibility();
             return;
         }
 
         MeshGroupsExpander.Visibility = Visibility.Visible;
+        UpdatePartsVisibility();
         foreach (int idx in groupIndices)
         {
             var vm = new GroupToggleVM(idx);
@@ -82,7 +86,8 @@ public partial class RendererViewport
     private const uint InheritValue = 0xFFFFFFFE;
     private void CreatePermutationsPanel(Entity entity)
     {
-        PermutationsExpander.Visibility = Visibility.Collapsed;
+        PermutationStatesPanel.Visibility = Visibility.Collapsed;
+        UpdatePartsVisibility();
         PermutationPanel.Children.Clear();
 
         if (entity.ModelParent is null)
@@ -137,7 +142,15 @@ public partial class RendererViewport
         CreatePermutationOverrides();
 
         if (PermutationPanel.Children.Count > 0)
-            PermutationsExpander.Visibility = Visibility.Visible;
+            PermutationStatesPanel.Visibility = Visibility.Visible;
+        UpdatePartsVisibility();
+    }
+
+    private void UpdatePartsVisibility()
+    {
+        PermutationsExpander.Visibility = PermutationStatesPanel.Visibility == Visibility.Visible || MeshGroupsExpander.Visibility == Visibility.Visible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private ComboBoxControl? _variantCombo;
@@ -299,6 +312,7 @@ public partial class RendererViewport
 
         PerItemShadersPanel.Visibility = Visibility.Collapsed;
         CreateInvestmentShaders();
+        _exportAnimationsAvailable = false;
         Renderer.Pause();
         Renderer.LoadInvestmentItem(item);
         Renderer.Resume();
@@ -313,6 +327,7 @@ public partial class RendererViewport
             Initialize();
 
         CreateInvestmentShaders();
+        _exportAnimationsAvailable = false;
         Renderer.Pause();
         Renderer.LoadInvestmentItems(items);
         Renderer.Resume();

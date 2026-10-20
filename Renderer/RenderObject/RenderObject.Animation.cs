@@ -36,7 +36,7 @@ public partial class RenderObject
     public List<Animation>? OverrideAnimations;
     public TigerHash? WeaponAnimID;
 
-    private Entity? AnimationOwner => AnimationEntity ?? Entity;
+    internal Entity? AnimationOwner => AnimationEntity ?? Entity;
 
     // the animation rig holds more bones than this object, the object's bones are the last ones (first person rig + weapon)
     private bool AnimatesSubset => AnimationEntity?.Skeleton != null && Entity?.Skeleton != null
