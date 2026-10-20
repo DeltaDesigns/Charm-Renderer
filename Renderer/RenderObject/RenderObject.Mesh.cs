@@ -161,48 +161,64 @@ public class MeshPartData : GpuResource
         Material.GameSkinningForPart = UsesGameSkinning;
     }
 
-    public void CreateSkinWeights(Device device, DynamicMeshPart part, int vertexCount)
+    public static bool FillSkinWeights(SkinVertex[] vertices, DynamicMeshPart part)
     {
-        if (part.VertexWeights.Count == 0 || part.VertexWeights.Count != part.VertexIndices.Count || vertexCount <= 0)
-            return;
+        if (part.VertexWeights.Count == 0 || part.VertexWeights.Count != part.VertexIndices.Count || vertices.Length == 0)
+            return false;
 
-        var vertices = new SkinVertex[vertexCount];
         for (int i = 0; i < part.VertexIndices.Count; i++)
         {
             uint raw = part.VertexIndices[i];
-            if (raw >= vertexCount)
+            if (raw >= vertices.Length)
                 continue;
 
             vertices[raw] = ToSkinVertex(part.VertexWeights[i]);
         }
 
-        CreateSkinWeights(device, vertices);
+        return true;
     }
 
-    public void CreateRigidSkinWeights(Device device, DynamicMeshPart part, int vertexCount, int boneCount)
+    public static bool FillRigidSkinWeights(SkinVertex[] vertices, DynamicMeshPart part, int boneCount)
     {
-        if (part.VertexPositions.Count != part.VertexIndices.Count || vertexCount <= 0)
-            return;
+        if (part.VertexPositions.Count != part.VertexIndices.Count || vertices.Length == 0)
+            return false;
 
-        var vertices = new SkinVertex[vertexCount];
+        for (int i = 0; i < part.VertexIndices.Count; i++)
+        {
+            int bone = (int)(part.VertexPositions[i].W * 32767f + 0.1f);
+            if (part.VertexIndices[i] < vertices.Length && (bone < 0 || bone >= boneCount))
+                return false;
+        }
+
         for (int i = 0; i < part.VertexIndices.Count; i++)
         {
             uint raw = part.VertexIndices[i];
-            if (raw >= vertexCount)
+            if (raw >= vertices.Length)
                 continue;
-
-            int bone = (int)(part.VertexPositions[i].W * 32767f + 0.1f);
-            if (bone < 0 || bone >= boneCount)
-                return;
 
             vertices[raw] = new SkinVertex
             {
-                Index0 = (uint)bone,
+                Index0 = (uint)(part.VertexPositions[i].W * 32767f + 0.1f),
                 Weight0 = 1
             };
         }
 
-        CreateSkinWeights(device, vertices);
+        return true;
+    }
+
+    public static (Buffer Buffer, ShaderResourceView SRV) CreateSkinWeightsBuffer(Device device, SkinVertex[] vertices)
+    {
+        int stride = Marshal.SizeOf<SkinVertex>();
+        var buffer = Buffer.Create(device, BindFlags.ShaderResource, vertices,
+            stride * vertices.Length, ResourceUsage.Immutable, CpuAccessFlags.None,
+            ResourceOptionFlags.BufferStructured, stride);
+        return (buffer, new ShaderResourceView(device, buffer));
+    }
+
+    public void SetSkinWeights(Buffer buffer, ShaderResourceView srv)
+    {
+        _skinWeightsBuffer = buffer;
+        _skinWeightsSRV = srv;
     }
 
     private static SkinVertex ToSkinVertex(VertexWeight vw)
@@ -226,12 +242,7 @@ public class MeshPartData : GpuResource
 
     private void CreateSkinWeights(Device device, SkinVertex[] vertices)
     {
-        int stride = Marshal.SizeOf<SkinVertex>();
-        _skinWeightsBuffer = Buffer.Create(device, BindFlags.ShaderResource, vertices,
-            stride * vertices.Length, ResourceUsage.Immutable, CpuAccessFlags.None,
-            ResourceOptionFlags.BufferStructured, stride);
-
-        _skinWeightsSRV = new ShaderResourceView(device, _skinWeightsBuffer);
+        (_skinWeightsBuffer, _skinWeightsSRV) = CreateSkinWeightsBuffer(device, vertices);
     }
 
     public override void Dispose()

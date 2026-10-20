@@ -196,6 +196,12 @@ public class AssetManager : IDisposable
         };
     }
 
+    // Materials nothing uses anymore are kept (with their textures) for a while instead of disposed straight away,
+    // reloading the same or a related entity (thumbnails, states) would otherwise read and upload every texture again
+    private const int _keepMaterialCount = 32;
+    private readonly LinkedList<uint> _unusedMaterials = new();
+    private readonly Dictionary<uint, LinkedListNode<uint>> _unusedMaterialNodes = new();
+
     public MaterialData GetOrCreateMaterial(Material material)
     {
         if (!_materialCache.TryGetValue(material.Hash.Hash32, out var mat))
@@ -203,6 +209,8 @@ public class AssetManager : IDisposable
             mat = new MaterialData(GPU.Instance.ImmediateContext, material);
             _materialCache[material.Hash.Hash32] = mat;
         }
+        else if (_unusedMaterialNodes.Remove(material.Hash.Hash32, out var node))
+            _unusedMaterials.Remove(node);
 
         mat.AddRef();
         return mat;
@@ -576,12 +584,16 @@ public class AssetManager : IDisposable
 
     public void ReleaseMaterial(uint hash)
     {
-        if (_materialCache.TryGetValue(hash, out var mat))
+        if (_materialCache.TryGetValue(hash, out var mat) && mat.Release() && !_unusedMaterialNodes.ContainsKey(hash))
         {
-            if (mat.Release())
+            _unusedMaterialNodes[hash] = _unusedMaterials.AddLast(hash);
+            while (_unusedMaterials.Count > _keepMaterialCount)
             {
-                mat.Dispose();
-                _materialCache.Remove(hash);
+                uint oldest = _unusedMaterials.First!.Value;
+                _unusedMaterials.RemoveFirst();
+                _unusedMaterialNodes.Remove(oldest);
+                if (_materialCache.Remove(oldest, out var old))
+                    old.Dispose();
             }
         }
     }
@@ -656,6 +668,8 @@ public class AssetManager : IDisposable
             mat?.Dispose();
         }
         _materialCache.Clear();
+        _unusedMaterials.Clear();
+        _unusedMaterialNodes.Clear();
     }
 
     public void Dispose()

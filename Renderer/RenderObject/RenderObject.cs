@@ -89,7 +89,8 @@ public partial class RenderObject : GpuResource
 
                 // This works fine but some entity bounding boxes just dont feel good to orbit around
                 LocalBoundingBox = entity.ModelParent.GetBoundingBox().CreateFrom(); // Is entity scale actually not used for bb calc?
-                parts = entity.LoadModel(ExportDetailLevel.MostDetailed, LoadLevel.Full).Cast<MeshPart>().ToList();
+                // thumbnails never animate so they dont need any weights
+                parts = entity.LoadModel(ExportDetailLevel.MostDetailed, renderType == RenderType.Minimal ? LoadLevel.Render : LoadLevel.Full).Cast<MeshPart>().ToList();
             }
 
             CreateMesh(context, parts, TfxFeatureRenderer.DynamicObjects);
@@ -149,6 +150,21 @@ public partial class RenderObject : GpuResource
                 GlobalTransforms[0].Quaternion.ToQuat() * TransformOffset.Quaternion.ToQuat(),
                 GlobalTransforms[0].Scale);
 
+        // parts of the same mesh share its buffers
+        Dictionary<(Tiger.TigerFile, ResourceOptionFlags), VertexBuffer> vertexBuffers = new();
+        Dictionary<Tiger.TigerFile, IndexBuffer> indexBuffers = new();
+        Dictionary<(Tiger.Schema.ShaderBytecode, int), InputLayout> inputLayouts = new();
+        Dictionary<VertexBuffer, (SkinVertex[] Vertices, List<MeshPartData> Parts)> skinWeights = new();
+
+        VertexBuffer? GetVertexBuffer(Tiger.Schema.VertexBuffer? buffer, ResourceOptionFlags flags = ResourceOptionFlags.None)
+        {
+            if (buffer is null)
+                return null;
+            if (!vertexBuffers.TryGetValue((buffer, flags), out var vb))
+                vertexBuffers[(buffer, flags)] = vb = VertexBuffer.Create(context, buffer, flags);
+            return vb;
+        }
+
         foreach (var part in parts)
         {
             if (CharmRenderer.IsBasic)
@@ -165,18 +181,18 @@ public partial class RenderObject : GpuResource
             var meshData = new MeshPartData
             {
                 RenderStage = part.RenderStage,
-                IndexBuffer = IndexBuffer.Create(context, part.IndexBuffer),
-                VertexBuffer0 = VertexBuffer.Create(context, part.VertexBuffer0),
-                VertexBuffer1 = part.VertexBuffer1 != null ? VertexBuffer.Create(context, part.VertexBuffer1) : null,
+                IndexBuffer = indexBuffers.TryGetValue(part.IndexBuffer, out var ib) ? ib : indexBuffers[part.IndexBuffer] = IndexBuffer.Create(context, part.IndexBuffer),
+                VertexBuffer0 = GetVertexBuffer(part.VertexBuffer0),
+                VertexBuffer1 = GetVertexBuffer(part.VertexBuffer1),
 
                 // eh, dont like this but some physics mesh use vertex color stored in the Old Weights buffer??
                 VertexColorBuffer = part.VertexColorBuffer != null
-                                ? VertexBuffer.Create(context, part.VertexColorBuffer)
-                                : MeshType != MeshType.Normal && part.VertexOldWeightsBuffer != null
-                                ? VertexBuffer.Create(context, part.VertexOldWeightsBuffer)
+                                ? GetVertexBuffer(part.VertexColorBuffer)
+                                : MeshType != MeshType.Normal
+                                ? GetVertexBuffer(part.VertexOldWeightsBuffer)
                                 : null,
 
-                VertexSkinningBuffer = part.VertexSkinningBuffer != null ? VertexBuffer.Create(context, part.VertexSkinningBuffer, ResourceOptionFlags.BufferAllowRawViews) : null,
+                VertexSkinningBuffer = GetVertexBuffer(part.VertexSkinningBuffer, ResourceOptionFlags.BufferAllowRawViews),
 
                 IndexCount = (int)part.IndexCount,
                 IndexOffset = (int)part.IndexOffset,
@@ -195,14 +211,30 @@ public partial class RenderObject : GpuResource
             };
             if (part is DynamicMeshPart dynamicPart && meshData.VertexBuffer0 != null)
             {
-                meshData.CreateSkinWeights(context.Device, dynamicPart, meshData.VertexBuffer0.Length);
-                if (!meshData.HasSkinWeights && RigidBoneCount > 0 && meshData.Material.Skinned)
-                    meshData.CreateRigidSkinWeights(context.Device, dynamicPart, meshData.VertexBuffer0.Length, RigidBoneCount);
+                if (!skinWeights.TryGetValue(meshData.VertexBuffer0, out var weights))
+                    skinWeights[meshData.VertexBuffer0] = weights = (new SkinVertex[meshData.VertexBuffer0.Length], new());
+
+                if (MeshPartData.FillSkinWeights(weights.Vertices, dynamicPart)
+                    || (RigidBoneCount > 0 && meshData.Material.Skinned && MeshPartData.FillRigidSkinWeights(weights.Vertices, dynamicPart, RigidBoneCount)))
+                    weights.Parts.Add(meshData);
             }
 
             meshData.Material.UsesVertexColor = meshData.VertexColorBuffer != null && part.Material.Vertex.Shader.OutputSignatures.Any(x => x.RegisterIndex == 5 && x.SemanticIndex == 8);
-            meshData.InputLayout = new InputLayout(context.Device, part.Material.Vertex.Shader.GetBytecode(), RenderHelpers.GetInputLayout(part.VertexLayoutIndex).ToArray());
+            var layoutKey = (part.Material.Vertex.Shader, part.VertexLayoutIndex);
+            if (!inputLayouts.TryGetValue(layoutKey, out var inputLayout))
+                inputLayouts[layoutKey] = inputLayout = new InputLayout(context.Device, part.Material.Vertex.Shader.GetBytecode(), RenderHelpers.GetInputLayout(part.VertexLayoutIndex).ToArray());
+            meshData.InputLayout = inputLayout;
             AddMesh(meshData);
+        }
+
+        foreach (var (vertices, weightedParts) in skinWeights.Values)
+        {
+            if (weightedParts.Count == 0)
+                continue;
+
+            var (buffer, srv) = MeshPartData.CreateSkinWeightsBuffer(context.Device, vertices);
+            foreach (var meshData in weightedParts)
+                meshData.SetSkinWeights(buffer, srv);
         }
     }
 
