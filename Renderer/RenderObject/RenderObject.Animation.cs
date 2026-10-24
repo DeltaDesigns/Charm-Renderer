@@ -115,15 +115,28 @@ public partial class RenderObject
                 entityAnimations.GetAllAnimations();
 
                 Dictionary<FileHash, List<string>>? used = null;
+                Dictionary<FileHash, List<string>>? names = null;
                 if (AnimatesSubset && WeaponAnimID != null)
                 {
                     try
                     {
                         used = entityAnimations.GetWeaponAnimations(WeaponAnimID);
+                        names = used;
                     }
                     catch (Exception e)
                     {
                         Log.Warning($"Couldnt read the weapon animation selector: {e.Message}");
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        names = entityAnimations.GetEntityAnimations();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warning($"Couldnt read the entity animation names: {e.Message}");
                     }
                 }
 
@@ -143,8 +156,8 @@ public partial class RenderObject
 
                     animations.Add(animation);
 
-                    if (used != null && used[animation.Hash].Count > 0)
-                        _animationNames[animation.Hash] = used[animation.Hash][0];
+                    if (names != null && names.TryGetValue(animation.Hash, out var clipNames) && clipNames.Count > 0)
+                        _animationNames[animation.Hash] = clipNames[0];
                 }
 
                 if (used != null)
