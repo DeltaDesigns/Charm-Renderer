@@ -75,6 +75,9 @@ public partial class RenderObject
     private bool _hasBaseRequest;
     private bool _hasLayerRequest;
     private SkinningFrames? _baseRequest, _layerRequest;
+    private bool? _baseLoopRequest;
+    private List<AnimationStep>? _sequenceRequest;
+    private readonly Queue<AnimationStep> _sequence = new(); // clips that play once the current one ends
 
 
     private readonly Dictionary<FileHash, string> _animationNames = new();
@@ -83,6 +86,14 @@ public partial class RenderObject
     {
         GetAvailableAnimations();
         return _animationNames.GetValueOrDefault(animation.Hash);
+    }
+
+    // call after changing AnimationEntity or OverrideAnimations
+    public void ResetAvailableAnimations()
+    {
+        _animations = null;
+        _animationNames.Clear();
+        _animationIndex = -1;
     }
 
     public IReadOnlyList<Tiger.Schema.Animation.Animation> GetAvailableAnimations()
@@ -196,6 +207,25 @@ public partial class RenderObject
         {
             _hasBaseRequest = true;
             _baseRequest = frames;
+            _baseLoopRequest = null;
+            _sequenceRequest = null;
+        }
+    }
+
+    public void PlaySequence(IReadOnlyList<AnimationStep> steps)
+    {
+        if (steps.Count == 0)
+        {
+            SetAnimation(null);
+            return;
+        }
+
+        lock (_animationLock)
+        {
+            _hasBaseRequest = true;
+            _baseRequest = steps[0].Frames;
+            _baseLoopRequest = steps[0].Loop;
+            _sequenceRequest = steps.Skip(1).ToList();
         }
     }
 
@@ -299,22 +329,41 @@ public partial class RenderObject
     {
         bool hasBase, hasLayer;
         SkinningFrames? newBase, newLayer;
+        bool? baseLoop;
+        List<AnimationStep>? sequence;
         lock (_animationLock)
         {
             hasBase = _hasBaseRequest;
             hasLayer = _hasLayerRequest;
             newBase = _baseRequest;
             newLayer = _layerRequest;
+            baseLoop = _baseLoopRequest;
+            sequence = _sequenceRequest;
             _hasBaseRequest = _hasLayerRequest = false;
             _baseRequest = _layerRequest = null;
+            _baseLoopRequest = null;
+            _sequenceRequest = null;
         }
 
         if (hasBase)
         {
+            _sequence.Clear();
             if (newBase == null)
+            {
                 StopAnimation();
+            }
             else
+            {
                 StartAnimation(renderer, newBase);
+                if (baseLoop.HasValue)
+                {
+                    LoopAnimation = baseLoop.Value;
+                    IsPlaying = true;
+                }
+
+                foreach (var step in sequence ?? [])
+                    _sequence.Enqueue(step);
+            }
         }
 
         if (hasLayer)
@@ -357,6 +406,13 @@ public partial class RenderObject
             _lastTimeFrame = frameIndex;
             if (IsPlaying)
                 AdvanceTime(renderer.DeltaTime);
+
+            if (!LoopAnimation && _time >= AnimationDuration && _sequence.TryDequeue(out AnimationStep next))
+            {
+                StartAnimation(renderer, next.Frames);
+                LoopAnimation = next.Loop;
+                IsPlaying = true;
+            }
         }
 
         if (frameIndex == _lastUploadFrame && !_poseDirty)
@@ -427,11 +483,13 @@ public partial class RenderObject
     private (float X, float Y, float Z) GetBonePosition(int index)
     {
         var t = Bones[index].DefaultObjectSpaceTransform.Translation;
-        if (_skinning == null || _boneRows == null || (index + 1) * SkinningFrames.FloatsPerBone > _boneRows.Length)
+
+        RenderObject posed = AnimationSource ?? this;
+        float[]? r = posed._boneRows;
+        if (posed._skinning == null || r == null || (index + 1) * SkinningFrames.FloatsPerBone > r.Length)
             return (t.X, t.Y, t.Z);
 
         int o = index * SkinningFrames.FloatsPerBone;
-        float[] r = _boneRows;
         return (
             r[o + 0] * t.X + r[o + 1] * t.Y + r[o + 2] * t.Z + r[o + 3],
             r[o + 4] * t.X + r[o + 5] * t.Y + r[o + 6] * t.Z + r[o + 7],
@@ -439,3 +497,5 @@ public partial class RenderObject
     }
 
 }
+
+public readonly record struct AnimationStep(SkinningFrames Frames, bool Loop);

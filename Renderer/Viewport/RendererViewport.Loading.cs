@@ -317,6 +317,7 @@ public partial class RendererViewport
         Renderer.LoadInvestmentItem(item);
         Renderer.Resume();
 
+        CreateInvestmentEmotes([item]);
         if (item.IsArmor || item.IsArmorOrnament)
             SetArmorGenderVisibility(DestinyGenderDefinition.Masculine);
     }
@@ -333,6 +334,7 @@ public partial class RendererViewport
         Renderer.Resume();
 
         CreatePerObjectInvestmentShaders(items);
+        CreateInvestmentEmotes(items);
         if (items.Any(item => item.IsArmor || item.IsArmorOrnament))
             SetArmorGenderVisibility(DestinyGenderDefinition.Masculine);
     }
@@ -448,6 +450,9 @@ public partial class RendererViewport
         if (item.IsSelected && item.ParentSocket is not null)
         {
             item.ParentSocket.SelectedPlug = item;
+            if (item is EmotePlugItem)
+                return;
+
             if (item.Item.Name == "Default Shader")
                 ResetInvestmentShader(item.ParentSocket.ParentItem);
             else
@@ -537,21 +542,21 @@ public partial class RendererViewport
 
     private void FilterInvestmentShaders()
     {
-        FilterSocket(AllShadersCategories, _currentOrder);
+        FilterSocket(AllShadersCategories, _currentOrder, ShaderSearch);
         AllItemShaders.Content = null;
         AllItemShaders.Content = AllShadersCategories;
 
         if (ItemShadersCategories != null && ItemShadersCategories.Count > 0)
         {
             foreach (var entry in ItemShadersCategories)
-                FilterSocket(entry.ShadersCategory, _currentOrder);
+                FilterSocket(entry.ShadersCategory, _currentOrder, ShaderSearch);
 
             PerItemShaders.ItemsSource = null;
             PerItemShaders.ItemsSource = ItemShadersCategories;
         }
     }
 
-    private void FilterSocket(SocketCategory category, int order)
+    private void FilterSocket(SocketCategory category, int order, string search, bool groupByRarity = false)
     {
         var socket = category.Sockets[0];
 
@@ -561,11 +566,15 @@ public partial class RendererViewport
             _shaderItems[category] = shaders;
         }
 
+        IOrderedEnumerable<APIPlugItem> grouped = groupByRarity
+            ? shaders.OrderByDescending(x => x.Item?.GetItemRarity() ?? DestinyTierType.Unknown)
+            : shaders.OrderBy(_ => 0);
+
         var items = order switch
         {
-            0 => shaders.OrderBy(x => x.Item.Name).ToList(),
-            1 => shaders.OrderByDescending(x => x.Item.GetItemIndex()).ToList(),
-            _ => [.. shaders]
+            0 => grouped.ThenBy(x => x.Item?.Name).ToList(),
+            1 => grouped.ThenByDescending(x => x.Item?.GetItemIndex() ?? int.MaxValue).ToList(),
+            _ => grouped.ToList()
         };
 
         var initial = socket.SingleInitialItem;
@@ -575,9 +584,9 @@ public partial class RendererViewport
             items.Insert(0, initial);
         }
 
-        var filtered = string.IsNullOrWhiteSpace(ShaderSearch)
+        var filtered = string.IsNullOrWhiteSpace(search)
             ? items
-            : items.Where(x => x.Item.Name.Contains(ShaderSearch, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            : items.Where(x => x.Item == null || x.Item.Name.Contains(search, StringComparison.InvariantCultureIgnoreCase)).ToList();
 
         socket.PlugItems = filtered;
     }
@@ -595,6 +604,8 @@ public partial class RendererViewport
 
     private void SetArmorGenderVisibility(DestinyGenderDefinition gender)
     {
+        bool changed = gender != _armorGender;
+        _armorGender = gender;
         ArmorGenderToggles.Visibility = Visibility.Visible;
         foreach (var obj in Renderer.World.RenderObjects)
         {
@@ -603,6 +614,9 @@ public partial class RendererViewport
 
             obj.Visible = obj.Entity.Gender == gender;
         }
+
+        if (changed)
+            OnEmoteGenderChanged();
     }
     #endregion
 

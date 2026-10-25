@@ -166,8 +166,7 @@ public partial class CharmRenderer
             return;
         }
 
-        var playerHash = 0xD9378260016E0000;
-        Entity player = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(playerHash)));
+        Entity player = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(SkeletonHash)));
 
         RenderObject obj = new();
         obj.OverrideAnimations = emote;
@@ -192,7 +191,7 @@ public partial class CharmRenderer
 
             List<Entity> entities = Investment.Get().GetEntitiesFromHash(item);
             Entity? skele = Investment.Get().GetPatternEntityFromHash(item.Parent != null ? item.Parent.TagData.InventoryItemHash : item.TagData.InventoryItemHash);
-            if (skele != null && skele.Skeleton != null && entities.Any())
+            if (skele != null && skele.Skeleton != null && entities.Count > 0)
                 entities[0].Skeleton = skele.Skeleton;
 
             foreach (var ent in entities)
@@ -220,19 +219,55 @@ public partial class CharmRenderer
         if (!item.IsGhost && !item.IsArmor && !item.IsArmorOrnament)
             return;
 
-        var skeleHash = item.IsGhost ? 0xDF3F359A2E9E0000 : 0x95952E340F670000;
+        var skeleHash = item.IsGhost ? 0xDF3F359A2E9E0000 : SkeletonHash;
         Entity skele = new Entity(new FileHash(Hash64Map.Get().GetHash32Checked(skeleHash))); // 64 bit more permanent
-        skele.Skeleton = null; // gets set earlier
-
         EntityObjectChannels.AddObjectChannels(skele);
 
         RenderObject obj = new();
         obj.Create(Context, World, skele);
 
+        if (!item.IsGhost)
+        {
+            FollowPlayerSkeleton(obj);
+            AttachWeaponsToGrip(obj);
+        }
+
         if (item.IsGhost)
         {
             EntityObjectChannels.SetObjectChannel(2309869224, 0f); // hack_int
             EntityObjectChannels.SetObjectChannel(1761166716, 0f); // scan_int
+        }
+    }
+
+    private static bool IsWeapon(InventoryItem? item) =>
+        item != null && (item.IsWeapon || item.IsWeaponOrnament || item.Parent?.IsWeapon == true);
+
+    private void AttachWeaponsToGrip(RenderObject skeleton)
+    {
+        var bones = skeleton.Entity?.Skeleton?.GetBoneNodes();
+        var grip = Helpers.Fnv1a32("b_r_grip");
+        var gripIndex = bones?.FindIndex(x => x.Hash.Hash32 == grip) ?? -1;
+
+        if (gripIndex < 0)
+            return;
+
+        var bind = bones![gripIndex].DefaultObjectSpaceTransform;
+        lock (World.WorldLock)
+        {
+            foreach (var obj in World.RenderObjects)
+            {
+                if (obj == skeleton || obj.IsChild || !IsWeapon(obj.Investment?.BaseItem))
+                    continue;
+
+                obj.TransformOffset = obj.TransformOffset with
+                {
+                    Position = bind.Translation,
+                    Quaternion = bind.QuaternionRotation
+                };
+                obj.AttachParent = skeleton;
+                obj.AttachBone = gripIndex;
+                obj.UpdateBoundingBox();
+            }
         }
     }
 

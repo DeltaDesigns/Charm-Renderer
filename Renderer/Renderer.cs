@@ -48,7 +48,7 @@ public partial class CharmRenderer : IDisposable
     private Thread _renderThread;
     private ManualResetEventSlim _renderGate = new(true);
     private ManualResetEventSlim _pausedEvent = new(false);
-    private AutoResetEvent _frameCompleteEvent = new AutoResetEvent(true);
+    private readonly object _frameLock = new();
 
     public CharmRenderer()
     {
@@ -150,7 +150,7 @@ public partial class CharmRenderer : IDisposable
     public void Pause()
     {
         _renderGate.Reset();
-        _frameCompleteEvent.WaitOne();
+        lock (_frameLock) { }
         _pausedEvent.Set();
     }
 
@@ -199,13 +199,19 @@ public partial class CharmRenderer : IDisposable
                 continue;
             }
 
-            lastTime = now;
-            DeltaTime = (float)Math.Min(delta, MaxDeltaTime);
-            Time = (float)now;
+            lock (_frameLock)
+            {
+                if (!_renderGate.IsSet)
+                    continue;
 
-            Render();
-            CheckScreenshot();
-            CheckThumbnailRequest();
+                lastTime = now;
+                DeltaTime = (float)Math.Min(delta, MaxDeltaTime);
+                Time = (float)now;
+
+                Render();
+                CheckScreenshot();
+                CheckThumbnailRequest();
+            }
 
             fpsFrames++;
             fpsTimer += delta;
@@ -217,7 +223,6 @@ public partial class CharmRenderer : IDisposable
             }
 
             _frameCounter++;
-            _frameCompleteEvent.Set();
 #if DEBUG
             Profiler.HeartBeat();
 #endif
@@ -230,6 +235,8 @@ public partial class CharmRenderer : IDisposable
     {
         if (!_isRunning)
             return;
+
+        RunRenderThreadWork();
 
         KeyboardState = Keyboard.GetCurrentState();
         MouseState = Mouse.GetCurrentState();
@@ -326,6 +333,43 @@ public partial class CharmRenderer : IDisposable
         }
     }
 
+    private readonly ConcurrentQueue<Action> _renderThreadWork = new();
+
+    private void RunRenderThreadWork()
+    {
+        while (_renderThreadWork.TryDequeue(out var work))
+            work();
+    }
+
+    private Task<T> RunOnRenderThread<T>(Func<T> work)
+    {
+        if (!_isRunning)
+        {
+            try
+            {
+                return Task.FromResult(work());
+            }
+            catch (Exception e)
+            {
+                return Task.FromException<T>(e);
+            }
+        }
+
+        var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _renderThreadWork.Enqueue(() =>
+        {
+            try
+            {
+                completion.SetResult(work());
+            }
+            catch (Exception e)
+            {
+                completion.SetException(e);
+            }
+        });
+        return completion.Task;
+    }
+
 #if DEBUG
     private RenderDoc _renderDoc = null;
     private bool _captured = false;
@@ -347,7 +391,7 @@ public partial class CharmRenderer : IDisposable
 
             if (_renderDocConnected)
             {
-                Viewport.Dispatcher.Invoke(() =>
+                Viewport.Dispatcher.BeginInvoke(() =>
                 {
                     Viewport.RenderdocDebug.Visibility = Visibility.Visible;
                 });

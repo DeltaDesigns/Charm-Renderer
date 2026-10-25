@@ -139,16 +139,21 @@ public partial class RenderObject : GpuResource
             world.RenderObjects.Enqueue(this);
     }
 
-    private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
+    public void UpdateBoundingBox()
     {
-        Feature = meshType;
-        Stages = RenderStageSubscriptionExtensions.FromStages(parts.Select(x => x.RenderStage).Distinct());
-
         BoundingBox = RenderHelpers.TransformBoundingBox(
                 LocalBoundingBox,
                 GlobalTransforms[0].Position + TransformOffset.Position,
                 GlobalTransforms[0].Quaternion.ToQuat() * TransformOffset.Quaternion.ToQuat(),
                 GlobalTransforms[0].Scale);
+    }
+
+    private void CreateMesh(DeviceContext context, List<MeshPart> parts, TfxFeatureRenderer meshType)
+    {
+        Feature = meshType;
+        Stages = RenderStageSubscriptionExtensions.FromStages(parts.Select(x => x.RenderStage).Distinct());
+
+        UpdateBoundingBox();
 
         // parts of the same mesh share its buffers
         Dictionary<(Tiger.TigerFile, ResourceOptionFlags), VertexBuffer> vertexBuffers = new();

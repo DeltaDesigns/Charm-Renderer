@@ -57,6 +57,7 @@ public partial class RendererViewport
             AnimationCurTimeText.Text = target.IsAnimating ? $"{target.AnimationTime:0.00} s" : "";
             AnimationDurationText.Text = target.IsAnimating ? $"{duration:0.00} s" : "";
             AnimationPlayToggle.IsChecked = target.IsPlaying;
+            AnimationLoopToggle.IsChecked = target.LoopAnimation;
             AnimationLayerWeightSlider.IsEnabled = target.HasLayer;
         }
         finally

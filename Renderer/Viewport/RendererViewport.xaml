@@ -244,10 +244,12 @@
                         Height="84"
                         charm:StyleHelper.BorderThickness="0.75"
                         Checked="PlugItem_Checked"
+                        Click="PlugItem_Click"
                         Focusable="False"
                         GroupName="{Binding Index}"
                         IsChecked="{Binding IsSelected, Mode=TwoWay}"
                         IsHitTestVisible="True"
+                        MouseRightButtonUp="PlugItem_MouseRightButtonUp"
                         Style="{StaticResource D2StyleRadioButtonNoSelectedOverlay}" />
 
                     <Border
@@ -323,7 +325,7 @@
                         FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
                         FontSize="18"
                         Foreground="{StaticResource ForegroundColour100}"
-                        Text="{Binding SelectedPlug.Item.Name}" />
+                        Text="{Binding SelectedPlug.Item.Name, FallbackValue=None}" />
                 </StackPanel>
 
             </Grid>
@@ -1436,6 +1438,56 @@
                                                             </ItemsControl.ItemTemplate>
                                                         </ItemsControl>
                                                     </ScrollViewer>
+                                                </StackPanel>
+
+                                            </Expander>
+
+                                            <Expander
+                                                x:Name="ItemEmotesExpander"
+                                                Margin="0,3,0,3"
+                                                HorizontalAlignment="Stretch"
+                                                Background="Transparent"
+                                                Visibility="Collapsed">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Center"
+                                                            FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                            Text="Emotes" />
+
+                                                        <StackPanel
+                                                            Margin="15,0,15,0"
+                                                            Orientation="Vertical"
+                                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <RadioButton
+                                                                Margin="0"
+                                                                Click="InvestmentEmotesOrderBy_Click"
+                                                                Content="Name"
+                                                                GroupName="InvestmentEmoteSortBy"
+                                                                IsChecked="False"
+                                                                Tag="0" />
+                                                            <RadioButton
+                                                                Margin="0"
+                                                                Click="InvestmentEmotesOrderBy_Click"
+                                                                Content="Index"
+                                                                GroupName="InvestmentEmoteSortBy"
+                                                                IsChecked="True"
+                                                                Tag="1" />
+                                                        </StackPanel>
+
+                                                        <shared:SearchBar
+                                                            Width="150"
+                                                            Margin="5"
+                                                            Placeholder="Search emotes..."
+                                                            Text="{Binding EmoteSearch, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                                                    </StackPanel>
+                                                </Expander.Header>
+
+                                                <StackPanel Margin="10,0,0,0" Orientation="Vertical">
+                                                    <ContentControl x:Name="AllItemEmotes" ContentTemplate="{StaticResource SocketCategory}" />
                                                 </StackPanel>
 
                                             </Expander>
