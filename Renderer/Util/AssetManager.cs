@@ -484,21 +484,21 @@ public class AssetManager : IDisposable
         });
     }
 
-    public TextureAsset CreateFromPlate(TexturePlate plate)
+    public TextureAsset CreateFromPlate(TexturePlate plate, int canvasScale = 1)
     {
         if (plate is null)
             return null;
 
         using TigerReader reader = plate.GetReader();
-        var hashes = plate.TagData.PlateTransforms.Enumerate(reader).Select(x => x.Texture.Hash.Hash32).ToArray();
-        if (hashes.Length == 0)
+        var hashes = plate.TagData.PlateTransforms.Enumerate(reader).Select(x => x.Texture.Hash.Hash32).Append((uint)canvasScale).ToArray();
+        if (hashes.Length == 1)
             return null;
 
         uint outHash = Helpers.HashCombine(hashes);
 
         if (!_textureCache.TryGetValue(outHash, out var tex))
         {
-            tex = new(outHash, CreateFromScratchImage(GPU.Instance.ImmediateContext, plate.MakePlatedTexture()));
+            tex = new(outHash, CreateFromScratchImage(GPU.Instance.ImmediateContext, plate.MakePlatedTexture(canvasScale)));
             if (tex.SRV is not null)
                 tex.SRV.DebugName = $"Gear Plate {plate.Hash}";
 

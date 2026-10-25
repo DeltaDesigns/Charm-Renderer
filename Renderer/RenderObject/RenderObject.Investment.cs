@@ -45,10 +45,11 @@ public class InvestmentData : GpuResource
         if (parentResource.TexturePlates is not null && item.TagData.Unk90.GetValue(item.GetReader()) is S80807377)
         {
             S80806E1C plates = parentResource.TexturePlates.TagData;
-            DiffusePlate ??= AssetManager.Get().CreateFromPlate(plates.AlbedoPlate);
-            GStackPlate ??= AssetManager.Get().CreateFromPlate(plates.NormalPlate);
-            NormalPlate ??= AssetManager.Get().CreateFromPlate(plates.GStackPlate);
-            DyePlate ??= AssetManager.Get().CreateFromPlate(plates.DyemapPlate);
+            int canvasScale = plates.GetPlateCanvasScale();
+            DiffusePlate ??= AssetManager.Get().CreateFromPlate(plates.AlbedoPlate, canvasScale);
+            NormalPlate ??= AssetManager.Get().CreateFromPlate(plates.NormalPlate, canvasScale);
+            GStackPlate ??= AssetManager.Get().CreateFromPlate(plates.GStackPlate, canvasScale);
+            DyePlate ??= AssetManager.Get().CreateFromPlate(plates.DyemapPlate, canvasScale);
 
             CreateDefaultDyes(context, item);
             InvestmentBuffer = new Buffer(context.Device, new BufferDescription
@@ -189,8 +190,8 @@ public class InvestmentData : GpuResource
         RenderHelpers.Profile("Investment Dye Bind");
 
         renderer.Context.PixelShader.SetShaderResource(0, DiffusePlate?.SRV);
-        renderer.Context.PixelShader.SetShaderResource(1, GStackPlate?.SRV);
-        renderer.Context.PixelShader.SetShaderResource(2, NormalPlate?.SRV);
+        renderer.Context.PixelShader.SetShaderResource(1, NormalPlate?.SRV);
+        renderer.Context.PixelShader.SetShaderResource(2, GStackPlate?.SRV);
         renderer.Context.PixelShader.SetShaderResource(3, DyePlate?.SRV);
 
         if (_isChangingDyes || InvestmentDye0 is null)
