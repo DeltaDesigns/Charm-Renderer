@@ -13,8 +13,11 @@ public partial class RenderObject
     // Animation
     public bool IsPlaying = true;
     public bool LoopAnimation = true;
+    public bool AutoPlay;
+    public bool ReachedEnd { get; private set; }
     public float AnimationSpeed = 1f;
     public float LayerWeight = 0.5f;
+
 
     public bool IsAnimating => _skinning != null;
     public bool HasLayer => _layer != null;
@@ -26,6 +29,7 @@ public partial class RenderObject
         set
         {
             _time = Math.Max(0, value);
+            ReachedEnd = false;
             _poseDirty = true;
         }
     }
@@ -211,6 +215,7 @@ public partial class RenderObject
             _baseLoopRequest = null;
             _sequenceRequest = null;
         }
+        ReachedEnd = false;
     }
 
     public void PlaySequence(IReadOnlyList<AnimationStep> steps)
@@ -298,6 +303,7 @@ public partial class RenderObject
         }
 
         _time = 0;
+        ReachedEnd = false;
         _lastTimeFrame = -1;
         _lastUploadFrame = -1;
         _poseDirty = true;
@@ -449,7 +455,7 @@ public partial class RenderObject
         if (duration <= 0)
             return;
 
-        if (LoopAnimation)
+        if (LoopAnimation && !(AutoPlay && _sequence.Count == 0))
         {
             _time %= duration;
             if (_time < 0)
@@ -459,6 +465,7 @@ public partial class RenderObject
         {
             _time = duration;
             IsPlaying = false;
+            ReachedEnd = true;
         }
     }
 

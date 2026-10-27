@@ -811,6 +811,31 @@
                                                 </ToggleButton.Content>
                                             </ToggleButton>
 
+                                            <ToggleButton
+                                                x:Name="AnimationAutoPlayToggle"
+                                                Width="25"
+                                                Height="25"
+                                                Margin="5,0,0,0"
+                                                Checked="AnimationAutoPlayToggle_Changed"
+                                                IsChecked="False"
+                                                ToolTip="Autoplay"
+                                                Unchecked="AnimationAutoPlayToggle_Changed">
+
+                                                <ToggleButton.Content>
+                                                    <TextBlock
+                                                        Width="25"
+                                                        Height="25"
+                                                        Margin="0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontFamily="Segoe UI Symbol"
+                                                        FontSize="16"
+                                                        Foreground="White"
+                                                        Text="⇉"
+                                                        TextAlignment="Center" />
+                                                </ToggleButton.Content>
+                                            </ToggleButton>
+
                                             <ContentControl
                                                 x:Name="AnimationSpeedControl"
                                                 Margin="10,0,0,0"

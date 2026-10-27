@@ -37,8 +37,13 @@ public partial class RendererViewport
         if (!ReferenceEquals(target, _animationObject))
         {
             _animationObject = target;
+            if (target is not null)
+                target.AutoPlay = AnimationAutoPlayToggle.IsChecked == true;
             FillAnimationLists();
         }
+
+        if (target != null && target.AutoPlay && target.ReachedEnd && !target.IsPlaying)
+            StepAnimation(false);
 
         AnimationExpander.Visibility = target is null || target.GetAvailableAnimations().Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         ExportAnimationsExpander.Visibility = _exportAnimationsAvailable ? AnimationExpander.Visibility : Visibility.Collapsed;
@@ -318,6 +323,14 @@ public partial class RendererViewport
 
         _animationObject.LoopAnimation = AnimationLoopToggle.IsChecked == true;
         _animationObject.MarkPoseDirty();
+    }
+
+    private void AnimationAutoPlayToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingAnimationUI || _animationObject is null)
+            return;
+
+        _animationObject.AutoPlay = AnimationAutoPlayToggle.IsChecked == true;
     }
 
     private void AnimationTimeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
