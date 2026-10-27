@@ -19,7 +19,9 @@ public partial class RenderObject : GpuResource
     public RenderStageSubscription Stages;
     public bool Visible = true;
     public bool IsChild = false; // For entity children/attachments
+    public RenderObject? Owner;
 
+    // attachments, could maybe just use Owner now instead
     public RenderObject? AttachParent;
     public int AttachBone = -1;
 
@@ -109,6 +111,14 @@ public partial class RenderObject : GpuResource
             obj.Hash = entity.Hash;
             obj.Entity = entity;
             obj.MeshType = MeshType.Physics;
+            obj.RigidBoneCount = RigidBoneCount;
+
+            if (entity.Model is not null)
+            {
+                obj.Owner = this;
+                obj.AnimationSource = this;
+            }
+
             if (inventoryItem is not null)
                 obj.Investment = new(context, entity, inventoryItem);
 
@@ -137,6 +147,22 @@ public partial class RenderObject : GpuResource
 
         lock (world.WorldLock)
             world.RenderObjects.Enqueue(this);
+    }
+
+    private void FollowOwner()
+    {
+        if (Owner is null)
+            return;
+
+        IsChild = Owner.IsChild;
+        AttachParent = Owner.AttachParent;
+        AttachBone = Owner.AttachBone;
+        if (GlobalTransforms == Owner.GlobalTransforms && TransformOffset.Equals(Owner.TransformOffset))
+            return;
+
+        GlobalTransforms = Owner.GlobalTransforms;
+        TransformOffset = Owner.TransformOffset;
+        UpdateBoundingBox();
     }
 
     public void UpdateBoundingBox()
@@ -250,6 +276,7 @@ public partial class RenderObject : GpuResource
 
     public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
     {
+        FollowOwner();
         if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible || !Stages.IsSubscribed(renderStage))
             return;
 
@@ -308,6 +335,7 @@ public partial class RenderObject : GpuResource
 
     public void BindBasic(CharmRenderer renderer)
     {
+        FollowOwner();
         if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
             return;
 

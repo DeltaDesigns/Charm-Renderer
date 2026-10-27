@@ -57,8 +57,9 @@ public partial class RenderObject
         }
     }
 
-    private float[]? BoneRows => AnimationSource != null ? AnimationSource._boneRows : _boneRows;
-    private int PoseVersion => AnimationSource != null ? AnimationSource._poseVersion : _poseVersion;
+    private RenderObject PoseSource => AnimationSource?.PoseSource ?? this;
+    private float[]? BoneRows => PoseSource._boneRows;
+    private int PoseVersion => PoseSource._poseVersion;
 
     private SkinningFrames? _skinning;   // the clip that is playing
     private SkinningFrames? _layer;      // optional clip blended over it
@@ -391,7 +392,7 @@ public partial class RenderObject
         {
             AnimationSource.UpdateAnimation(renderer);
             foreach (var mesh in _meshes)
-                mesh.BoneRowsSRV = AnimationSource._boneSRV;
+                mesh.BoneRowsSRV = PoseSource._boneSRV;
             return;
         }
 
@@ -467,11 +468,12 @@ public partial class RenderObject
 
         UpdateAnimation(renderer);
 
-        if (_skinning == null || _boneRows == null || bone < 0 || (bone + 1) * SkinningFrames.FloatsPerBone > _boneRows.Length)
+        RenderObject posed = PoseSource;
+        if (posed._skinning == null || posed._boneRows == null || bone < 0 || (bone + 1) * SkinningFrames.FloatsPerBone > posed._boneRows.Length)
             return false;
 
         int o = bone * SkinningFrames.FloatsPerBone;
-        float[] r = _boneRows;
+        float[] r = posed._boneRows;
         motion = new System.Numerics.Matrix4x4(
             r[o + 0], r[o + 4], r[o + 8], 0,
             r[o + 1], r[o + 5], r[o + 9], 0,
@@ -484,7 +486,7 @@ public partial class RenderObject
     {
         var t = Bones[index].DefaultObjectSpaceTransform.Translation;
 
-        RenderObject posed = AnimationSource ?? this;
+        RenderObject posed = PoseSource;
         float[]? r = posed._boneRows;
         if (posed._skinning == null || r == null || (index + 1) * SkinningFrames.FloatsPerBone > r.Length)
             return (t.X, t.Y, t.Z);
