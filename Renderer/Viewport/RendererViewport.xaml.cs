@@ -109,11 +109,14 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         if (_isInitialized)
             return;
 
+        if (Renderer == null && (ActualWidth < 1 || ActualHeight < 1))
+            UpdateLayout();
+
         if (Renderer == null)
             Renderer = new CharmRenderer();
 
         Renderer.Viewport = this;
-        Renderer.Initialize((int)ActualWidth, (int)ActualHeight);
+        Renderer.Initialize(Math.Max(1, (int)ActualWidth), Math.Max(1, (int)ActualHeight));
         Renderer.Start();
         _isInitialized = true;
 
