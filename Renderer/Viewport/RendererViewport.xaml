@@ -477,17 +477,9 @@
                                 </StackPanel>
                             </Border>
 
-                            <ItemsControl x:Name="RenderOptions">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Margin="0" Orientation="Vertical" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
-
                             <!--  Render Pass box  -->
                             <Grid
-                                Margin="0,5,0,5"
+                                Margin="0,0,0,5"
                                 HorizontalAlignment="Stretch"
                                 Background="#75000000">
                                 <Grid.ColumnDefinitions>
@@ -516,6 +508,29 @@
                                     Style="{DynamicResource D2StyleComboBox}" />
                             </Grid>
 
+                            <Expander
+                                Margin="0,0,0,5"
+                                HorizontalAlignment="Stretch"
+                                Background="#75000000"
+                                KeyboardNavigation.DirectionalNavigation="None">
+                                <Expander.Header>
+                                    <TextBlock
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                        Text="Graphics" />
+                                </Expander.Header>
+
+                                <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
+                                    <ItemsControl x:Name="RenderOptions">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Margin="5" Orientation="Vertical" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </Border>
+                            </Expander>
 
                             <!--  Debug Options  -->
                             <Expander
@@ -1527,8 +1542,146 @@
 
                 </Expander>
             </StackPanel>
+        </Canvas>
 
+        <Canvas
+            x:Name="GlobalChannelsPanel"
+            Grid.ColumnSpan="2"
+            Visibility="Collapsed">
+            <StackPanel
+                shared:Draggable.ClampToParent="True"
+                shared:Draggable.Handle="{Binding ElementName=GlobalChannelsPanelDragHeader}"
+                shared:Draggable.InitialLeft="450"
+                shared:Draggable.InitialTop="25"
+                shared:Draggable.IsEnabled="True"
+                Background="#75000000">
+                <Border
+                    x:Name="GlobalChannelsPanelDragHeader"
+                    BorderBrush="#75000000"
+                    BorderThickness="5" />
 
+                <Expander
+                    HorizontalAlignment="Stretch"
+                    Background="Transparent"
+                    IsExpanded="True"
+                    KeyboardNavigation.DirectionalNavigation="None">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Foreground="White"
+                                Text="Global Channels" />
+
+                            <Button
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Panel.ZIndex="1"
+                                Click="ResetGlobalChannels_Click"
+                                Focusable="False"
+                                Style="{StaticResource D2StyleButtonNoOverlay}"
+                                Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=Expander}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock
+                                    Margin="0"
+                                    VerticalAlignment="Top"
+                                    FontSize="18"
+                                    Foreground="White"
+                                    Text="⟳" />
+                            </Button>
+                        </StackPanel>
+                    </Expander.Header>
+
+                    <Border BorderBrush="#759D9D9D" BorderThickness="0,1,0,0">
+                        <StackPanel Margin="5">
+                            <Grid Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Margin="0,0,10,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="White"
+                                    Text="Filter" />
+                                <TextBox
+                                    x:Name="GlobalChannelFilter"
+                                    Grid.Column="1"
+                                    VerticalContentAlignment="Center"
+                                    FontSize="14"
+                                    TextChanged="GlobalChannelFilter_TextChanged" />
+                            </Grid>
+
+                            <TextBlock
+                                x:Name="GlobalChannelsEmptyText"
+                                Margin="5"
+                                Foreground="#9D9D9D"
+                                Text="No global channels loaded"
+                                Visibility="Collapsed" />
+
+                            <ItemsControl
+                                x:Name="GlobalChannelsEditor"
+                                MaxHeight="600"
+                                Margin="5,0,10,5"
+                                VirtualizingPanel.IsVirtualizing="True"
+                                VirtualizingPanel.ScrollUnit="Pixel"
+                                VirtualizingPanel.VirtualizationMode="Recycling">
+
+                                <ItemsControl.Template>
+                                    <ControlTemplate TargetType="ItemsControl">
+                                        <ScrollViewer
+                                            CanContentScroll="True"
+                                            Focusable="False"
+                                            HorizontalScrollBarVisibility="Disabled"
+                                            VerticalScrollBarVisibility="Auto">
+                                            <ScrollViewer.Resources>
+                                                <Style BasedOn="{StaticResource VerticalScrollBarStyle}" TargetType="ScrollBar">
+                                                    <Setter Property="Width" Value="7" />
+                                                </Style>
+                                            </ScrollViewer.Resources>
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid
+                                            x:Name="Row"
+                                            Margin="0,2,0,2"
+                                            ToolTip="{Binding LockReason}"
+                                            ToolTipService.ShowOnDisabled="True">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="280" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                Margin="0,0,10,0"
+                                                VerticalAlignment="Center"
+                                                Foreground="White"
+                                                Text="{Binding Label}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <local:Vector4Editor Grid.Column="1" DataContext="{Binding Value}" />
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                                <Setter TargetName="Row" Property="IsEnabled" Value="False" />
+                                                <Setter TargetName="Row" Property="Opacity" Value="0.45" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </Expander>
+            </StackPanel>
         </Canvas>
 
         <Grid

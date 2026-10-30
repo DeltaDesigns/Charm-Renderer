@@ -15,7 +15,6 @@ using Tiger;
 using Tiger.Schema;
 using Transform = Tiger.Schema.Transform;
 using Vector4 = System.Numerics.Vector4;
-
 namespace Charm.Renderer;
 
 // TODO: Support multiple viewports in the same window/control?
@@ -141,6 +140,7 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 FPSCounter.Text = $"FPS: {Math.Floor(Renderer.FPS)}";
 
                 UpdateAnimationPanel();
+                UpdateGlobalChannelEditor();
 
                 if (AutoExposure)
                 {
@@ -355,31 +355,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             },
             new SliderSetting
             {
-                Text = "Time Scale",
-                Max = 25f,
-                GetValue = () => TimeScale,
-                SetValue = v => TimeScale = v
-            },
-            new SliderSetting
-            {
                 Text = "FOV",
                 Min = 30f,
                 Max = 110f,
                 GetValue = () => FOV,
                 SetValue = v => FOV = v
-            }
-        };
-        RenderOptions.ItemsSource = RenderSettings;
-
-        DebugSettings = new ObservableCollection<SettingItem>
-        {
-            new SliderSetting
-            {
-                Text = "Movement Speed",
-                Min = 0.1f,
-                Max = 5f,
-                GetValue = () => MovementSpeed,
-                SetValue = v => MovementSpeed = v
             },
             new SliderSetting
             {
@@ -397,6 +377,26 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                 IsInt = true,
                 GetValue = () => ScreenshotScale,
                 SetValue = v => ScreenshotScale = (int)v
+            },
+        };
+        RenderOptions.ItemsSource = RenderSettings;
+
+        DebugSettings = new ObservableCollection<SettingItem>
+        {
+            new SliderSetting
+            {
+                Text = "Time Scale",
+                Max = 25f,
+                GetValue = () => TimeScale,
+                SetValue = v => TimeScale = v
+            },
+            new SliderSetting
+            {
+                Text = "Movement Speed",
+                Min = 0.1f,
+                Max = 5f,
+                GetValue = () => MovementSpeed,
+                SetValue = v => MovementSpeed = v
             },
             new ToggleSetting
             {
@@ -422,6 +422,12 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
                     else
                         OverrideWarning.Visibility = Visibility.Hidden;
                 }
+            },
+            new ToggleSetting
+            {
+                Text = "Global Channel Editor",
+                GetValue = () => GlobalChannelEditor,
+                SetValue = SetGlobalChannelEditorVisible
             }
         };
         DebugOptions.ItemsSource = DebugSettings;

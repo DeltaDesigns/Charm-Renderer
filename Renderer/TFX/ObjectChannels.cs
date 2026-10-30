@@ -184,6 +184,10 @@ public class ObjectChannels
         SetObjectChannel(0x1FE35734, 0f);
         SetObjectChannel(0xB098C0D1, 0f);
         SetObjectChannel(0x2EBE1155, 0f);
+
+        // meatball
+        SetObjectChannel(0x7C82925B, 0f);
+        SetObjectChannel(0x597CA63, 0f);
     }
 
     public void ResetAllChannels()

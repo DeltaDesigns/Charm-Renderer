@@ -27,6 +27,15 @@ public class RendererGlobalChannels
         channelsByIndex = Channels.ToDictionary(c => c.Index);
         channelsById = Channels.ToDictionary(c => c.ID);
         channelsByName = Channels.ToDictionary(c => c.Name);
+
+        foreach (var channel in Channels)
+            channel.LoadedValue = channel.Value;
+    }
+
+    public void Reset()
+    {
+        foreach (var channel in Channels)
+            channel.Value = channel.LoadedValue;
     }
 
     public void CreateGlobalChannels(EntityComponent resource)
@@ -136,6 +145,7 @@ public class RendererGlobalChannels
         public System.Numerics.Vector4[] BytecodeConstants;
         public TfxBytecodeInterpreter InterpretedBytecode;
         public System.Numerics.Vector4 Value;
+        public System.Numerics.Vector4 LoadedValue;
         public bool IsDynamic = false;
 
         public GlobalChannel()
