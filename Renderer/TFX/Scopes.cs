@@ -53,7 +53,7 @@ public class TempScopes : GpuResource
             {
                 ScopeChunkModelTemp* dst = (ScopeChunkModelTemp*)box.DataPointer;
                 dst->MeshTransform = mesh.MeshTransform;
-                dst->UVTransform = new Vector4(mesh.MeshUVTransform.X, mesh.MeshUVTransform.Z, mesh.MeshUVTransform.W, mesh.MaxColorIndex);
+                dst->UVTransform = new Vector4(mesh.MeshUVTransform.X, mesh.MeshUVTransform.Z, mesh.MeshUVTransform.W, BitConverter.UInt32BitsToSingle((uint)mesh.MaxColorIndex));
 
                 for (int i = 0; i < transforms.Length; i++)
                 {
