@@ -9,7 +9,7 @@ namespace Charm.Renderer;
 
 public partial class CharmRenderer
 {
-    private int _exposureIndex = 0;
+    private int _exposureWriteIndex, _exposureReadIndex, _exposurePending;
     private float _addedDeltaTime;
     private readonly AutoExposureSystem _autoexposure = new AutoExposureSystem();
 
@@ -120,8 +120,13 @@ public partial class CharmRenderer
             CMD.States.SetDefaultState(Context, new(0, 0, 0, 0));
 
             RenderGlobalPipeline("autoexposure_sample_columns");
-            //Context.CopyResource(buffers.AutoExposureColumns.Texture, buffers.AutoExposureColumnsStaging);
-            Context.CopyResource(buffers.AutoExposureColumns.Texture, GBuffers.Bloom.ExposureStagings[_exposureIndex]);
+
+            if (_exposurePending < BloomBuffers.ExposureBufferCount)
+            {
+                Context.CopyResource(buffers.AutoExposureColumns.Texture, GBuffers.Bloom.ExposureStagings[_exposureWriteIndex]);
+                _exposureWriteIndex = (_exposureWriteIndex + 1) % BloomBuffers.ExposureBufferCount;
+                _exposurePending++;
+            }
             RenderHelpers.EndProfile();
         }
 
@@ -258,7 +263,8 @@ public partial class CharmRenderer
         RenderHelpers.EndProfile();
     }
 
-    private int _exposureFramesWritten = 0;
+    private Vector4[] _exposureColumns = Array.Empty<Vector4>();
+
     public void UpdateAutoexposure(float deltaTime)
     {
         if (IsBasic)
@@ -267,50 +273,23 @@ public partial class CharmRenderer
         if (_frameCounter > 0 && Viewport.AutoExposure && Viewport.RenderSky)
         {
             _addedDeltaTime += deltaTime;
-            if (_frameCounter % 2 != 0)
-                return;
-
-            if (_exposureFramesWritten < BloomBuffers.ExposureBufferCount)
-            {
-                Externs.Frame.ExposureScale = Viewport.Exposure;
-                _exposureFramesWritten++;
-                _exposureIndex = (_exposureIndex + 1) % BloomBuffers.ExposureBufferCount;
-                return;
-            }
-
             RenderHelpers.Profile("Auto Exposure Updating");
 
-            //var autoexposureColumns = GBuffers.Bloom.AutoExposureColumnsStaging;
-            //int columnCount = autoexposureColumns.Description.Width;
-
-            //DataBox mappedBuffer = GPU.Instance.ImmediateContext.MapSubresource(
-            //    autoexposureColumns, 0, MapMode.Read, MapFlags.None);
-
-            int index = (_exposureIndex + 1) % BloomBuffers.ExposureBufferCount;
-            var autoexposureColumns = GBuffers.Bloom.ExposureStagings[index];
-            int columnCount = autoexposureColumns.Description.Width;
-
-            DataBox mappedBuffer = GPU.Instance.ImmediateContext.MapSubresource(
-                autoexposureColumns, 0, MapMode.Read, MapFlags.None);
-
-            try
+            int columnCount = 0;
+            while (_exposurePending > 0 && TryReadExposureSample(GBuffers.Bloom.ExposureStagings[_exposureReadIndex], out int read))
             {
-                ReadOnlySpan<Vector4> data;
-                unsafe
-                {
-                    data = new ReadOnlySpan<Vector4>((void*)mappedBuffer.DataPointer, columnCount);
-                }
+                columnCount = read;
+                _exposureReadIndex = (_exposureReadIndex + 1) % BloomBuffers.ExposureBufferCount;
+                _exposurePending--;
+            }
 
-                ExposureResult exposureResult = _autoexposure.UpdateFromRaw(data, _addedDeltaTime);
+            if (columnCount > 0)
+            {
+                ExposureResult exposureResult = _autoexposure.UpdateFromRaw(_exposureColumns.AsSpan(0, columnCount), _addedDeltaTime);
                 Externs.Frame.ExposureScale = exposureResult.ExposureScale;
                 //Externs.Frame.ExposureIllumRelative = exposureResult.ExposureIllumRelative;
-            }
-            finally
-            {
-                GPU.Instance.ImmediateContext.UnmapSubresource(autoexposureColumns, 0);
                 _addedDeltaTime = 0.0f;
             }
-            _exposureIndex = (_exposureIndex + 1) % BloomBuffers.ExposureBufferCount;
             RenderHelpers.EndProfile();
         }
         else
@@ -318,6 +297,41 @@ public partial class CharmRenderer
             Externs.Frame.ExposureScale = Viewport.Exposure;
             _addedDeltaTime = 0.0f;
         }
+    }
+
+    private bool TryReadExposureSample(Texture2D staging, out int columnCount)
+    {
+        columnCount = 0;
+        var context = GPU.Instance.ImmediateContext;
+        DataBox mapped;
+        try
+        {
+            mapped = context.MapSubresource(staging, 0, MapMode.Read, MapFlags.DoNotWait);
+        }
+        catch (SharpDX.SharpDXException e) when (e.ResultCode == SharpDX.DXGI.ResultCode.WasStillDrawing)
+        {
+            return false;
+        }
+
+        if (mapped.IsEmpty)
+            return false;
+
+        try
+        {
+            columnCount = staging.Description.Width;
+            if (_exposureColumns.Length < columnCount)
+                _exposureColumns = new Vector4[columnCount];
+
+            unsafe
+            {
+                new ReadOnlySpan<Vector4>((void*)mapped.DataPointer, columnCount).CopyTo(_exposureColumns);
+            }
+        }
+        finally
+        {
+            context.UnmapSubresource(staging, 0);
+        }
+        return true;
     }
 }
 
@@ -406,7 +420,7 @@ public class AutoExposureSystem
             : Config.SpeedLightToDark;
 
         float blendFactor = 1.0f - MathF.Exp(-speed * deltaTime);
-        if (CurrentExposureScale == float.NaN) // has happened only once, no idea how??
+        if (float.IsNaN(CurrentExposureScale)) // has happened only once, no idea how??
             CurrentExposureScale = 0.5f;
 
         CurrentExposureScale = Lerp(CurrentExposureScale, target.ExposureScale, blendFactor);
