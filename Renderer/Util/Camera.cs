@@ -76,6 +76,20 @@ public class FirstPersonCamera
         UpdateVectors();
     }
 
+    public void FollowBone(Vector3 position, Quaternion rotation, float fov)
+    {
+        Position = position;
+        Forward = Vector3.Normalize(Vector3.Transform(Vector3.UnitX, rotation));
+        Up = Vector3.Normalize(Vector3.Transform(Vector3.UnitZ, rotation));
+        Right = Vector3.Normalize(Vector3.Cross(Forward, Up));
+        Pitch = Math.Clamp(MathF.Asin(Math.Clamp(Forward.Z, -1f, 1f)) * (180f / MathF.PI), -89f, 89f);
+        Yaw = MathF.Atan2(Forward.Y, Forward.X) * (180f / MathF.PI);
+        FOV = fov;
+
+        UpdateViewMatrix();
+        UpdateProjectionMatrix();
+    }
+
     public void UpdateViewMatrix()
     {
         WorldToCamera = Matrix4x4ButGood.LookAt(Position, Position + Forward, Up);

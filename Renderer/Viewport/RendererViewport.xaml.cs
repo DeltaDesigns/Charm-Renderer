@@ -64,6 +64,9 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     #region Object Options
     public ObservableCollection<SettingItem> ObjectSettings { get; set; }
     public bool ShowSkele { get; set; } = true;
+    public bool ShowFirstPerson { get; set; } = false;
+    public bool UseWeaponLayers { get; set; } = true;
+    public bool HandConstraints { get; set; } = true;
     public bool ShowBB { get; set; } = false;
     public bool ShowEntChildren { get; set; } = true;
     public SliderSetting MaterialPermutationOverride { get; set; }
@@ -91,6 +94,11 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
         CreateViewportControls();
         if (CharmRenderer.IsBasic)
             HideFullRendererControls();
+
+#if !DEBUG
+        AnimationHandIkToggle.Visibility = Visibility.Collapsed;
+        AnimationWeaponLayersToggle.Visibility = Visibility.Collapsed;
+#endif
 
         Unloaded += OnUnloaded;
         SizeChanged += OnSizeChanged;

@@ -43,7 +43,7 @@ public partial class RenderObject
     internal Entity? AnimationOwner => AnimationEntity ?? Entity;
 
     // the animation rig holds more bones than this object, the object's bones are the last ones (first person rig + weapon)
-    private bool AnimatesSubset => AnimationEntity?.Skeleton != null && Entity?.Skeleton != null
+    public bool AnimatesSubset => AnimationEntity?.Skeleton != null && Entity?.Skeleton != null
         && AnimationEntity.Skeleton.GetBoneNodes().Count != Entity.Skeleton.GetBoneNodes().Count;
 
     public bool CanAnimate
@@ -99,6 +99,13 @@ public partial class RenderObject
         _animations = null;
         _animationNames.Clear();
         _animationIndex = -1;
+        _utilityBone = -2;
+        lock (_trackLayersLock)
+        {
+            _layerContext = null;
+            _layerContextRead = false;
+            _trackClipFrames.Clear();
+        }
     }
 
     public IReadOnlyList<Tiger.Schema.Animation.Animation> GetAvailableAnimations()
@@ -188,8 +195,16 @@ public partial class RenderObject
         return _animations;
     }
 
-    public SkinningFrames? BuildAnimation(
-        Tiger.Schema.Animation.Animation animation)
+    public SkinningFrames? BuildAnimation(Tiger.Schema.Animation.Animation animation, int? row = null)
+    {
+        var frames = BuildClip(animation);
+        if (frames != null)
+            AttachTrackLayers(frames, animation, row);
+
+        return frames;
+    }
+
+    private SkinningFrames? BuildClip(Tiger.Schema.Animation.Animation animation)
     {
         if (!CanAnimate)
         {
@@ -200,10 +215,56 @@ public partial class RenderObject
         animation.LoadAnimation();
         Entity owner = AnimationOwner!;
         var frames = AnimatesSubset
-            ? AnimationSkinning.BuildWeapon(animation, owner.RuntimeRig!, owner.Skeleton!, Entity.Skeleton!)
+            ? AnimationSkinning.BuildWeapon(animation, owner.RuntimeRig!, owner.Skeleton!, Entity.Skeleton!, GetWeaponPoints())
             : AnimationSkinning.Build(animation, owner.RuntimeRig!, owner.Skeleton!);
+
         Log.Info($"Playing animation {animation.Hash}, {frames.FrameCount} frames");
         return frames;
+    }
+
+    private List<S808081A9>? _weaponPoints;
+
+    public List<Entity>? WeaponParts;
+
+    // the points the first person hands go on
+    private List<S808081A9> GetWeaponPoints()
+    {
+        if (_weaponPoints != null)
+            return _weaponPoints;
+
+        var parts = WeaponParts ?? (Entity != null ? new List<Entity> { Entity } : new List<Entity>());
+        _weaponPoints = Entity.MergeWeaponPoints(parts);
+        return _weaponPoints;
+    }
+
+    private bool DrawsFirstPersonRig(CharmRenderer renderer) => renderer.Viewport.ShowFirstPerson && AnimatesSubset && PoseSource._skinning != null;
+
+    private int _utilityBone = -2;
+    internal bool TryGetFirstPersonCamera(CharmRenderer renderer, out System.Numerics.Vector3 position, out System.Numerics.Quaternion rotation)
+    {
+        position = default;
+        rotation = System.Numerics.Quaternion.Identity;
+
+        UpdateAnimation(renderer);
+        if (!DrawsFirstPersonRig(renderer))
+            return false;
+
+        var frames = PoseSource._skinning!;
+        if (_utilityBone == -2)
+            _utilityBone = AnimationOwner?.Skeleton?.GetBoneNodes().FindIndex(x => x.Hash.Hash32 == 0x9EF0E980) ?? -1;
+
+        if (_utilityBone < 0 || _utilityBone >= frames.RigBoneCount)
+            return false;
+
+        var bone = frames.RigBoneTransform(_utilityBone);
+        var objectRotation = GlobalTransforms[0].Quaternion.ToQuat() * TransformOffset.Quaternion.ToQuat();
+        var objectPosition = GlobalTransforms[0].Position + TransformOffset.Position;
+        float scale = GlobalTransforms[0].Scale.X * TransformOffset.Scale.X;
+
+        position = System.Numerics.Vector3.Transform(bone.Translation * scale, objectRotation) + new System.Numerics.Vector3(objectPosition.X, objectPosition.Y, objectPosition.Z);
+        rotation = System.Numerics.Quaternion.Normalize(objectRotation * bone.Rotation);
+
+        return true;
     }
 
     public void SetAnimation(SkinningFrames? frames)
@@ -214,9 +275,177 @@ public partial class RenderObject
             _baseRequest = frames;
             _baseLoopRequest = null;
             _sequenceRequest = null;
+            _hasActionRequest = false;
         }
         ReachedEnd = false;
     }
+
+    #region Weapon layers
+    private readonly object _trackLayersLock = new();
+    private WeaponLayerContext? _layerContext;
+    private bool _layerContextRead;
+    private readonly Dictionary<FileHash, SkinningFrames?> _trackClipFrames = new();
+
+    private void AttachTrackLayers(SkinningFrames frames, Tiger.Schema.Animation.Animation animation, int? row)
+    {
+        if (!AnimatesSubset || WeaponAnimID == null || AnimationOwner == null)
+            return;
+
+        try
+        {
+            WeaponLayerContext? context;
+            lock (_trackLayersLock)
+            {
+                if (!_layerContextRead)
+                {
+                    _layerContextRead = true;
+                    _layerContext = WeaponLayerContext.Create(AnimationOwner, WeaponAnimID);
+                }
+                context = _layerContext;
+            }
+
+            if (context == null)
+                return;
+            row ??= context.RowOf(animation.Hash);
+
+            var clips = context.ForRow(row ?? -1);
+            List<(SkinningFrames Frames, WeaponLayerClip Layer)> layers = new();
+
+            foreach (var clip in clips)
+            {
+                if (TrackClipFrames(clip.Clip) is SkinningFrames built)
+                    layers.Add((built, clip));
+            }
+
+            frames.TrackLayers = layers.Count > 0 ? layers : null;
+        }
+        catch (Exception e)
+        {
+            Log.Warning($"Couldnt read the layer tracks of {animation.Hash}: {e.Message}");
+        }
+    }
+
+    private SkinningFrames? TrackClipFrames(Tiger.Schema.Animation.Animation clip)
+    {
+        lock (_trackLayersLock)
+        {
+            if (_trackClipFrames.TryGetValue(clip.Hash, out var cached))
+                return cached;
+        }
+
+        SkinningFrames? built = BuildClip(clip);
+        lock (_trackLayersLock)
+        {
+            _trackClipFrames.TryAdd(clip.Hash, built);
+            return _trackClipFrames[clip.Hash];
+        }
+    }
+    #endregion
+
+    #region Actions
+    private WeaponActions? _weaponActions;
+    private bool _weaponActionsRead;
+    private List<(SkinningFrames Frames, float Chance)>? _actionChoices;
+    private float _actionLoopBlend;
+    private bool _hasActionRequest;
+    private List<(SkinningFrames Frames, float Chance)>? _actionRequest;
+    private float _actionBlendRequest, _actionLoopBlendRequest;
+    private SkinningFrames? _fadeFrom;
+    private double _fadeFromTime, _fadeElapsed, _fadeDuration;
+    private readonly Random _actionRandom = new();
+
+    public bool IsPlayingAction => _actionChoices != null;
+
+    public WeaponActions? GetWeaponActions()
+    {
+        if (_weaponActionsRead)
+            return _weaponActions;
+
+        _weaponActionsRead = true;
+        if (!AnimatesSubset || WeaponAnimID == null || AnimationOwner?.Animations == null)
+            return null;
+
+        foreach (EntityAnimations animations in AnimationOwner.Animations)
+        {
+            try
+            {
+                var actions = animations.GetWeaponActions(WeaponAnimID);
+                if (actions?.Actions.Count > 0)
+                {
+                    _weaponActions = actions;
+                    break;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Warning($"Couldnt read the weapon actions: {e.Message}");
+            }
+        }
+        return _weaponActions;
+    }
+
+    public void PlayAction(List<(SkinningFrames Frames, float Chance)> choices, float blendIn, float loopBlend)
+    {
+        lock (_animationLock)
+        {
+            _hasActionRequest = true;
+            _actionRequest = choices;
+            _actionBlendRequest = blendIn;
+            _actionLoopBlendRequest = loopBlend;
+            _hasBaseRequest = false;
+        }
+        ReachedEnd = false;
+    }
+
+    private SkinningFrames PickActionClip()
+    {
+        var choices = _actionChoices!;
+        float total = choices.Sum(x => Math.Max(x.Chance, 0f));
+        float roll = (float)_actionRandom.NextDouble() * total;
+        foreach (var (frames, chance) in choices)
+        {
+            roll -= Math.Max(chance, 0f);
+            if (roll <= 0f)
+                return frames;
+        }
+        return choices[^1].Frames;
+    }
+
+    private void StartActionClip(CharmRenderer renderer, SkinningFrames next, float blend)
+    {
+        if (_skinning != null && blend > 0f)
+        {
+            _fadeFrom = _skinning;
+            _fadeFromTime = _time;
+            _fadeElapsed = 0;
+            _fadeDuration = blend;
+        }
+        else
+        {
+            _fadeFrom = null;
+        }
+
+        StartAnimation(renderer, next);
+        LoopAnimation = false;
+        IsPlaying = true;
+    }
+
+    private void UpdateFade(SkinningFrames frames, double deltaSeconds)
+    {
+        if (_fadeFrom != null)
+        {
+            _fadeElapsed += deltaSeconds;
+            _fadeFromTime += deltaSeconds;
+            if (_fadeElapsed >= _fadeDuration)
+                _fadeFrom = null;
+            _poseDirty = true;
+        }
+
+        frames.FadeFrom = _fadeFrom;
+        frames.FadeFromFrame = _fadeFrom == null ? 0 : _fadeFromTime * _fadeFrom.FrameRate;
+        frames.FadeAmount = _fadeFrom == null || _fadeDuration <= 0 ? 1f : (float)Math.Clamp(_fadeElapsed / _fadeDuration, 0, 1);
+    }
+    #endregion
 
     public void PlaySequence(IReadOnlyList<AnimationStep> steps)
     {
@@ -334,12 +563,21 @@ public partial class RenderObject
 
     private void ApplyAnimationRequests(CharmRenderer renderer)
     {
-        bool hasBase, hasLayer;
+        bool hasBase, hasLayer, hasAction;
         SkinningFrames? newBase, newLayer;
         bool? baseLoop;
         List<AnimationStep>? sequence;
+        List<(SkinningFrames Frames, float Chance)>? action;
+        float actionBlend, actionLoopBlend;
         lock (_animationLock)
         {
+            hasAction = _hasActionRequest;
+            action = _actionRequest;
+            actionBlend = _actionBlendRequest;
+            actionLoopBlend = _actionLoopBlendRequest;
+            _hasActionRequest = false;
+            _actionRequest = null;
+
             hasBase = _hasBaseRequest;
             hasLayer = _hasLayerRequest;
             newBase = _baseRequest;
@@ -352,8 +590,19 @@ public partial class RenderObject
             _sequenceRequest = null;
         }
 
+        if (hasAction)
+        {
+            _sequence.Clear();
+            _actionChoices = action is { Count: > 0 } ? action : null;
+            _actionLoopBlend = actionLoopBlend;
+            if (_actionChoices != null)
+                StartActionClip(renderer, PickActionClip(), actionBlend);
+        }
+
         if (hasBase)
         {
+            _actionChoices = null;
+            _fadeFrom = null;
             _sequence.Clear();
             if (newBase == null)
             {
@@ -394,6 +643,12 @@ public partial class RenderObject
 
     private void UpdateAnimation(CharmRenderer renderer)
     {
+        if (FirstPersonRigSource != null)
+        {
+            UpdateFirstPersonHands(renderer);
+            return;
+        }
+
         if (AnimationSource != null)
         {
             AnimationSource.UpdateAnimation(renderer);
@@ -420,6 +675,21 @@ public partial class RenderObject
                 LoopAnimation = next.Loop;
                 IsPlaying = true;
             }
+
+            if (_actionChoices != null && ReachedEnd)
+                StartActionClip(renderer, PickActionClip(), _actionLoopBlend);
+
+            UpdateFade(_skinning!, IsPlaying ? renderer.DeltaTime * AnimationSpeed : 0);
+        }
+
+        var viewport = renderer.Viewport;
+        if (_skinning.UseTrackLayers != viewport.UseWeaponLayers || _skinning.AnchorToRig != viewport.ShowFirstPerson
+            || _skinning.UseHandConstraints != viewport.HandConstraints)
+        {
+            _skinning.UseTrackLayers = viewport.UseWeaponLayers;
+            _skinning.AnchorToRig = viewport.ShowFirstPerson;
+            _skinning.UseHandConstraints = viewport.HandConstraints;
+            _poseDirty = true;
         }
 
         if (frameIndex == _lastUploadFrame && !_poseDirty)

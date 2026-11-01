@@ -267,12 +267,35 @@ public partial class CharmRenderer : IDisposable
 
     private void UpdateCamera()
     {
-        if (Camera is null || !IsAppFocused())
+        if (Camera is null)
+            return;
+
+        // first person
+        if (Viewport.ShowFirstPerson && FollowFirstPersonCamera())
+            return;
+
+        if (!IsAppFocused())
             return;
 
         RenderHelpers.Profile("Update Camera");
         Camera.Update(World, KeyboardState, MouseState, Viewport);
         RenderHelpers.EndProfile();
+    }
+
+    private bool FollowFirstPersonCamera()
+    {
+        lock (World.WorldLock)
+        {
+            foreach (RenderObject renderObject in World.RenderObjects)
+            {
+                if (renderObject.TryGetFirstPersonCamera(this, out var position, out var rotation))
+                {
+                    Camera.FollowBone(position, rotation, Viewport.FOV);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void UpdateExterns(float scale)

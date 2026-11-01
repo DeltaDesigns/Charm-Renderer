@@ -3,6 +3,7 @@ using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using Tiger;
 using Tiger.Schema;
+using Tiger.Schema.Animation;
 using Tiger.Schema.Entity;
 using Tiger.Schema.Investment;
 using Buffer = SharpDX.Direct3D11.Buffer;
@@ -198,6 +199,9 @@ public partial class RenderObject : GpuResource
 
         foreach (var part in parts)
         {
+            if (PartFilter != null && !PartFilter(part))
+                continue;
+
             if (CharmRenderer.IsBasic)
             {
                 var basicMesh = MeshPartData.CreateBasic(context.Device, part);
@@ -277,7 +281,7 @@ public partial class RenderObject : GpuResource
     public void Bind(CharmRenderer renderer, TfxRenderStage renderStage)
     {
         FollowOwner();
-        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible || !Stages.IsSubscribed(renderStage))
+        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !IsShown(renderer) || !Stages.IsSubscribed(renderStage))
             return;
 
         UpdateAnimation(renderer);
@@ -336,7 +340,7 @@ public partial class RenderObject : GpuResource
     public void BindBasic(CharmRenderer renderer)
     {
         FollowOwner();
-        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
+        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !IsShown(renderer))
             return;
 
         UpdateAnimation(renderer);
@@ -448,30 +452,28 @@ public partial class RenderObject : GpuResource
     public Buffer _skeletonVB;
     public void RenderSkeleton(CharmRenderer renderer)
     {
-        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !Visible)
+        if ((IsChild && !renderer.Viewport.ShowEntChildren) || !IsShown(renderer))
             return;
 
-        if (Bones is null || Bones.Count == 0)
+        if (Bones is null || Bones.Count == 0 || FirstPersonRigSource != null)
             return;
 
         UpdateAnimation(renderer);
 
+        if (DrawsFirstPersonRig(renderer))
+        {
+            if (renderer.Viewport.ShowSkele)
+                RenderFirstPersonRig(renderer);
+
+            return;
+        }
+
+        if (!renderer.Viewport.ShowSkele)
+            return;
+
         System.Numerics.Matrix4x4? attachment = null;
         if (AttachParent != null && AttachParent.TryGetBoneMotion(renderer, AttachBone, out System.Numerics.Matrix4x4 boneMotion))
             attachment = boneMotion;
-
-        if (_skeletonVB is null)
-        {
-            var vbDesc = new BufferDescription
-            {
-                Usage = ResourceUsage.Dynamic,
-                SizeInBytes = Utilities.SizeOf<Vector4>() * (Bones.Count * 2),
-                BindFlags = BindFlags.VertexBuffer,
-                CpuAccessFlags = CpuAccessFlags.Write
-            };
-
-            _skeletonVB = new Buffer(renderer.Device, vbDesc);
-        }
 
         Vector4[] lineVertices = new Vector4[Bones.Count * 2];
         int v = 0;
@@ -525,10 +527,28 @@ public partial class RenderObject : GpuResource
             }
         }
 
+        DrawLines(renderer, lineVertices, lineVertices.Length, new Vector4(1f, 0f, 0f, 1f), attachment);
+    }
+
+    private void DrawLines(CharmRenderer renderer, Vector4[] vertices, int count, Vector4 color, System.Numerics.Matrix4x4? attachment)
+    {
+        int size = Utilities.SizeOf<Vector4>() * Math.Max(vertices.Length, 1);
+        if (_skeletonVB is null || _skeletonVB.Description.SizeInBytes < size)
+        {
+            _skeletonVB?.Dispose();
+            _skeletonVB = new Buffer(renderer.Device, new BufferDescription
+            {
+                Usage = ResourceUsage.Dynamic,
+                SizeInBytes = size,
+                BindFlags = BindFlags.VertexBuffer,
+                CpuAccessFlags = CpuAccessFlags.Write
+            });
+        }
+
         DataBox dataBox = renderer.Context.MapSubresource(_skeletonVB, 0, MapMode.WriteDiscard, MapFlags.None);
         try
         {
-            Utilities.Write(dataBox.DataPointer, lineVertices, 0, lineVertices.Length);
+            Utilities.Write(dataBox.DataPointer, vertices, 0, count);
         }
         finally
         {
@@ -537,13 +557,45 @@ public partial class RenderObject : GpuResource
 
         renderer.TempScopes.UpdateRigidModelScopeCustom(renderer.Context, GlobalTransforms[0], TransformOffset, attachment);
 
-        Vector4 col = new(1f, 0f, 0f, 1f);
-        renderer.Context.UpdateSubresource(ref col, renderer._debugPSCB);
+        renderer.Context.UpdateSubresource(ref color, renderer._debugPSCB);
         renderer.Context.PixelShader.SetConstantBuffer(0, renderer._debugPSCB);
 
         renderer.Context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skeletonVB, Utilities.SizeOf<Vector4>(), 0));
         renderer.Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-        renderer.Context.Draw(lineVertices.Length, 0);
+        renderer.Context.Draw(count, 0);
+    }
+
+    private void RenderFirstPersonRig(CharmRenderer renderer)
+    {
+        SkinningFrames frames = PoseSource._skinning!;
+        int count = frames.RigBoneCount;
+
+        Vector4[] lineVertices = new Vector4[count * 2];
+        int v = 0;
+        for (int i = 0; i < count; i++)
+        {
+            var position = frames.RigBonePosition(i);
+            int parent = frames.RigParent(i);
+            if (parent >= 0)
+            {
+                var parentPosition = frames.RigBonePosition(parent);
+                lineVertices[v++] = new Vector4(position, 1);
+                lineVertices[v++] = new Vector4(parentPosition, 1);
+            }
+
+            renderer.RenderSphere(new Transform
+            {
+                Position = new Tiger.Schema.Vector3(position.X, position.Y, position.Z),
+                Scale = new(0.008f),
+                Quaternion = GlobalTransforms[0].Quaternion
+            }, new(0, 0.5f, 0.5f, 1), offset: new Transform
+            {
+                Position = GlobalTransforms[0].Position + TransformOffset.Position,
+                Quaternion = TransformOffset.Quaternion
+            });
+        }
+
+        DrawLines(renderer, lineVertices, v, new Vector4(0f, 1f, 1f, 1f), null);
     }
 
     public override void Dispose()

@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using Tiger.Schema.Animation;
+using Tiger.Schema.Entity;
 using Animation = Tiger.Schema.Animation.Animation;
 
 namespace Charm.Renderer;
@@ -82,12 +83,109 @@ public partial class RendererViewport
             AnimationLayerCombo.SelectedIndex = 0;
             AnimationStatusText.Text = "";
             FillExportAnimations();
+            FillActions();
+
+            bool firstPerson = _animationObject?.AnimatesSubset == true;
+            AnimationRigToggle.Visibility = firstPerson ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!firstPerson)
+                AnimationRigToggle.IsChecked = false;
         }
         finally
         {
             _updatingAnimationUI = false;
         }
     }
+
+    #region Actions
+    private WeaponAction? _playingAction;
+    private int _actionRequest;
+    private void FillActions()
+    {
+        var actions = _animationObject?.GetWeaponActions();
+        AnimationActionRow.Visibility = actions is { Actions.Count: > 1 } ? Visibility.Visible : Visibility.Collapsed;
+
+        var items = new List<ComboBoxItem> { new() { Content = "None", Tag = null } };
+        if (actions != null)
+        {
+            foreach (var action in actions.Actions.OrderBy(x => x.Name))
+                items.Add(new ComboBoxItem { Content = action.Name, Tag = action });
+        }
+
+        ActionCombo.ItemsSource = items;
+        ActionCombo.SelectedIndex = 0;
+        ActionSetCombo.ItemsSource = null;
+        _playingAction = null;
+    }
+
+    private void ActionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingAnimationUI)
+            return;
+
+        var action = (ActionCombo.SelectedItem as ComboBoxItem)?.Tag as WeaponAction;
+        _updatingAnimationUI = true;
+        try
+        {
+            ActionSetCombo.ItemsSource = action?.Sets.Select((set, i) => new ComboBoxItem
+            {
+                Content = $"{i + 1} ({set.Count})",
+                Tag = i,
+                ToolTip = string.Join(Environment.NewLine, set.Select(x => $"{x.Clip.Hash}: {x.Chance * 100:0.#}%")),
+            }).ToList();
+
+            ActionSetCombo.SelectedIndex = action == null ? -1 : 0;
+        }
+        finally
+        {
+            _updatingAnimationUI = false;
+        }
+
+        LoadSelectedAction();
+    }
+
+    private void ActionSetCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingAnimationUI)
+            return;
+
+        LoadSelectedAction();
+    }
+
+    private async void LoadSelectedAction()
+    {
+        RenderObject? target = _animationObject;
+        var actions = target?.GetWeaponActions();
+        if (target is null || actions is null)
+            return;
+
+        int request = ++_actionRequest;
+        if ((ActionCombo.SelectedItem as ComboBoxItem)?.Tag is not WeaponAction action || ActionSetCombo.SelectedItem is not ComboBoxItem { Tag: int set } || set >= action.Sets.Count)
+        {
+            if (_playingAction != null)
+                target.SetAnimation(null);
+
+            _playingAction = null;
+            return;
+        }
+
+        var choices = await Task.Run(() => action.Sets[set]
+            .Select(x => (Frames: target.BuildAnimation(x.Clip, x.Row), x.Chance))
+            .Where(x => x.Frames != null)
+            .Select(x => (x.Frames!, x.Chance))
+            .ToList());
+
+        if (request != _actionRequest || choices.Count == 0)
+            return;
+
+        float blendIn = actions.BlendTime(_playingAction, action);
+        float loopBlend = actions.BlendTime(action, action);
+
+        _playingAction = action;
+        target.IsPlaying = true;
+        target.PlayAction(choices, blendIn, loopBlend);
+    }
+    #endregion
 
     #region Export animations
     private bool _exportAnimationsAvailable;
@@ -331,6 +429,24 @@ public partial class RendererViewport
             return;
 
         _animationObject.AutoPlay = AnimationAutoPlayToggle.IsChecked == true;
+    }
+
+    private void AnimationRigToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        ShowFirstPerson = AnimationRigToggle.IsChecked == true;
+        FOV = 54;
+    }
+
+    private void AnimationHandIkToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        HandConstraints = AnimationHandIkToggle.IsChecked == true;
+        _animationObject?.MarkPoseDirty();
+    }
+
+    private void AnimationWeaponLayersToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        UseWeaponLayers = AnimationWeaponLayersToggle.IsChecked == true;
+        _animationObject?.MarkPoseDirty();
     }
 
     private void AnimationTimeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

@@ -694,6 +694,50 @@
 
                                     <StackPanel MinWidth="400" Margin="15,5,15,10">
                                         <Grid
+                                            x:Name="AnimationActionRow"
+                                            Margin="0,0,0,5"
+                                            HorizontalAlignment="Stretch"
+                                            Background="#75000000"
+                                            Visibility="Collapsed">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="25*" />
+                                                <ColumnDefinition Width="35*" />
+                                                <ColumnDefinition Width="15*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Margin="24,10,10,10"
+                                                Padding="0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="{DynamicResource Haas Grot Text 55 Roman}"
+                                                FontSize="16"
+                                                Text="Action"
+                                                TextWrapping="Wrap" />
+
+                                            <ComboBox
+                                                x:Name="ActionCombo"
+                                                Grid.Column="1"
+                                                Margin="5"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
+                                                Focusable="False"
+                                                IsReadOnly="False"
+                                                SelectionChanged="ActionCombo_SelectionChanged"
+                                                Style="{DynamicResource D2StyleComboBox}" />
+
+                                            <ComboBox
+                                                x:Name="ActionSetCombo"
+                                                Grid.Column="2"
+                                                Margin="5"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="1"
+                                                Focusable="False"
+                                                IsReadOnly="False"
+                                                SelectionChanged="ActionSetCombo_SelectionChanged"
+                                                Style="{DynamicResource D2StyleComboBox}" />
+                                        </Grid>
+
+                                        <Grid
                                             Margin="0,0,0,10"
                                             HorizontalAlignment="Stretch"
                                             Background="#75000000">
@@ -851,6 +895,78 @@
                                                 </ToggleButton.Content>
                                             </ToggleButton>
 
+                                            <ToggleButton
+                                                x:Name="AnimationRigToggle"
+                                                Width="25"
+                                                Height="25"
+                                                Margin="5,0,0,0"
+                                                Checked="AnimationRigToggle_Changed"
+                                                IsChecked="False"
+                                                Unchecked="AnimationRigToggle_Changed">
+
+                                                <ToggleButton.Content>
+                                                    <TextBlock
+                                                        Width="25"
+                                                        Height="25"
+                                                        Margin="0"
+                                                        Padding="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="White"
+                                                        Text="FP"
+                                                        TextAlignment="Center" />
+                                                </ToggleButton.Content>
+                                            </ToggleButton>
+
+                                            <ToggleButton
+                                                x:Name="AnimationHandIkToggle"
+                                                Width="25"
+                                                Height="25"
+                                                Margin="5,0,0,0"
+                                                Checked="AnimationHandIkToggle_Changed"
+                                                IsChecked="True"
+                                                Unchecked="AnimationHandIkToggle_Changed">
+
+                                                <ToggleButton.Content>
+                                                    <TextBlock
+                                                        Width="25"
+                                                        Height="25"
+                                                        Margin="0"
+                                                        Padding="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="White"
+                                                        Text="IK"
+                                                        TextAlignment="Center" />
+                                                </ToggleButton.Content>
+                                            </ToggleButton>
+
+                                            <ToggleButton
+                                                x:Name="AnimationWeaponLayersToggle"
+                                                Width="25"
+                                                Height="25"
+                                                Margin="5,0,0,0"
+                                                Checked="AnimationWeaponLayersToggle_Changed"
+                                                IsChecked="True"
+                                                Unchecked="AnimationWeaponLayersToggle_Changed">
+
+                                                <ToggleButton.Content>
+                                                    <TextBlock
+                                                        Width="25"
+                                                        Height="25"
+                                                        Margin="0"
+                                                        Padding="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="White"
+                                                        Text="WL"
+                                                        TextAlignment="Center" />
+                                                </ToggleButton.Content>
+                                            </ToggleButton>
+
                                             <ContentControl
                                                 x:Name="AnimationSpeedControl"
                                                 Margin="10,0,0,0"
@@ -944,7 +1060,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="60" />
                                                 <ColumnDefinition Width="150" />
-                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="50" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock
                                                 VerticalAlignment="Center"
@@ -974,6 +1090,7 @@
                                                 FontSize="12"
                                                 Opacity="0.7"
                                                 Text="0.50" />
+
                                         </Grid>
 
                                         <Expander

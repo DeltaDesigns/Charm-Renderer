@@ -118,6 +118,7 @@ public partial class CharmRenderer
             {
                 obj.AnimationEntity = animationEntity;
                 obj.WeaponAnimID = weaponAnimationTag;
+                obj.WeaponParts = entities.ToList();
                 animationSource = obj;
             }
             else
@@ -140,6 +141,8 @@ public partial class CharmRenderer
 
         // load player/ghost skele after so its additional meshes dont get included in the main bounding box
         LoadPlayerSkeleton(item);
+        if (weaponAnimations != null && animationSource != null)
+            LoadFirstPersonHands(animationSource);
 
         ShouldShowObjectChannels();
 
@@ -152,6 +155,27 @@ public partial class CharmRenderer
         {
             Viewport.AtmosRotation = 0.17f;
             Viewport.TimeOfDay = 0.635f;
+        }
+    }
+
+    private const ulong FirstPersonHandsHash = 0x95952E340F670000;
+    private void LoadFirstPersonHands(RenderObject weapon)
+    {
+        try
+        {
+            Entity hands = FileResourcer.Get().GetFile<Entity>(new FileHash(Hash64Map.Get().GetHash32Checked(FirstPersonHandsHash)));
+            EntityObjectChannels.AddObjectChannels(hands);
+            RenderObject obj = new()
+            {
+                FirstPersonRigSource = weapon,
+                PartFilter = part => part.GroupIndex != 0 && !(part.GroupIndex == 1 && part.Index == 1),
+            };
+
+            obj.Create(Context, World, hands);
+        }
+        catch (Exception e)
+        {
+            Log.Warning($"Couldnt load the first person hands: {e.Message}");
         }
     }
 
