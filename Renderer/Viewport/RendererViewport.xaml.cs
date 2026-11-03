@@ -66,11 +66,15 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
     public bool ShowSkele { get; set; } = true;
     public bool ShowFirstPerson { get; set; } = false;
     public bool UseWeaponLayers { get; set; } = true;
+    public float LayerWalkWeight { get; set; } = 0f;
+    public float LayerRunWeight { get; set; } = 0f;
+    public float LayerSprintWeight { get; set; } = 0f;
     public bool HandConstraints { get; set; } = true;
     public bool ShowBB { get; set; } = false;
     public bool ShowEntChildren { get; set; } = true;
     public SliderSetting MaterialPermutationOverride { get; set; }
     public ObservableCollection<SettingItem> GroupToggles { get; set; } = new();
+    public ObservableCollection<SettingItem> MovementSettings { get; set; }
 
     public SocketCategory AllShadersCategories { get; set; }
     public ObservableCollection<RendererShaderEntry> ItemShadersCategories { get; set; }
@@ -240,6 +244,47 @@ public partial class RendererViewport : UserControl, INotifyPropertyChanged, Sha
             },
         };
         AutoOrbitOptions.ItemsSource = AutoOrbitSettings;
+
+        MovementSettings = new ObservableCollection<SettingItem>
+        {
+            new SliderSetting
+            {
+                Text = "Walk",
+                IsResetable = true,
+                Margin = new(4,2,4,2),
+                GetValue = () => LayerWalkWeight,
+                SetValue = v =>
+                {
+                    LayerWalkWeight = v;
+                    _animationObject?.MarkPoseDirty();
+                }
+            },
+            new SliderSetting
+            {
+                Text = "Run",
+                IsResetable = true,
+                Margin = new(4,2,4,2),
+                GetValue = () => LayerRunWeight,
+                SetValue = v =>
+                {
+                    LayerRunWeight = v;
+                    _animationObject?.MarkPoseDirty();
+                }
+            },
+            new SliderSetting
+            {
+                Text = "Sprint",
+                IsResetable = true,
+                Margin = new(4,2,4,2),
+                GetValue = () => LayerSprintWeight,
+                SetValue = v =>
+                {
+                    LayerSprintWeight = v;
+                    _animationObject?.MarkPoseDirty();
+                }
+            },
+        };
+        AnimationMovementOptions.ItemsSource = MovementSettings;
 
         ShowGridButton.Content = new ToggleSetting
         {

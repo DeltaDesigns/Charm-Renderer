@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Windows;
 using Tiger;
 
 namespace Charm.Renderer;
@@ -36,6 +37,7 @@ public class SliderSetting : SettingItem, INotifyPropertyChanged
     public double Max { get; set; } = 1;
     public bool IsInt { get; set; } = false;
     public bool IsResetable { get; set; } = false;
+    public Thickness Margin { get; set; } = new(4);
 
     public Func<float> GetValue { get; set; }
     public Action<float> SetValue { get; set; }

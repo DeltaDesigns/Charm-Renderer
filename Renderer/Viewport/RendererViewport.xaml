@@ -73,7 +73,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type local:SliderSetting}">
-            <Grid Margin="4">
+            <Grid Margin="{Binding Margin, FallbackValue=4}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="25*" />
                     <ColumnDefinition Width="30" />
@@ -1026,6 +1026,28 @@
                                             Margin="0,5,0,10"
                                             Background="{DynamicResource ForegroundColour50}" />
 
+                                        <Expander
+                                            x:Name="AnimationLayerWeights"
+                                            Margin="0,0,0,5"
+                                            HorizontalAlignment="Stretch"
+                                            Background="#75000000"
+                                            ToolTip="First person walk, run and sprint bob layer weights">
+                                            <Expander.Header>
+                                                <TextBlock
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center"
+                                                    Text="Movement" />
+                                            </Expander.Header>
+
+                                            <ItemsControl x:Name="AnimationMovementOptions" Margin="10,5,10,5">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Vertical" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </Expander>
+
                                         <Grid
                                             Margin="0,0,0,0"
                                             HorizontalAlignment="Stretch"
@@ -1055,6 +1077,7 @@
                                                 SelectionChanged="AnimationLayerCombo_SelectionChanged"
                                                 Style="{DynamicResource D2StyleComboBox}" />
                                         </Grid>
+
 
                                         <Grid Margin="5,5,0,0" HorizontalAlignment="Left">
                                             <Grid.ColumnDefinitions>

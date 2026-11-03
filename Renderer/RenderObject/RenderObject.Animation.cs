@@ -93,10 +93,48 @@ public partial class RenderObject
         return _animationNames.GetValueOrDefault(animation.Hash);
     }
 
+    public sealed record AnimationEntry(Tiger.Schema.Animation.Animation Animation, int? Row, string? Name);
+
+    private List<AnimationEntry>? _animationEntries;
+
+    public IReadOnlyList<AnimationEntry> GetAnimationEntries()
+    {
+        if (_animationEntries != null)
+            return _animationEntries;
+
+        var animations = GetAvailableAnimations();
+        var context = GetLayerContext();
+
+        List<AnimationEntry> entries = new();
+        foreach (var animation in animations)
+        {
+            var found = context?.EntriesOf(animation.Hash).ToList() ?? new();
+            if (found.Count == 0)
+            {
+                entries.Add(new AnimationEntry(animation, null, _animationNames.GetValueOrDefault(animation.Hash)));
+                continue;
+            }
+
+            foreach (var entry in found)
+                entries.Add(new AnimationEntry(animation, entry.Row, entry.Names.Count > 0 ? entry.DisplayName : null));
+        }
+
+        _animationEntries = entries;
+        return entries;
+    }
+
+    // all the names a clip is played under
+    public string? GetAnimationLabel(Tiger.Schema.Animation.Animation animation)
+    {
+        var names = GetAnimationEntries().Where(x => x.Animation.Hash == animation.Hash && x.Name != null).Select(x => x.Name!).Distinct().ToList();
+        return names.Count > 0 ? string.Join(" | ", names) : null;
+    }
+
     // call after changing AnimationEntity or OverrideAnimations
     public void ResetAvailableAnimations()
     {
         _animations = null;
+        _animationEntries = null;
         _animationNames.Clear();
         _animationIndex = -1;
         _utilityBone = -2;
@@ -284,26 +322,30 @@ public partial class RenderObject
     private readonly object _trackLayersLock = new();
     private WeaponLayerContext? _layerContext;
     private bool _layerContextRead;
+    private readonly LayerInputs _layerInputs = new();
     private readonly Dictionary<FileHash, SkinningFrames?> _trackClipFrames = new();
+
+    private WeaponLayerContext? GetLayerContext()
+    {
+        if (!AnimatesSubset || WeaponAnimID == null || AnimationOwner == null)
+            return null;
+
+        lock (_trackLayersLock)
+        {
+            if (!_layerContextRead)
+            {
+                _layerContextRead = true;
+                _layerContext = WeaponLayerContext.Create(AnimationOwner, WeaponAnimID);
+            }
+            return _layerContext;
+        }
+    }
 
     private void AttachTrackLayers(SkinningFrames frames, Tiger.Schema.Animation.Animation animation, int? row)
     {
-        if (!AnimatesSubset || WeaponAnimID == null || AnimationOwner == null)
-            return;
-
         try
         {
-            WeaponLayerContext? context;
-            lock (_trackLayersLock)
-            {
-                if (!_layerContextRead)
-                {
-                    _layerContextRead = true;
-                    _layerContext = WeaponLayerContext.Create(AnimationOwner, WeaponAnimID);
-                }
-                context = _layerContext;
-            }
-
+            WeaponLayerContext? context = GetLayerContext();
             if (context == null)
                 return;
             row ??= context.RowOf(animation.Hash);
@@ -318,6 +360,7 @@ public partial class RenderObject
             }
 
             frames.TrackLayers = layers.Count > 0 ? layers : null;
+            frames.LayerInputs = _layerInputs;
         }
         catch (Exception e)
         {
@@ -477,7 +520,7 @@ public partial class RenderObject
     public void MarkPoseDirty() => _poseDirty = true;
     public int PlayNextAnimation(CharmRenderer renderer, bool previous = false, int? currentIndex = null)
     {
-        var animations = GetAvailableAnimations();
+        var animations = GetAnimationEntries();
         int count = animations.Count;
         if (count == 0)
             return -1;
@@ -492,12 +535,12 @@ public partial class RenderObject
         for (int attempt = 0; attempt < count; attempt++)
         {
             _animationIndex = ((_animationIndex + step) % count + count) % count;
-            var animation = animations[_animationIndex];
+            var entry = animations[_animationIndex];
 
-            SkinningFrames? frames = BuildAnimation(animation);
+            SkinningFrames? frames = BuildAnimation(entry.Animation, entry.Row);
             if (frames == null)
             {
-                Log.Warning($"Skipping animation {animation.Hash}");
+                Log.Warning($"Skipping animation {entry.Animation.Hash}");
                 continue;
             }
 
@@ -683,6 +726,14 @@ public partial class RenderObject
         }
 
         var viewport = renderer.Viewport;
+        if (_layerInputs.Walk != viewport.LayerWalkWeight || _layerInputs.Run != viewport.LayerRunWeight || _layerInputs.Sprint != viewport.LayerSprintWeight)
+        {
+            _layerInputs.Walk = viewport.LayerWalkWeight;
+            _layerInputs.Run = viewport.LayerRunWeight;
+            _layerInputs.Sprint = viewport.LayerSprintWeight;
+            _poseDirty = true;
+        }
+
         if (_skinning.UseTrackLayers != viewport.UseWeaponLayers || _skinning.AnchorToRig != viewport.ShowFirstPerson
             || _skinning.UseHandConstraints != viewport.HandConstraints)
         {

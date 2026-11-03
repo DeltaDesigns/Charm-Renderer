@@ -102,6 +102,10 @@ public partial class RendererViewport
     private int _actionRequest;
     private void FillActions()
     {
+        // could be useful later but a lot of actions just have 1 clip which can just be played from the anim list isntead
+        AnimationActionRow.Visibility = Visibility.Collapsed;
+        return;
+
         var actions = _animationObject?.GetWeaponActions();
         AnimationActionRow.Visibility = actions is { Actions.Count: > 1 } ? Visibility.Visible : Visibility.Collapsed;
 
@@ -202,7 +206,7 @@ public partial class RendererViewport
             for (int i = 0; i < animations.Count; i++)
             {
                 var anim = animations[i];
-                string label = _animationObject.GetAnimationName(anim) ?? anim.Hash.ToString();
+                string label = _animationObject.GetAnimationLabel(anim) ?? anim.Hash.ToString();
                 var toggle = new AnimationToggleVM(anim.Hash, $"{i + 1}: {label} - {anim.TagData.LayerType}", !Tiger.Exporters.AnimationExportSelection.IsExcluded(owner.Hash, anim.Hash));
                 toggle.CheckedChanged += () => Tiger.Exporters.AnimationExportSelection.SetExcluded(owner.Hash, toggle.Hash, !toggle.IsChecked);
                 toggle.CheckedChanged += UpdateExportAnimationsCount;
@@ -280,12 +284,11 @@ public partial class RendererViewport
         if (_animationObject is null)
             return items;
 
-        var animations = _animationObject.GetAvailableAnimations();
-        for (int i = 0; i < animations.Count; i++)
+        var entries = _animationObject.GetAnimationEntries();
+        for (int i = 0; i < entries.Count; i++)
         {
-            string? name = _animationObject.GetAnimationName(animations[i]);
-            string label = name != null ? $"{name}" : animations[i].Hash.ToString();
-            items.Add(new ComboBoxItem { Content = $"{i + 1}: {label}-{animations[i].TagData.LayerType}", Tag = animations[i] });
+            string label = entries[i].Name ?? entries[i].Animation.Hash.ToString();
+            items.Add(new ComboBoxItem { Content = $"{i + 1}: {label}-{entries[i].Animation.TagData.LayerType}", Tag = entries[i] });
         }
 
         return items;
@@ -314,7 +317,7 @@ public partial class RendererViewport
             return;
 
         int request = ++_animationRequest;
-        if (AnimationCombo.SelectedItem is not ComboBoxItem { Tag: Animation animation })
+        if (AnimationCombo.SelectedItem is not ComboBoxItem { Tag: RenderObject.AnimationEntry entry })
         {
             target.SetAnimation(null);
             AnimationStatusText.Text = "";
@@ -323,7 +326,7 @@ public partial class RendererViewport
 
         var frames = await Task.Run(() =>
         {
-            SkinningFrames? built = target.BuildAnimation(animation);
+            SkinningFrames? built = target.BuildAnimation(entry.Animation, entry.Row);
             return built;
         });
 
@@ -344,7 +347,7 @@ public partial class RendererViewport
             return;
 
         int request = ++_layerRequest;
-        if (AnimationLayerCombo.SelectedItem is not ComboBoxItem { Tag: Animation animation })
+        if (AnimationLayerCombo.SelectedItem is not ComboBoxItem { Tag: RenderObject.AnimationEntry entry })
         {
             target.SetLayer(null);
             return;
@@ -352,7 +355,7 @@ public partial class RendererViewport
 
         var frames = await Task.Run(() =>
         {
-            SkinningFrames? built = target.BuildAnimation(animation);
+            SkinningFrames? built = target.BuildAnimation(entry.Animation, entry.Row);
             return built;
         });
 
